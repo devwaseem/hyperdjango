@@ -10,6 +10,7 @@ from django.urls import path
 from django.views import View
 
 from hyperdjango.routing.graph import make_route_key
+from hyperdjango.routing.parser import RouteSegment
 from hyperdjango.routing.loader import (
     find_layout_class,
     find_page_class,
@@ -88,7 +89,7 @@ def compile_routes(routes_dir: Path, *, url_prefix: str = "") -> list[CompiledRo
             CompiledRoute(
                 django_path=route_path,
                 page_class=effective_page_class,
-                view_name=_view_name(route_file.page_file),
+                view_name=_view_name(route_file.segments, page_class),
             )
         )
         seen_paths[key.path] = (key.shape, route_file.page_file, display_path)
@@ -116,9 +117,23 @@ def _module_name(file_path: Path) -> str:
     return f"hyperdjango.dynamic.{file_path.stem}.{digest}"
 
 
-def _view_name(file_path: Path) -> str:
-    name = "_".join(file_path.parts[-3:]).replace(".py", "")
-    return f"hyper_{name}"
+def _view_name(segments: list[RouteSegment], page_class: type[Any]) -> str:
+    custom_name = getattr(page_class, "route_name", None)
+    if isinstance(custom_name, str) and custom_name.strip():
+        return custom_name.strip()
+
+    parts: list[str] = []
+    for segment in segments:
+        if segment.kind in {"group", "index"}:
+            continue
+        if segment.kind == "catchall":
+            parts.append(f"path_{segment.name}")
+            continue
+        parts.append(segment.name)
+
+    if not parts:
+        return "hyper_index"
+    return f"hyper_{'_'.join(parts)}"
 
 
 def _segments_from_route(route: str):

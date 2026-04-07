@@ -38,6 +38,10 @@ class PageView(BaseLayout):
                     "url": "/template-card",
                     "label": "Template package used from custom Django view",
                 },
+                {
+                    "url": "/plain-django-view",
+                    "label": "File-routed PageView using plain django.views.View",
+                },
                 {"url": "/profile", "label": "Django form enhanced with hyper-form"},
             ],
         }

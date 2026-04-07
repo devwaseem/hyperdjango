@@ -25,6 +25,7 @@ This example is an end-to-end Django app wired to `hyperdjango`.
 - `/signals` -> `hyper/routes/signals/page.py`
 - `/profile` -> `hyper/routes/profile/page.py`
 - `/template-card` -> custom URL + `hyper/templates/profile_card/page.py`
+- `/plain-django-view` -> `hyper/routes/plain-django-view/page.py` (`django.views.View`)
 
 ## Run
 
@@ -65,3 +66,4 @@ Open `http://127.0.0.1:8000/`.
 5. `/signals` demonstrates `count` (local) vs `$count` (global store) patching.
 6. `/profile` returns server-rendered validation errors and success partials.
 7. `/template-card` renders a `PageTemplate` from a custom Django view (no file route).
+8. `/plain-django-view` demonstrates file route resolution with plain `django.views.View`.

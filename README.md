@@ -207,6 +207,8 @@ HyperDjango exposes helpers globally and as Alpine magics:
 - `routes/docs/[...path]/page.py` -> `/docs/<path:path>`
 - `routes/(marketing)/pricing/page.py` -> `/pricing`
 
+Reverse URL names are generated automatically (for example `routes/blog/[slug]/page.py` -> `hyper_blog_slug`) and can be overridden per page with `route_name` on `PageView`.
+
 ## Template Tags
 
 Load tags:
@@ -230,6 +232,7 @@ Available tags:
 
 - [Docs Index](docs/index.md)
 - [Installation](docs/installation.md)
+- [Migration 0.3 -> 0.4](docs/guides/migration-0.3-to-0.4.md)
 - [Migration 0.2 -> 0.3](docs/guides/migration-0.2-to-0.3.md)
 - [Custom Base Template](docs/guides/custom-base-template.md)
 - [Vite Production Build](docs/guides/vite-production-build.md)

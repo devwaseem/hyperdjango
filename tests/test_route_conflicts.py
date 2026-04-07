@@ -74,3 +74,21 @@ def test_route_page_uses_pageview_name_only(tmp_path: Path) -> None:
     compiled = compile_routes(routes_dir)
     assert len(compiled) == 1
     assert compiled[0].django_path == "home"
+
+
+def test_route_view_name_defaults_and_custom_override(tmp_path: Path) -> None:
+    routes_dir = tmp_path / "frontend" / "routes"
+    _write(
+        routes_dir / "blog" / "[slug]" / "page.py",
+        """class PageView:\n    pass\n""",
+    )
+    _write(
+        routes_dir / "docs" / "[...path]" / "page.py",
+        """class PageView:\n    route_name = \"docs_custom\"\n""",
+    )
+
+    compiled = compile_routes(routes_dir)
+    by_path = {item.django_path: item.view_name for item in compiled}
+
+    assert by_path["blog/<slug>"] == "hyper_blog_slug"
+    assert by_path["docs/<path:path>"] == "docs_custom"

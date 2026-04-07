@@ -16,6 +16,7 @@ from hyperdjango.routing.compiler import build_route_view
 def test_page_is_backward_compatible_hyperview() -> None:
     assert issubclass(Page, HyperView)
     assert issubclass(HyperView, PageTemplate)
+    assert issubclass(HyperView, View)
 
 
 def test_hyperview_registers_actions() -> None:

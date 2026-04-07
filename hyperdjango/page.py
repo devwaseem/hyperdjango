@@ -7,6 +7,7 @@ from typing import Any, Generator, cast
 
 from django.http import HttpRequest
 from django.template import RequestContext, loader
+from django.views import View
 from render_block import render_block_to_string
 
 from hyperdjango.actions import ActionResult
@@ -280,10 +281,10 @@ class HyperActionMixin:
         )
 
 
-class HyperView(PageTemplate, HyperActionMixin):
+class HyperView(PageTemplate, HyperActionMixin, View):
     _actions: dict[str, Any] = {}
 
-    def dispatch(self, request: HttpRequest, **params: Any):
+    def dispatch(self, request: HttpRequest, *args: Any, **params: Any):
         return dispatch_page(self, request, **params)
 
     def get(self, request: HttpRequest, **params: Any) -> dict[str, Any]:

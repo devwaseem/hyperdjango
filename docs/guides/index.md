@@ -6,6 +6,7 @@ Use these guides to understand feature behavior end-to-end and adopt HyperDjango
 :maxdepth: 1
 
 ../installation
+migration-0.3-to-0.4
 migration-0.2-to-0.3
 custom-base-template
 vite-production-build

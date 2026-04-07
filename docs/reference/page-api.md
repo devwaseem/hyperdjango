@@ -26,7 +26,7 @@ Adds:
 
 Use this for routed pages under `hyper/routes/**/page.py`.
 
-When a routed `PageView` subclasses Django `View`, route dispatch uses `as_view()` so `self.request` and normal Django CBV setup are available.
+`HyperView` subclasses Django `View`, so routed pages get normal CBV setup (`self.request`, `args`, `kwargs`) via `as_view()`.
 
 ## `HyperActionMixin`
 

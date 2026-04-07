@@ -4,7 +4,7 @@ HyperDjango discovers every `page.py` under `HYPER_FRONTEND_DIR/routes` and maps
 
 Each route module must define a class named `PageView`.
 
-For routed page behavior, `PageView` should inherit `HyperView`.
+For Hyper features, `PageView` should inherit `HyperView`. For plain Django behavior, `PageView` can subclass `django.views.View`.
 
 This routing model keeps route intent in the filesystem and reduces URLconf drift. You keep Django views/classes, with a predictable structure similar to file-routed frameworks.
 
@@ -56,3 +56,37 @@ Use `python manage.py hyper_routes` in CI to catch conflicts early.
 ## Route Order
 
 Compiled routes are sorted by specificity so static paths win before dynamic/catch-all matches.
+
+## URL Reverse Names
+
+HyperDjango assigns a Django URL `name` for each compiled route, so you can use Django `reverse()`.
+
+Default naming:
+
+- root (`/`) -> `hyper_index`
+- `blog/[slug]` -> `hyper_blog_slug`
+- `docs/[...path]` -> `hyper_docs_path_path`
+
+Usage:
+
+```python
+from django.urls import reverse
+
+reverse("hyper_blog_slug", kwargs={"slug": "hello"})
+```
+
+Custom route name:
+
+```python
+from hyperdjango.page import HyperView
+
+
+class PageView(HyperView):
+    route_name = "blog_detail"
+```
+
+Then:
+
+```python
+reverse("blog_detail", kwargs={"slug": "hello"})
+```
