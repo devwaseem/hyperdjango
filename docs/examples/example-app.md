@@ -10,6 +10,8 @@ What it demonstrates:
 - local and global signals (`/signals`)
 - composite segment matching (`/account/reset/<uidb36>-<key>`)
 - literal+param regex segment (`/regex/<kind>-v<version>`)
+- typed dynamic segment (`/typed/<str:slug>`)
+- inline regex token segment (`/regex-inline/<uidb36>-<key>`)
 - template package rendered by custom Django view (`/template-card`)
 - file-routed `PageView` subclassing plain `django.views.View` (`/plain-django-view`)
 - sync behavior for live interactions (`/search`)

@@ -13,7 +13,9 @@ This routing model keeps route intent in the filesystem and reduces URLconf drif
 - `index` -> path passthrough (no URL segment)
 - `about` -> static segment (`about`)
 - `[slug]` -> dynamic segment (`<slug>`)
+- `[str:slug]` (or portable `[str__slug]`) -> typed dynamic segment (`<str:slug>`)
 - `[...path]` -> catch-all segment (`<path:path>`)
+- `[uid:[0-9A-Za-z]+]` (or portable `[uid__[0-9A-Za-z]+]`) -> inline regex dynamic segment
 - `[uid]-[key]` -> composite/regex segment in one path part
 - `(group)` -> route group (ignored in URL path)
 
@@ -22,8 +24,10 @@ This routing model keeps route intent in the filesystem and reduces URLconf drif
 - `routes/index/page.py` -> `/`
 - `routes/account/index/page.py` -> `/account`
 - `routes/blog/[slug]/page.py` -> `/blog/<slug>`
+- `routes/blog/[str__slug]/page.py` -> `/blog/<str:slug>`
 - `routes/docs/[...path]/page.py` -> `/docs/<path:path>`
 - `routes/accounts/reset/[uidb36]-[key]/page.py` -> `/accounts/reset/<uidb36>-<key>`
+- `routes/account/reset/[uidb36__[0-9A-Za-z]+]-[key__.+]/page.py` -> regex-constrained reset path
 - `routes/(marketing)/pricing/page.py` -> `/pricing`
 
 ## Composite (Regex) Segments
@@ -49,6 +53,9 @@ Notes:
 
 - composite segments are detected automatically from mixed `[param]` + literals
 - they use `re_path(...)` internally
+- inline regex can be used as `[name:regex]` or portable `[name__regex]`
+- typed dynamics can be used as `[converter:name]` or portable `[converter__name]`
+- on filesystems where `:` is inconvenient, use the `__` forms
 - catch-all (`[...path]`) cannot be mixed inside a composite segment
 
 ## Nested Layouts

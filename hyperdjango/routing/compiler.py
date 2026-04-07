@@ -153,6 +153,12 @@ def _view_name(segments: list[RouteSegment], page_class: type[Any]) -> str:
         if segment.kind == "catchall":
             parts.append(f"path_{segment.name}")
             continue
+        if segment.kind == "pattern":
+            if segment.param_names:
+                parts.extend(segment.param_names)
+            else:
+                parts.append("pattern")
+            continue
         parts.append(segment.name)
 
     if not parts:

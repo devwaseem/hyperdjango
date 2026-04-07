@@ -1,0 +1,15 @@
+{% extends "layouts/base/index.html" %}
+
+{% block page %}
+    <section>
+        <h1>{{ title }}</h1>
+        <p>
+            This route uses inline regex token syntax with portable separator:
+            <code>[uidb36__[0-9A-Za-z]+]-[key__.+]</code>
+        </p>
+        <ul>
+            <li>uidb36: <code>{{ uidb36 }}</code></li>
+            <li>key: <code>{{ key }}</code></li>
+        </ul>
+    </section>
+{% endblock page %}

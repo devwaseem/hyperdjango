@@ -37,6 +37,14 @@ class PageView(BaseLayout):
                     "url": "/regex/release-v42",
                     "label": "Regex segment: regex/[kind]-v[version]",
                 },
+                {
+                    "url": "/typed/hello-world",
+                    "label": "Typed dynamic: typed/[str__slug]",
+                },
+                {
+                    "url": "/regex-inline/A1b2c3-reset-token-xyz",
+                    "label": "Inline regex: regex-inline/[uidb36__[0-9A-Za-z]+]-[key__.+]",
+                },
                 {"url": "/pricing", "label": "Route group: (marketing)/pricing"},
                 {"url": "/dashboard", "label": "Nested layout: dashboard/index"},
                 {"url": "/dashboard/settings", "label": "Nested layout + static child"},

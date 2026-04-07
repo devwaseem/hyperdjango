@@ -112,3 +112,26 @@ def test_pattern_segment_compiles_regex_route(tmp_path: Path) -> None:
     assert len(compiled) == 1
     assert compiled[0].django_path == "reset/[uidb36]-[key]"
     assert compiled[0].regex_path == "^reset/(?P<uidb36>[^/]+)\\-(?P<key>[^/]+)$"
+
+
+def test_inline_regex_segment_compiles_regex_route(tmp_path: Path) -> None:
+    routes_dir = tmp_path / "frontend" / "routes"
+    _write(
+        routes_dir / "reset" / "[uidb36__[0-9A-Za-z]+]-[key__.+]" / "page.py",
+        PAGE_TEMPLATE,
+    )
+
+    compiled = compile_routes(routes_dir)
+
+    assert len(compiled) == 1
+    assert compiled[0].regex_path == "^reset/(?P<uidb36>[0-9A-Za-z]+)\\-(?P<key>.+)$"
+
+
+def test_typed_dynamic_segment_path_output(tmp_path: Path) -> None:
+    routes_dir = tmp_path / "frontend" / "routes"
+    _write(routes_dir / "blog" / "[str__slug]" / "page.py", PAGE_TEMPLATE)
+
+    compiled = compile_routes(routes_dir)
+
+    assert len(compiled) == 1
+    assert compiled[0].django_path == "blog/<str:slug>"
