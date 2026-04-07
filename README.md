@@ -230,6 +230,7 @@ Available tags:
 
 - [Docs Index](docs/index.md)
 - [Installation](docs/installation.md)
+- [Migration 0.2 -> 0.3](docs/guides/migration-0.2-to-0.3.md)
 - [Custom Base Template](docs/guides/custom-base-template.md)
 - [Vite Production Build](docs/guides/vite-production-build.md)
 - [Template Packages](docs/guides/template-packages.md)
