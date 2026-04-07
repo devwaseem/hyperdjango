@@ -1,0 +1,237 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Form Attributes Reference &mdash; HyperDjango  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Swap and Sync Reference" href="swap-and-sync.html" />
+    <link rel="prev" title="Loading Reference" href="loading.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            HyperDjango
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Guides</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../guides/index.html">Guides</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../config-reference.html">Config Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="navigation.html">Navigation Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="loading.html">Loading Reference</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Form Attributes Reference</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#hyper-form"><code class="docutils literal notranslate"><span class="pre">hyper-form</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#hyper-action"><code class="docutils literal notranslate"><span class="pre">hyper-action</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#hyper-target"><code class="docutils literal notranslate"><span class="pre">hyper-target</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#hyper-swap"><code class="docutils literal notranslate"><span class="pre">hyper-swap</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#hyper-sync"><code class="docutils literal notranslate"><span class="pre">hyper-sync</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#hyper-key"><code class="docutils literal notranslate"><span class="pre">hyper-key</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#hyper-form-disable"><code class="docutils literal notranslate"><span class="pre">hyper-form-disable</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#hyper-focus"><code class="docutils literal notranslate"><span class="pre">hyper-focus</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#hyper-transition"><code class="docutils literal notranslate"><span class="pre">hyper-transition</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#timing-attributes">Timing Attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#hyper-strict-targets"><code class="docutils literal notranslate"><span class="pre">hyper-strict-targets</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#example">Example</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="swap-and-sync.html">Swap and Sync Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="action-response.html">Action Response Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../events.html">Events</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">Examples and Cookbook</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">HyperDjango</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Reference</a></li>
+      <li class="breadcrumb-item active">Form Attributes Reference</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/reference/forms-attributes.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="form-attributes-reference">
+<h1>Form Attributes Reference<a class="headerlink" href="#form-attributes-reference" title="Link to this heading"></a></h1>
+<p>These attributes apply to forms using <code class="docutils literal notranslate"><span class="pre">hyper-form</span></code>.</p>
+<section id="hyper-form">
+<h2><code class="docutils literal notranslate"><span class="pre">hyper-form</span></code><a class="headerlink" href="#hyper-form" title="Link to this heading"></a></h2>
+<p>Enables Hyper form submission flow.</p>
+<ul class="simple">
+<li><p>keeps Django form validation/rendering server-side</p></li>
+<li><p>supports partial swaps, sync, transitions, loading controls</p></li>
+</ul>
+</section>
+<section id="hyper-action">
+<h2><code class="docutils literal notranslate"><span class="pre">hyper-action</span></code><a class="headerlink" href="#hyper-action" title="Link to this heading"></a></h2>
+<p>Sets action name for form submission.</p>
+<ul class="simple">
+<li><p>fallback: hidden input <code class="docutils literal notranslate"><span class="pre">_action</span></code></p></li>
+</ul>
+</section>
+<section id="hyper-target">
+<h2><code class="docutils literal notranslate"><span class="pre">hyper-target</span></code><a class="headerlink" href="#hyper-target" title="Link to this heading"></a></h2>
+<p>Target selector for form response swap.</p>
+</section>
+<section id="hyper-swap">
+<h2><code class="docutils literal notranslate"><span class="pre">hyper-swap</span></code><a class="headerlink" href="#hyper-swap" title="Link to this heading"></a></h2>
+<p>Swap mode for form response target.</p>
+<p>Allowed values:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">inner</span></code>, <code class="docutils literal notranslate"><span class="pre">outer</span></code>, <code class="docutils literal notranslate"><span class="pre">before</span></code>, <code class="docutils literal notranslate"><span class="pre">after</span></code>, <code class="docutils literal notranslate"><span class="pre">prepend</span></code>, <code class="docutils literal notranslate"><span class="pre">append</span></code>, <code class="docutils literal notranslate"><span class="pre">delete</span></code>, <code class="docutils literal notranslate"><span class="pre">none</span></code></p></li>
+</ul>
+</section>
+<section id="hyper-sync">
+<h2><code class="docutils literal notranslate"><span class="pre">hyper-sync</span></code><a class="headerlink" href="#hyper-sync" title="Link to this heading"></a></h2>
+<p>Request sync behavior.</p>
+<p>Allowed values:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">replace</span></code>: replace in-flight request in same key</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">block</span></code>: ignore new request while one is active</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">none</span></code>: no sync coordination</p></li>
+</ul>
+<p>For <code class="docutils literal notranslate"><span class="pre">hyper-form</span></code>, default is <code class="docutils literal notranslate"><span class="pre">block</span></code>.</p>
+</section>
+<section id="hyper-key">
+<h2><code class="docutils literal notranslate"><span class="pre">hyper-key</span></code><a class="headerlink" href="#hyper-key" title="Link to this heading"></a></h2>
+<p>Sync group key.</p>
+<ul class="simple">
+<li><p>fallback: action name</p></li>
+</ul>
+</section>
+<section id="hyper-form-disable">
+<h2><code class="docutils literal notranslate"><span class="pre">hyper-form-disable</span></code><a class="headerlink" href="#hyper-form-disable" title="Link to this heading"></a></h2>
+<p>Applies disable scope to form controls while request is active.</p>
+</section>
+<section id="hyper-focus">
+<h2><code class="docutils literal notranslate"><span class="pre">hyper-focus</span></code><a class="headerlink" href="#hyper-focus" title="Link to this heading"></a></h2>
+<p>Post-swap focus policy.</p>
+<p>Allowed values:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">preserve</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">first-invalid</span></code></p></li>
+<li><p>CSS selector</p></li>
+</ul>
+</section>
+<section id="hyper-transition">
+<h2><code class="docutils literal notranslate"><span class="pre">hyper-transition</span></code><a class="headerlink" href="#hyper-transition" title="Link to this heading"></a></h2>
+<p>Enables View Transitions for this form interaction.</p>
+</section>
+<section id="timing-attributes">
+<h2>Timing Attributes<a class="headerlink" href="#timing-attributes" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">hyper-swap-delay</span></code>: delay before swap (ms)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hyper-settle-delay</span></code>: delay for settle phase (ms)</p></li>
+</ul>
+</section>
+<section id="hyper-strict-targets">
+<h2><code class="docutils literal notranslate"><span class="pre">hyper-strict-targets</span></code><a class="headerlink" href="#hyper-strict-targets" title="Link to this heading"></a></h2>
+<p>Enables strict target enforcement for this form request.</p>
+</section>
+<section id="example">
+<h2>Example<a class="headerlink" href="#example" title="Link to this heading"></a></h2>
+<div class="highlight-html notranslate"><div class="highlight"><pre><span></span><span class="p">&lt;</span><span class="nt">form</span>
+  <span class="na">method</span><span class="o">=</span><span class="s">&quot;post&quot;</span>
+  <span class="na">action</span><span class="o">=</span><span class="s">&quot;/profile&quot;</span>
+  <span class="na">hyper-form</span>
+  <span class="na">hyper-action</span><span class="o">=</span><span class="s">&quot;save_profile&quot;</span>
+  <span class="na">hyper-target</span><span class="o">=</span><span class="s">&quot;#profile-panel&quot;</span>
+  <span class="na">hyper-swap</span><span class="o">=</span><span class="s">&quot;outer&quot;</span>
+  <span class="na">hyper-sync</span><span class="o">=</span><span class="s">&quot;block&quot;</span>
+  <span class="na">hyper-key</span><span class="o">=</span><span class="s">&quot;profile-save&quot;</span>
+  <span class="na">hyper-focus</span><span class="o">=</span><span class="s">&quot;first-invalid&quot;</span>
+  <span class="na">hyper-form-disable</span>
+<span class="p">&gt;</span>
+  {% csrf_token %}
+  <span class="p">&lt;</span><span class="nt">input</span> <span class="na">type</span><span class="o">=</span><span class="s">&quot;hidden&quot;</span> <span class="na">name</span><span class="o">=</span><span class="s">&quot;_action&quot;</span> <span class="na">value</span><span class="o">=</span><span class="s">&quot;save_profile&quot;</span> <span class="p">/&gt;</span>
+  ...
+<span class="p">&lt;/</span><span class="nt">form</span><span class="p">&gt;</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="loading.html" class="btn btn-neutral float-left" title="Loading Reference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="swap-and-sync.html" class="btn btn-neutral float-right" title="Swap and Sync Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

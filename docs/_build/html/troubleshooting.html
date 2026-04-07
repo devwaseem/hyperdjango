@@ -1,0 +1,209 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Troubleshooting &mdash; HyperDjango  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Production Checklist" href="production-checklist.html" />
+    <link rel="prev" title="Forms" href="forms.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            HyperDjango
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Guides</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="guides/index.html">Guides</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="routing.html">Routing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pages-and-actions.html">Pages and Actions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="signals.html">Signals</a></li>
+<li class="toctree-l2"><a class="reference internal" href="runtime-reference.html">Runtime Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="forms.html">Forms</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Troubleshooting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#action-returns-full-page-on-back-forward">Action returns full page on back/forward</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#target-swap-does-nothing">Target swap does nothing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#csrf-failures-on-post-actions-forms">CSRF failures on POST actions/forms</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#hyper-nav-not-triggering"><code class="docutils literal notranslate"><span class="pre">hyper-nav</span></code> not triggering</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#view-transition-not-visible">View transition not visible</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#duplicate-or-stale-form-fragments-after-swaps">Duplicate or stale form fragments after swaps</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#route-conflict-error-at-startup">Route conflict error at startup</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="production-checklist.html">Production Checklist</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="reference/index.html">Reference</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="examples/index.html">Examples and Cookbook</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">HyperDjango</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="guides/index.html">Guides</a></li>
+      <li class="breadcrumb-item active">Troubleshooting</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/troubleshooting.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="troubleshooting">
+<h1>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Link to this heading"></a></h1>
+<p>This guide shortens the feedback loop when integrating progressive interactions. It focuses on failure modes teams hit most often in production rollouts.</p>
+<section id="action-returns-full-page-on-back-forward">
+<h2>Action returns full page on back/forward<a class="headerlink" href="#action-returns-full-page-on-back-forward" title="Link to this heading"></a></h2>
+<p>Symptoms:</p>
+<ul class="simple">
+<li><p>popstate shows partial/action payload instead of full page shell</p></li>
+</ul>
+<p>Checks:</p>
+<ul class="simple">
+<li><p>ensure you are using Hyper action responses with no-cache headers</p></li>
+<li><p>verify reverse proxy/CDN is not caching action endpoints</p></li>
+</ul>
+</section>
+<section id="target-swap-does-nothing">
+<h2>Target swap does nothing<a class="headerlink" href="#target-swap-does-nothing" title="Link to this heading"></a></h2>
+<p>Symptoms:</p>
+<ul class="simple">
+<li><p>action succeeds but DOM is unchanged</p></li>
+</ul>
+<p>Checks:</p>
+<ul class="simple">
+<li><p>confirm target selector exists at swap time</p></li>
+<li><p>enable strict mode (<code class="docutils literal notranslate"><span class="pre">hyper-strict-targets=&quot;true&quot;</span></code>) to surface missing selectors</p></li>
+<li><p>ensure returned HTML is non-empty for swap modes that require HTML</p></li>
+</ul>
+</section>
+<section id="csrf-failures-on-post-actions-forms">
+<h2>CSRF failures on POST actions/forms<a class="headerlink" href="#csrf-failures-on-post-actions-forms" title="Link to this heading"></a></h2>
+<p>Checks:</p>
+<ul class="simple">
+<li><p>keep Django CSRF middleware enabled</p></li>
+<li><p>include <code class="docutils literal notranslate"><span class="pre">{%</span> <span class="pre">csrf_token</span> <span class="pre">%}</span></code> in forms</p></li>
+<li><p>ensure CSRF cookie is present for authenticated pages</p></li>
+<li><p>if using CSP/meta-only flow, expose <code class="docutils literal notranslate"><span class="pre">meta[name='csrf-token']</span></code></p></li>
+</ul>
+</section>
+<section id="hyper-nav-not-triggering">
+<h2><code class="docutils literal notranslate"><span class="pre">hyper-nav</span></code> not triggering<a class="headerlink" href="#hyper-nav-not-triggering" title="Link to this heading"></a></h2>
+<p>Checks:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">hyper-nav</span></code> is opt-in; add it to link/form</p></li>
+<li><p>ensure element does not include <code class="docutils literal notranslate"><span class="pre">hyper-no-nav</span></code></p></li>
+<li><p>external URLs, downloads, and modified-clicks intentionally bypass enhancement</p></li>
+</ul>
+</section>
+<section id="view-transition-not-visible">
+<h2>View transition not visible<a class="headerlink" href="#view-transition-not-visible" title="Link to this heading"></a></h2>
+<p>Checks:</p>
+<ul class="simple">
+<li><p>browser must support <code class="docutils literal notranslate"><span class="pre">document.startViewTransition</span></code></p></li>
+<li><p>action/call must set <code class="docutils literal notranslate"><span class="pre">transition:</span> <span class="pre">true</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hyper-view-name</span></code> only labels transition parts; it does not enable transitions alone</p></li>
+</ul>
+</section>
+<section id="duplicate-or-stale-form-fragments-after-swaps">
+<h2>Duplicate or stale form fragments after swaps<a class="headerlink" href="#duplicate-or-stale-form-fragments-after-swaps" title="Link to this heading"></a></h2>
+<p>Checks:</p>
+<ul class="simple">
+<li><p>keep IDs unique in replaced fragments</p></li>
+<li><p>prefer stable container target (for example <code class="docutils literal notranslate"><span class="pre">#profile-panel</span></code>) for <code class="docutils literal notranslate"><span class="pre">outer</span></code>/<code class="docutils literal notranslate"><span class="pre">inner</span></code> swaps</p></li>
+<li><p>avoid returning nested duplicate roots for the same target</p></li>
+</ul>
+</section>
+<section id="route-conflict-error-at-startup">
+<h2>Route conflict error at startup<a class="headerlink" href="#route-conflict-error-at-startup" title="Link to this heading"></a></h2>
+<p>Checks:</p>
+<ul class="simple">
+<li><p>inspect <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">manage.py</span> <span class="pre">hyper_routes</span></code></p></li>
+<li><p>remove equivalent route shapes (for example <code class="docutils literal notranslate"><span class="pre">[slug]</span></code> and <code class="docutils literal notranslate"><span class="pre">[id]</span></code> in same path level)</p></li>
+<li><p>remove group-colliding paths (<code class="docutils literal notranslate"><span class="pre">(group)/x</span></code> vs <code class="docutils literal notranslate"><span class="pre">x</span></code>)</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="forms.html" class="btn btn-neutral float-left" title="Forms" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="production-checklist.html" class="btn btn-neutral float-right" title="Production Checklist" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

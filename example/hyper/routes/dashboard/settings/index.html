@@ -1,0 +1,12 @@
+{% extends "layouts/dashboard/index.html" %}
+
+{% block dashboard_page %}
+<div>
+  <h2>Settings</h2>
+  <ul>
+    {% for item in settings %}
+      <li>{{ item }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock dashboard_page %}

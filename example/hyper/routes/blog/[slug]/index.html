@@ -1,0 +1,24 @@
+{% extends "layouts/base/index.html" %}
+
+{% block page %}
+<article
+  x-data="{ bookmarked: false }"
+  x-on:hyper:signals.window="if ($event.detail.bookmarks && $event.detail.bookmarks['{{ slug }}'] !== undefined) bookmarked = $event.detail.bookmarks['{{ slug }}']"
+>
+  <h1>{{ title_text }}</h1>
+  <p>Dynamic slug: <code>{{ slug }}</code></p>
+
+  <button
+    type="button"
+    x-on:click="$get('bookmark')"
+  >
+    Bookmark
+  </button>
+
+  <p>
+    Saved: <strong x-text="bookmarked ? 'yes' : 'no'"></strong>
+  </p>
+
+  <p><a href="/">Back home</a></p>
+</article>
+{% endblock page %}

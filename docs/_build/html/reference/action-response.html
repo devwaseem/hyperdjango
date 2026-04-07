@@ -1,0 +1,197 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Action Response Reference &mdash; HyperDjango  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Events" href="../events.html" />
+    <link rel="prev" title="Swap and Sync Reference" href="swap-and-sync.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            HyperDjango
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Guides</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../guides/index.html">Guides</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../config-reference.html">Config Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="navigation.html">Navigation Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="loading.html">Loading Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="forms-attributes.html">Form Attributes Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="swap-and-sync.html">Swap and Sync Reference</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Action Response Reference</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#core-fields">Core Fields</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ux-fields">UX Fields</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#data-and-multi-region-fields">Data and Multi-Region Fields</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#history-fields">History Fields</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#safety-fields">Safety Fields</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#example">Example</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../events.html">Events</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">Examples and Cookbook</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">HyperDjango</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Reference</a></li>
+      <li class="breadcrumb-item active">Action Response Reference</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/reference/action-response.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="action-response-reference">
+<h1>Action Response Reference<a class="headerlink" href="#action-response-reference" title="Link to this heading"></a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">Page.action_response(...)</span></code> returns an <code class="docutils literal notranslate"><span class="pre">ActionResult</span></code> payload consumed by the Hyper runtime.</p>
+<section id="core-fields">
+<h2>Core Fields<a class="headerlink" href="#core-fields" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">html</span></code>: response fragment for target swap</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">target</span></code>: CSS selector for target swap</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">swap</span></code>: swap mode</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">status</span></code>: HTTP status code</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">headers</span></code>: custom response headers</p></li>
+</ul>
+</section>
+<section id="ux-fields">
+<h2>UX Fields<a class="headerlink" href="#ux-fields" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">toast</span></code> / <code class="docutils literal notranslate"><span class="pre">toasts</span></code>: emits <code class="docutils literal notranslate"><span class="pre">hyper:toast</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">focus</span></code>: post-swap focus policy</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">transition</span></code>: enables View Transition when supported</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">swap_delay</span></code>: delay before swap (ms)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">settle_delay</span></code>: settle delay (ms)</p></li>
+</ul>
+</section>
+<section id="data-and-multi-region-fields">
+<h2>Data and Multi-Region Fields<a class="headerlink" href="#data-and-multi-region-fields" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">signals</span></code>: state patch payload</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">oob</span></code>: out-of-band DOM operations</p></li>
+</ul>
+</section>
+<section id="history-fields">
+<h2>History Fields<a class="headerlink" href="#history-fields" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">push_url</span></code>: push browser history entry</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">replace_url</span></code>: replace current history entry</p></li>
+</ul>
+</section>
+<section id="safety-fields">
+<h2>Safety Fields<a class="headerlink" href="#safety-fields" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">strict_targets</span></code>: fail when target is missing</p></li>
+</ul>
+</section>
+<section id="example">
+<h2>Example<a class="headerlink" href="#example" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">action_response</span><span class="p">(</span>
+    <span class="n">html</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">render_block</span><span class="p">(</span>
+        <span class="n">request</span><span class="o">=</span><span class="n">request</span><span class="p">,</span>
+        <span class="n">block_name</span><span class="o">=</span><span class="s2">&quot;save_profile&quot;</span><span class="p">,</span>
+        <span class="n">context_updates</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;form&quot;</span><span class="p">:</span> <span class="n">form</span><span class="p">},</span>
+    <span class="p">),</span>
+    <span class="n">target</span><span class="o">=</span><span class="s2">&quot;#profile-panel&quot;</span><span class="p">,</span>
+    <span class="n">swap</span><span class="o">=</span><span class="s2">&quot;outer&quot;</span><span class="p">,</span>
+    <span class="n">focus</span><span class="o">=</span><span class="s2">&quot;first-invalid&quot;</span><span class="p">,</span>
+    <span class="n">transition</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">swap_delay</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span>
+    <span class="n">settle_delay</span><span class="o">=</span><span class="mi">120</span><span class="p">,</span>
+    <span class="n">toast</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;success&quot;</span><span class="p">,</span> <span class="s2">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;Saved&quot;</span><span class="p">},</span>
+    <span class="n">signals</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;profile&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;dirty&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">}},</span>
+    <span class="n">oob</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;#flash&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;swap&quot;</span><span class="p">:</span> <span class="s2">&quot;inner&quot;</span><span class="p">,</span> <span class="s2">&quot;html&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;p&gt;Saved&lt;/p&gt;&quot;</span><span class="p">}},</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="swap-and-sync.html" class="btn btn-neutral float-left" title="Swap and Sync Reference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../events.html" class="btn btn-neutral float-right" title="Events" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

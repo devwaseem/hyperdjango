@@ -1,0 +1,18 @@
+{% extends "layouts/base/index.html" %}
+
+{% block page %}
+<section>
+  <header>
+    <h1>Dashboard area</h1>
+    <nav>
+      <a href="/dashboard">Overview</a>
+      <span> | </span>
+      <a href="/dashboard/settings">Settings</a>
+    </nav>
+  </header>
+
+  <hr />
+
+  {% block dashboard_page %}{% endblock dashboard_page %}
+</section>
+{% endblock page %}

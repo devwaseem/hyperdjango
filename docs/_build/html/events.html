@@ -1,0 +1,334 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Events &mdash; HyperDjango  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Examples and Cookbook" href="examples/index.html" />
+    <link rel="prev" title="Config Reference" href="config-reference.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            HyperDjango
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Guides</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="guides/index.html">Guides</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="reference/index.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="config-reference.html">Config Reference</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Events</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#request-lifecycle">Request Lifecycle</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#hyper-beforerequest"><code class="docutils literal notranslate"><span class="pre">hyper:beforeRequest</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hyper-requestsuccess"><code class="docutils literal notranslate"><span class="pre">hyper:requestSuccess</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hyper-requesterror"><code class="docutils literal notranslate"><span class="pre">hyper:requestError</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hyper-requestexception"><code class="docutils literal notranslate"><span class="pre">hyper:requestException</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hyper-afterrequest"><code class="docutils literal notranslate"><span class="pre">hyper:afterRequest</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#sync-and-cancellation">Sync and Cancellation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#hyper-requestblocked"><code class="docutils literal notranslate"><span class="pre">hyper:requestBlocked</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hyper-requestreplaced"><code class="docutils literal notranslate"><span class="pre">hyper:requestReplaced</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hyper-requestaborted"><code class="docutils literal notranslate"><span class="pre">hyper:requestAborted</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#swap-and-transition">Swap and Transition</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#hyper-swap-start"><code class="docutils literal notranslate"><span class="pre">hyper:swap:start</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hyper-swap-end"><code class="docutils literal notranslate"><span class="pre">hyper:swap:end</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hyper-settle-end"><code class="docutils literal notranslate"><span class="pre">hyper:settle:end</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hyper-transition-start"><code class="docutils literal notranslate"><span class="pre">hyper:transition:start</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hyper-transition-end"><code class="docutils literal notranslate"><span class="pre">hyper:transition:end</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#data-and-notifications">Data and Notifications</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#hyper-signals"><code class="docutils literal notranslate"><span class="pre">hyper:signals</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hyper-toast"><code class="docutils literal notranslate"><span class="pre">hyper:toast</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#form-events">Form Events</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#hyper-form-beforesubmit"><code class="docutils literal notranslate"><span class="pre">hyper:form:beforeSubmit</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hyper-form-success"><code class="docutils literal notranslate"><span class="pre">hyper:form:success</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hyper-form-blocked"><code class="docutils literal notranslate"><span class="pre">hyper:form:blocked</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hyper-form-aborted"><code class="docutils literal notranslate"><span class="pre">hyper:form:aborted</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hyper-form-error"><code class="docutils literal notranslate"><span class="pre">hyper:form:error</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#convenience-request-state-events">Convenience Request State Events</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#hyper-request-start"><code class="docutils literal notranslate"><span class="pre">hyper:request:start</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hyper-request-end"><code class="docutils literal notranslate"><span class="pre">hyper:request:end</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#example-listener">Example Listener</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="examples/index.html">Examples and Cookbook</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">HyperDjango</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="reference/index.html">Reference</a></li>
+      <li class="breadcrumb-item active">Events</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/events.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="events">
+<h1>Events<a class="headerlink" href="#events" title="Link to this heading"></a></h1>
+<p>HyperDjango emits browser events on <code class="docutils literal notranslate"><span class="pre">window</span></code> for request lifecycle, transitions, signals, and forms.</p>
+<p>Events let apps integrate analytics, observability, and UI libraries (toasts, progress bars, logging) without forking runtime behavior.</p>
+<section id="request-lifecycle">
+<h2>Request Lifecycle<a class="headerlink" href="#request-lifecycle" title="Link to this heading"></a></h2>
+<section id="hyper-beforerequest">
+<h3><code class="docutils literal notranslate"><span class="pre">hyper:beforeRequest</span></code><a class="headerlink" href="#hyper-beforerequest" title="Link to this heading"></a></h3>
+<p>Triggered right before <code class="docutils literal notranslate"><span class="pre">fetch()</span></code> starts for a Hyper request.</p>
+<p>Typical use:</p>
+<ul class="simple">
+<li><p>request logging</p></li>
+<li><p>per-request instrumentation</p></li>
+</ul>
+</section>
+<section id="hyper-requestsuccess">
+<h3><code class="docutils literal notranslate"><span class="pre">hyper:requestSuccess</span></code><a class="headerlink" href="#hyper-requestsuccess" title="Link to this heading"></a></h3>
+<p>Triggered after a response is received with a <code class="docutils literal notranslate"><span class="pre">2xx</span></code> HTTP status.</p>
+<p>Typical use:</p>
+<ul class="simple">
+<li><p>success metrics</p></li>
+<li><p>response timing markers</p></li>
+</ul>
+</section>
+<section id="hyper-requesterror">
+<h3><code class="docutils literal notranslate"><span class="pre">hyper:requestError</span></code><a class="headerlink" href="#hyper-requesterror" title="Link to this heading"></a></h3>
+<p>Triggered after a response is received with a non-<code class="docutils literal notranslate"><span class="pre">2xx</span></code> HTTP status.</p>
+<p>Typical use:</p>
+<ul class="simple">
+<li><p>error metrics</p></li>
+<li><p>centralized error toasts/logging</p></li>
+</ul>
+</section>
+<section id="hyper-requestexception">
+<h3><code class="docutils literal notranslate"><span class="pre">hyper:requestException</span></code><a class="headerlink" href="#hyper-requestexception" title="Link to this heading"></a></h3>
+<p>Triggered when request execution throws (network/runtime error), excluding intentional aborts.</p>
+<p>Typical use:</p>
+<ul class="simple">
+<li><p>network failure monitoring</p></li>
+<li><p>fallback UI handling</p></li>
+</ul>
+</section>
+<section id="hyper-afterrequest">
+<h3><code class="docutils literal notranslate"><span class="pre">hyper:afterRequest</span></code><a class="headerlink" href="#hyper-afterrequest" title="Link to this heading"></a></h3>
+<p>Triggered when request handling finishes (success, error, or abort), after in-flight bookkeeping is updated.</p>
+<p>Typical use:</p>
+<ul class="simple">
+<li><p>cleanup hooks</p></li>
+<li><p>final timing/trace events</p></li>
+</ul>
+<p>Common detail fields for lifecycle events:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">id</span></code>: request id</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">url</span></code>, <code class="docutils literal notranslate"><span class="pre">method</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">kind</span></code>: <code class="docutils literal notranslate"><span class="pre">action|visit|nav-form</span></code> (when available)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">action</span></code>, <code class="docutils literal notranslate"><span class="pre">target</span></code> (for action requests)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">status</span></code>, <code class="docutils literal notranslate"><span class="pre">ok</span></code>, <code class="docutils literal notranslate"><span class="pre">response</span></code> (when response exists)</p></li>
+</ul>
+</section>
+</section>
+<section id="sync-and-cancellation">
+<h2>Sync and Cancellation<a class="headerlink" href="#sync-and-cancellation" title="Link to this heading"></a></h2>
+<section id="hyper-requestblocked">
+<h3><code class="docutils literal notranslate"><span class="pre">hyper:requestBlocked</span></code><a class="headerlink" href="#hyper-requestblocked" title="Link to this heading"></a></h3>
+<p>Triggered when sync mode is <code class="docutils literal notranslate"><span class="pre">block</span></code> and a matching in-flight request already exists, so the new request is skipped.</p>
+</section>
+<section id="hyper-requestreplaced">
+<h3><code class="docutils literal notranslate"><span class="pre">hyper:requestReplaced</span></code><a class="headerlink" href="#hyper-requestreplaced" title="Link to this heading"></a></h3>
+<p>Triggered when sync mode is <code class="docutils literal notranslate"><span class="pre">replace</span></code> and a matching in-flight request is aborted in favor of the new one.</p>
+</section>
+<section id="hyper-requestaborted">
+<h3><code class="docutils literal notranslate"><span class="pre">hyper:requestAborted</span></code><a class="headerlink" href="#hyper-requestaborted" title="Link to this heading"></a></h3>
+<p>Triggered when a request is aborted via <code class="docutils literal notranslate"><span class="pre">AbortController</span></code> (for example by replacement logic).</p>
+<p>Sync detail fields include:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">key</span></code>: resolved sync key</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mode</span></code>: <code class="docutils literal notranslate"><span class="pre">replace|block|none</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">replacedId</span></code>: present on <code class="docutils literal notranslate"><span class="pre">hyper:requestReplaced</span></code></p></li>
+</ul>
+</section>
+</section>
+<section id="swap-and-transition">
+<h2>Swap and Transition<a class="headerlink" href="#swap-and-transition" title="Link to this heading"></a></h2>
+<section id="hyper-swap-start">
+<h3><code class="docutils literal notranslate"><span class="pre">hyper:swap:start</span></code><a class="headerlink" href="#hyper-swap-start" title="Link to this heading"></a></h3>
+<p>Triggered just before target DOM mutation begins (before swap delay + mutation).</p>
+</section>
+<section id="hyper-swap-end">
+<h3><code class="docutils literal notranslate"><span class="pre">hyper:swap:end</span></code><a class="headerlink" href="#hyper-swap-end" title="Link to this heading"></a></h3>
+<p>Triggered immediately after the swap mutation has finished.</p>
+</section>
+<section id="hyper-settle-end">
+<h3><code class="docutils literal notranslate"><span class="pre">hyper:settle:end</span></code><a class="headerlink" href="#hyper-settle-end" title="Link to this heading"></a></h3>
+<p>Triggered after settle delay/class handling completes.</p>
+</section>
+<section id="hyper-transition-start">
+<h3><code class="docutils literal notranslate"><span class="pre">hyper:transition:start</span></code><a class="headerlink" href="#hyper-transition-start" title="Link to this heading"></a></h3>
+<p>Triggered when a View Transition starts (<code class="docutils literal notranslate"><span class="pre">transition:</span> <span class="pre">true</span></code> and browser support present).</p>
+</section>
+<section id="hyper-transition-end">
+<h3><code class="docutils literal notranslate"><span class="pre">hyper:transition:end</span></code><a class="headerlink" href="#hyper-transition-end" title="Link to this heading"></a></h3>
+<p>Triggered when the active View Transition finishes (or settles after failure).</p>
+</section>
+</section>
+<section id="data-and-notifications">
+<h2>Data and Notifications<a class="headerlink" href="#data-and-notifications" title="Link to this heading"></a></h2>
+<section id="hyper-signals">
+<h3><code class="docutils literal notranslate"><span class="pre">hyper:signals</span></code><a class="headerlink" href="#hyper-signals" title="Link to this heading"></a></h3>
+<p>Triggered when a response includes <code class="docutils literal notranslate"><span class="pre">signals</span></code>; detail contains the merged patch payload.</p>
+</section>
+<section id="hyper-toast">
+<h3><code class="docutils literal notranslate"><span class="pre">hyper:toast</span></code><a class="headerlink" href="#hyper-toast" title="Link to this heading"></a></h3>
+<p>Triggered once per toast item when a response includes <code class="docutils literal notranslate"><span class="pre">toast</span></code>/<code class="docutils literal notranslate"><span class="pre">toasts</span></code>.</p>
+</section>
+</section>
+<section id="form-events">
+<h2>Form Events<a class="headerlink" href="#form-events" title="Link to this heading"></a></h2>
+<section id="hyper-form-beforesubmit">
+<h3><code class="docutils literal notranslate"><span class="pre">hyper:form:beforeSubmit</span></code><a class="headerlink" href="#hyper-form-beforesubmit" title="Link to this heading"></a></h3>
+<p>Triggered immediately before a <code class="docutils literal notranslate"><span class="pre">hyper-form</span></code> submit is dispatched.</p>
+</section>
+<section id="hyper-form-success">
+<h3><code class="docutils literal notranslate"><span class="pre">hyper:form:success</span></code><a class="headerlink" href="#hyper-form-success" title="Link to this heading"></a></h3>
+<p>Triggered when a <code class="docutils literal notranslate"><span class="pre">hyper-form</span></code> request completes without being blocked/aborted and without throwing.</p>
+</section>
+<section id="hyper-form-blocked">
+<h3><code class="docutils literal notranslate"><span class="pre">hyper:form:blocked</span></code><a class="headerlink" href="#hyper-form-blocked" title="Link to this heading"></a></h3>
+<p>Triggered when form request is blocked by sync mode.</p>
+</section>
+<section id="hyper-form-aborted">
+<h3><code class="docutils literal notranslate"><span class="pre">hyper:form:aborted</span></code><a class="headerlink" href="#hyper-form-aborted" title="Link to this heading"></a></h3>
+<p>Triggered when form request is aborted (for example by replacement).</p>
+</section>
+<section id="hyper-form-error">
+<h3><code class="docutils literal notranslate"><span class="pre">hyper:form:error</span></code><a class="headerlink" href="#hyper-form-error" title="Link to this heading"></a></h3>
+<p>Triggered when a form cannot submit (for example missing action) or when request processing throws.</p>
+<p>Form detail commonly includes:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">action</span></code>, <code class="docutils literal notranslate"><span class="pre">method</span></code>, <code class="docutils literal notranslate"><span class="pre">url</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">target</span></code>, <code class="docutils literal notranslate"><span class="pre">key</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">result</span></code> (for success)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">error</span></code> (for error)</p></li>
+</ul>
+</section>
+</section>
+<section id="convenience-request-state-events">
+<h2>Convenience Request State Events<a class="headerlink" href="#convenience-request-state-events" title="Link to this heading"></a></h2>
+<section id="hyper-request-start">
+<h3><code class="docutils literal notranslate"><span class="pre">hyper:request:start</span></code><a class="headerlink" href="#hyper-request-start" title="Link to this heading"></a></h3>
+<p>Triggered when global pending request count transitions from <code class="docutils literal notranslate"><span class="pre">0</span></code> to <code class="docutils literal notranslate"><span class="pre">&gt;0</span></code>.</p>
+</section>
+<section id="hyper-request-end">
+<h3><code class="docutils literal notranslate"><span class="pre">hyper:request:end</span></code><a class="headerlink" href="#hyper-request-end" title="Link to this heading"></a></h3>
+<p>Triggered when global pending request count transitions from <code class="docutils literal notranslate"><span class="pre">&gt;0</span></code> to <code class="docutils literal notranslate"><span class="pre">0</span></code>.</p>
+<p>These are useful for global loading bars/overlays when per-target indicators are not enough.</p>
+</section>
+</section>
+<section id="example-listener">
+<h2>Example Listener<a class="headerlink" href="#example-listener" title="Link to this heading"></a></h2>
+<div class="highlight-javascript notranslate"><div class="highlight"><pre><span></span><span class="nb">window</span><span class="p">.</span><span class="nx">addEventListener</span><span class="p">(</span><span class="s2">&quot;hyper:toast&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="nx">event</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">toast</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">event</span><span class="p">.</span><span class="nx">detail</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="p">{};</span>
+<span class="w">  </span><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;toast&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">toast</span><span class="p">.</span><span class="nx">type</span><span class="p">,</span><span class="w"> </span><span class="nx">toast</span><span class="p">.</span><span class="nx">message</span><span class="p">);</span>
+<span class="p">});</span>
+
+<span class="nb">window</span><span class="p">.</span><span class="nx">addEventListener</span><span class="p">(</span><span class="s2">&quot;hyper:requestError&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="nx">event</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">status</span><span class="p">,</span><span class="w"> </span><span class="nx">url</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">event</span><span class="p">.</span><span class="nx">detail</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="p">{};</span>
+<span class="w">  </span><span class="nx">console</span><span class="p">.</span><span class="nx">warn</span><span class="p">(</span><span class="s2">&quot;request error&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">status</span><span class="p">,</span><span class="w"> </span><span class="nx">url</span><span class="p">);</span>
+<span class="p">});</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="config-reference.html" class="btn btn-neutral float-left" title="Config Reference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="examples/index.html" class="btn btn-neutral float-right" title="Examples and Cookbook" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

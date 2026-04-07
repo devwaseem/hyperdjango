@@ -1,0 +1,17 @@
+{% extends "layouts/base/index.html" %}
+{% block page %}
+    <section style="max-width: 34rem;">
+        <h1>Profile Form (Django-first)</h1>
+        <p>This demonstrates `hyper-form` built around Django forms and server-rendered errors.</p>
+        <p hyper-loading="profile-save"
+           data-loading-delay="1000"
+           style="color: #666">Saving profile...</p>
+  <div id="profile-panel" hyper-view-name="profile-panel" style="min-height: 11rem;">
+            {% if saved %}
+                {% include "routes/profile/partials/success.html" %}
+            {% else %}
+                {% include "routes/profile/partials/form.html" %}
+            {% endif %}
+        </div>
+    </section>
+{% endblock page %}

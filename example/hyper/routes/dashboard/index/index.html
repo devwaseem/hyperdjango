@@ -1,0 +1,23 @@
+{% extends "layouts/dashboard/index.html" %}
+
+{% block dashboard_page %}
+<div
+  x-data="{ pulse: 0 }"
+  x-on:hyper:signals.window="if ($event.detail.dashboard && $event.detail.dashboard.pulse !== undefined) pulse = $event.detail.dashboard.pulse"
+>
+  <h2>{{ headline }}</h2>
+  <p>{{ status }}</p>
+
+  <button
+    type="button"
+    x-on:click="$get('pulse', { pulse })"
+  >
+    Pulse
+  </button>
+
+  <p>
+    Pulse count:
+    <input type="number" x-model="pulse" style="width: 5rem;" />
+  </p>
+</div>
+{% endblock dashboard_page %}

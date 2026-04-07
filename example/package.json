@@ -1,0 +1,18 @@
+{
+  "name": "hyperdjango-example",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "devDependencies": {
+    "vite": "^7.0.0"
+  },
+  "dependencies": {
+    "@alpinejs/morph": "^3.14.9",
+    "alpinejs": "^3.14.9",
+    "morphdom": "^2.7.4",
+    "vanilla-sonner": "^0.5.2"
+  }
+}

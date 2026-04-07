@@ -1,0 +1,9 @@
+<li id="todo-{{ todo.id }}" style="display: flex; align-items: center; gap: 0.55rem; padding: 0.55rem 0.65rem; border: 1px solid #e1e1e1; border-radius: 0.45rem; background: white; view-transition-name: todo-{{ todo.id }};">
+  <input
+    type="checkbox"
+    {% if todo.done %}checked{% endif %}
+    x-on:change="$post('toggle_todo', { id: '{{ todo.id }}' }, { transition: true })"
+  />
+  <span style="flex: 1; {% if todo.done %}text-decoration: line-through; opacity: 0.6;{% endif %}">{{ todo.title }}</span>
+  <button type="button" x-on:click="$post('delete_todo', { id: '{{ todo.id }}' }, { transition: true })">Delete</button>
+</li>

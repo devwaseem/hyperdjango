@@ -1,0 +1,14 @@
+{% extends "layouts/base/index.html" %}
+{% block page %}
+    <section x-data="{q: ''}">
+        <h1>Search</h1>
+        <p hyper-loading="live-search"
+           hyper-loading-delay="250"
+           style="color: #666">Searching...</p>
+        <input name="q"
+               x-model="q"
+               placeholder="Search..."
+               @input.debounce.300ms="$get('search', { q }, { sync: 'replace', key: 'live-search' })" />
+        <div id="results">{% include "routes/search/partials/results.html" %}</div>
+    </section>
+{% endblock page %}

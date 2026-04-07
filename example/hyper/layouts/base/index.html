@@ -1,0 +1,29 @@
+{% extends "hyperdjango/base.html" %}
+{% block body %}
+    <nav hyper-view-name="top-nav"
+         style="max-width: 48rem;
+                margin: 1rem auto 0;
+                padding: 0 1rem;
+                display: flex;
+                gap: 0.75rem">
+        <a href="/">Home</a>
+        <a href="/todos">Todos</a>
+        <a href="/profile">Profile</a>
+        <a href="/dashboard">Dashboard</a>
+    </nav>
+    <main
+          style="max-width: 48rem;
+                 margin: 1rem auto 2rem;
+                 padding: 0 1rem">
+        {% block page %}
+        {% endblock page %}
+    </main>
+    <ol id="sonner-toast-container"
+        position="bottom-right"
+        max-toasts="4"
+        duration="3000"
+        rich-colors="true"
+        close-button="true"
+        theme="light">
+    </ol>
+{% endblock body %}

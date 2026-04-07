@@ -1,0 +1,16 @@
+{% extends "layouts/base/index.html" %}
+
+{% block page %}
+<section>
+  <h1>Pricing</h1>
+  <p>This route comes from <code>hyper/routes/(marketing)/pricing/page.py</code>.</p>
+
+  <ul>
+    {% for plan in plans %}
+      <li>{{ plan.name }} - {{ plan.price }}</li>
+    {% endfor %}
+  </ul>
+
+  <p><a href="/">Back home</a></p>
+</section>
+{% endblock page %}

@@ -1,0 +1,39 @@
+{% extends "layouts/base/index.html" %}
+{% block page %}
+    <section x-data="{ count: 0 }">
+        <h1 hyper-view-name="page-header">{{ headline }}</h1>
+        <p>{{ description }}</p>
+        <h2>Route coverage</h2>
+        <ul>
+            {% for item in examples %}
+                <li>
+                    <a href="{{ item.url }}">{{ item.label }}</a>
+                </li>
+            {% endfor %}
+        </ul>
+        <hr />
+        <h2>Signal demo</h2>
+        <p>
+            Count bound with x-model:
+            <input type="number" x-model="count" style="width: 5rem;" />
+        </p>
+        <button type="button" x-on:click="$get('increment', { current: count })">Increment</button>
+        <p>
+            Live value: <strong x-text="count"></strong>
+        </p>
+        <hr />
+        <h2>Server partial: click to edit</h2>
+        <div id="flash">{% include "routes/index/partials/flash.html" with message="Ready." %}</div>
+        <div id="editor">{% include "routes/index/partials/text_view.html" %}</div>
+        <hr />
+        <h2>Toast events demo</h2>
+        <p>Saving text dispatches a `hyper:toast` event and is rendered via vanilla-sonner.</p>
+        <hr />
+        <h2>View transition demo</h2>
+        <p>Clicking "Next tip" swaps server-rendered HTML with `transition=True`.</p>
+        <div id="tip-card">{% include "routes/index/partials/tip_card.html" %}</div>
+        <p>
+            <button type="button" x-on:click="$get('next_tip')">Next tip</button>
+        </p>
+    </section>
+{% endblock page %}

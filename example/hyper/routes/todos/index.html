@@ -1,0 +1,38 @@
+{% extends "layouts/base/index.html" %}
+{% block page %}
+    <section x-data="{ title: '' }" style="max-width: 42rem;">
+        <h1>Todos</h1>
+        <p>Server-driven interactions with partial swaps, toasts, loading states, and transitions.</p>
+        <form x-on:submit.prevent="$post('add_todo', { title }, { transition: true })"
+              style="display: flex;
+                     gap: 0.5rem;
+                     margin: 1rem 0">
+            <input id="todo-input"
+                   type="text"
+                   x-model="title"
+                   placeholder="What needs to be done?"
+                   style="flex: 1;
+                          padding: 0.55rem 0.7rem;
+                          border: 1px solid #ddd;
+                          border-radius: 0.45rem" />
+            <button type="submit" hyper-loading-disable>Add</button>
+        </form>
+        <p hyper-loading hyper-loading-delay="1000" style="color: #666;">Syncing todos...</p>
+        <div id="todo-stats">{% include "routes/todos/partials/stats.html" %}</div>
+        <div id="todo-empty">{% include "routes/todos/partials/empty.html" %}</div>
+        <ul id="todo-list"
+            style="list-style: none;
+                   margin: 0.8rem 0 0;
+                   padding: 0;
+                   display: grid;
+                   gap: 0.5rem">
+            {% include "routes/todos/partials/items.html" %}
+        </ul>
+        <p style="margin-top: 1rem;">
+            <button type="button"
+                    hyper-loading-disable
+                    x-on:click="$post('clear_completed', {}, { transition: true })">Clear completed</button>
+            <a href="/" style="margin-left: 0.75rem;">Back home</a>
+        </p>
+    </section>
+{% endblock page %}

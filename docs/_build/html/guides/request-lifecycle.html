@@ -1,0 +1,222 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Request Lifecycle Guide &mdash; HyperDjango  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="OOB Workflow Guide" href="oob-workflow.html" />
+    <link rel="prev" title="Pages and Actions" href="../pages-and-actions.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            HyperDjango
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Guides</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Guides</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../routing.html">Routing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../pages-and-actions.html">Pages and Actions</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Request Lifecycle Guide</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#trigger">1) Trigger</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sync-coordination">2) Sync Coordination</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#loading-state">3) Loading State</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#response-handling">4) Response Handling</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#html-response">HTML response</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#json-action-response">JSON action response</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#lifecycle-hooks">5) Lifecycle Hooks</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="oob-workflow.html">OOB Workflow Guide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="transitions.html">Transitions Guide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="navigation-patterns.html">Navigation Patterns Guide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../signals.html">Signals</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../runtime-reference.html">Runtime Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../forms.html">Forms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../production-checklist.html">Production Checklist</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Reference</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">Examples and Cookbook</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">HyperDjango</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Guides</a></li>
+      <li class="breadcrumb-item active">Request Lifecycle Guide</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/guides/request-lifecycle.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="request-lifecycle-guide">
+<h1>Request Lifecycle Guide<a class="headerlink" href="#request-lifecycle-guide" title="Link to this heading"></a></h1>
+<p>This guide shows how a Hyper request flows from trigger to DOM update.</p>
+<section id="trigger">
+<h2>1) Trigger<a class="headerlink" href="#trigger" title="Link to this heading"></a></h2>
+<p>A request can start from:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">$get(...)</span></code> / <code class="docutils literal notranslate"><span class="pre">$post(...)</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hyper-form</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hyper-nav</span></code> links/forms</p></li>
+</ul>
+<p>For action requests, the runtime sends:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">X-Hyper-Action</span></code></p></li>
+<li><p>optional <code class="docutils literal notranslate"><span class="pre">X-Hyper-Signals</span></code></p></li>
+<li><p>optional <code class="docutils literal notranslate"><span class="pre">X-Hyper-Target</span></code></p></li>
+</ul>
+</section>
+<section id="sync-coordination">
+<h2>2) Sync Coordination<a class="headerlink" href="#sync-coordination" title="Link to this heading"></a></h2>
+<p>Before fetch starts, sync policy is applied:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">replace</span></code>: abort previous in-flight request in same key</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">block</span></code>: skip new request if one is active</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">none</span></code>: no coordination</p></li>
+</ul>
+<p>Use explicit <code class="docutils literal notranslate"><span class="pre">key</span></code> for stable request lanes:</p>
+<div class="highlight-javascript notranslate"><div class="highlight"><pre><span></span><span class="nx">$get</span><span class="p">(</span><span class="s2">&quot;search&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">q</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">sync</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;replace&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">key</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;live-search&quot;</span><span class="w"> </span><span class="p">})</span>
+</pre></div>
+</div>
+</section>
+<section id="loading-state">
+<h2>3) Loading State<a class="headerlink" href="#loading-state" title="Link to this heading"></a></h2>
+<p>While request is active, runtime updates:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">&lt;html</span> <span class="pre">hyper-loading&gt;</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">aria-busy</span></code> on <code class="docutils literal notranslate"><span class="pre">&lt;html&gt;</span></code> and <code class="docutils literal notranslate"><span class="pre">&lt;body&gt;</span></code></p></li>
+<li><p>scoped loading indicators (<code class="docutils literal notranslate"><span class="pre">hyper-loading*</span></code>)</p></li>
+<li><p>scoped disable controls (<code class="docutils literal notranslate"><span class="pre">hyper-loading-disable*</span></code>)</p></li>
+</ul>
+</section>
+<section id="response-handling">
+<h2>4) Response Handling<a class="headerlink" href="#response-handling" title="Link to this heading"></a></h2>
+<section id="html-response">
+<h3>HTML response<a class="headerlink" href="#html-response" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>swapped into <code class="docutils literal notranslate"><span class="pre">target</span></code> (if provided)</p></li>
+</ul>
+</section>
+<section id="json-action-response">
+<h3>JSON action response<a class="headerlink" href="#json-action-response" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>applies <code class="docutils literal notranslate"><span class="pre">signals</span></code></p></li>
+<li><p>emits <code class="docutils literal notranslate"><span class="pre">hyper:toast</span></code></p></li>
+<li><p>performs target swap based on <code class="docutils literal notranslate"><span class="pre">target</span></code> and <code class="docutils literal notranslate"><span class="pre">swap</span></code></p></li>
+<li><p>applies <code class="docutils literal notranslate"><span class="pre">oob</span></code> operations</p></li>
+<li><p>updates history if <code class="docutils literal notranslate"><span class="pre">push_url</span></code> / <code class="docutils literal notranslate"><span class="pre">replace_url</span></code> is set</p></li>
+</ul>
+</section>
+</section>
+<section id="lifecycle-hooks">
+<h2>5) Lifecycle Hooks<a class="headerlink" href="#lifecycle-hooks" title="Link to this heading"></a></h2>
+<p>Primary events in order:</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">hyper:beforeRequest</span></code></p></li>
+<li><p>one of <code class="docutils literal notranslate"><span class="pre">hyper:requestSuccess</span></code> or <code class="docutils literal notranslate"><span class="pre">hyper:requestError</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hyper:afterRequest</span></code></p></li>
+</ol>
+<p>DOM mutation hooks:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">hyper:swap:start</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hyper:swap:end</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hyper:settle:end</span></code></p></li>
+</ul>
+<p>Transition hooks:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">hyper:transition:start</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hyper:transition:end</span></code></p></li>
+</ul>
+<p>See full event contract in <code class="docutils literal notranslate"><span class="pre">docs/events.md</span></code>.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../pages-and-actions.html" class="btn btn-neutral float-left" title="Pages and Actions" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="oob-workflow.html" class="btn btn-neutral float-right" title="OOB Workflow Guide" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

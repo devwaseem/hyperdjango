@@ -1,0 +1,23 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+*.sqlite3
+build/
+dist/
+wheels/
+*.egg-info
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv
+
+# JavaScript
+node_modules/
+
+# Docs build artifacts
+docs/_build/
+
+# OS/editor
+.DS_Store

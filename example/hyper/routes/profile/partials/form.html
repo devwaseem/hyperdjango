@@ -1,0 +1,36 @@
+<form method="post"
+      hyper-form
+      hyper-action="save_profile"
+      hyper-key="profile-save"
+      hyper-target="#profile-panel"
+      hyper-swap="inner"
+      hyper-transition
+      hyper-focus="first-invalid"
+      hyper-swap-delay="40"
+      hyper-settle-delay="120"
+      hyper-form-disable
+      style="display: grid;
+             gap: 0.7rem">
+    {% csrf_token %}
+    <input type="hidden" name="_action" value="save_profile" />
+    {% if form.non_field_errors %}
+        <div style="padding: 0.5rem 0.65rem;
+                    border: 1px solid #f2b5b5;
+                    background: #fff4f4;
+                    border-radius: 0.45rem">{{ form.non_field_errors }}</div>
+    {% endif %}
+    <label>
+        Email
+        {{ form.email }}
+    </label>
+    {% if form.email.errors %}<div style="color: #a62828;">{{ form.email.errors }}</div>{% endif %}
+    <label>
+        Name
+        {{ form.name }}
+    </label>
+    {% if form.name.errors %}<div style="color: #a62828;">{{ form.name.errors }}</div>{% endif %}
+    <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <button type="submit">Save</button>
+        <a href="/">Back home</a>
+    </div>
+</form>
