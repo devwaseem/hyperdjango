@@ -43,15 +43,17 @@ function discoverInputs(baseDirs) {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd());
   const routesRoot = path.resolve("./hyper/routes");
+  const templatesRoot = path.resolve("./hyper/templates");
   const layoutsRoot = path.resolve("./hyper/layouts");
   const sharedRoot = path.resolve("./hyper/shared");
-  const inputs = discoverInputs([routesRoot, layoutsRoot, sharedRoot]);
+  const inputs = discoverInputs([routesRoot, templatesRoot, layoutsRoot, sharedRoot]);
 
   return {
     root: ".",
     resolve: {
       alias: {
         "@routes": routesRoot,
+        "@templates": templatesRoot,
         "@layouts": layoutsRoot,
         "@shared": sharedRoot,
       },

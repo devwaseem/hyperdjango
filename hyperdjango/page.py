@@ -26,7 +26,7 @@ class FileNotLoadedFromViteError(Exception):
         super().__init__(f"{file_name} was not included in Vite manifest")
 
 
-class PageMeta(type):
+class PageTemplateMeta(type):
     def __init__(
         cls,
         name: str,
@@ -35,7 +35,7 @@ class PageMeta(type):
     ) -> None:
         super().__init__(name, bases, namespace)
 
-        if cls.__name__ == "Page":
+        if cls.__name__ == "PageTemplate":
             return
 
         cls._assets = {
@@ -44,12 +44,6 @@ class PageMeta(type):
             "head": [],
             "body": [],
         }
-        cls._actions = {}
-
-        for _, value in inspect.getmembers(cls):
-            if callable(value) and getattr(value, "_hyper_action", False):
-                action_name = cast(str, getattr(value, "_hyper_action_name"))
-                cls._actions[action_name] = value
 
         head_files = ["entry.head.js", "entry.head.ts"]
         body_files = ["entry.js", "entry.ts"]
@@ -79,9 +73,24 @@ class PageMeta(type):
                     seen.add(tag)
 
 
-class Page(metaclass=PageMeta):
+class HyperViewMeta(PageTemplateMeta):
+    def __init__(
+        cls,
+        name: str,
+        bases: tuple[type, ...],
+        namespace: dict[str, Any],
+    ) -> None:
+        super().__init__(name, bases, namespace)
+
+        cls._actions = {}
+        for _, value in inspect.getmembers(cls):
+            if callable(value) and getattr(value, "_hyper_action", False):
+                action_name = cast(str, getattr(value, "_hyper_action_name"))
+                cls._actions[action_name] = value
+
+
+class PageTemplate(metaclass=PageTemplateMeta):
     _assets: dict[str, list[AssetTag]] = {}
-    _actions: dict[str, Any] = {}
 
     def __init__(self) -> None:
         self.stylesheets: list[StyleSheetTag] = []
@@ -90,74 +99,8 @@ class Page(metaclass=PageMeta):
         self.body_imports: list[ModuleTag] = []
         self._collect_inherited_assets()
 
-    def dispatch(self, request: HttpRequest, **params: Any):
-        return dispatch_page(self, request, **params)
-
-    def get(self, request: HttpRequest, **params: Any) -> dict[str, Any]:
-        return self.get_context()
-
     def get_context(self) -> dict[str, Any]:
         return {"page": self}
-
-    def get_action(self, name: str) -> Any | None:
-        for cls in self.__class__.__mro__:
-            actions = getattr(cls, "_actions", {})
-            if name in actions:
-                return actions[name].__get__(self, self.__class__)
-        return None
-
-    def action_response(
-        self,
-        *,
-        html: str | None = None,
-        signals: dict[str, Any] | None = None,
-        toast: Any | None = None,
-        toasts: list[Any] | None = None,
-        target: str | None = None,
-        swap: str | None = None,
-        swap_delay: int | None = None,
-        settle_delay: int | None = None,
-        transition: bool = False,
-        focus: str | None = None,
-        push_url: str | None = None,
-        replace_url: str | None = None,
-        strict_targets: bool | None = None,
-        oob: Any | None = None,
-        status: int = 200,
-        headers: dict[str, str] | None = None,
-        action: str | None = None,
-        request: HttpRequest | None = None,
-        context_updates: dict[str, Any] | None = None,
-    ) -> ActionResult:
-        rendered_html = html
-        if rendered_html is None and action and request is not None:
-            rendered_html = self.render_block(
-                request=request,
-                block_name=action,
-                context_updates=context_updates,
-            )
-
-        toast_items = list(toasts or [])
-        if toast is not None:
-            toast_items.append(toast)
-
-        return ActionResult(
-            html=rendered_html,
-            signals=signals or {},
-            toasts=toast_items,
-            target=target,
-            swap=swap,
-            swap_delay=swap_delay,
-            settle_delay=settle_delay,
-            transition=transition,
-            focus=focus,
-            push_url=push_url,
-            replace_url=replace_url,
-            strict_targets=strict_targets,
-            oob=oob or {},
-            status=status,
-            headers=headers or {},
-        )
 
     def render(
         self,
@@ -275,3 +218,77 @@ class Page(metaclass=PageMeta):
         if not file_path.exists():
             return None
         return str(file_path.relative_to(frontend_dir.parent))
+
+
+class HyperView(PageTemplate, metaclass=HyperViewMeta):
+    _actions: dict[str, Any] = {}
+
+    def dispatch(self, request: HttpRequest, **params: Any):
+        return dispatch_page(self, request, **params)
+
+    def get(self, request: HttpRequest, **params: Any) -> dict[str, Any]:
+        return self.get_context()
+
+    def get_action(self, name: str) -> Any | None:
+        for cls in self.__class__.__mro__:
+            actions = getattr(cls, "_actions", {})
+            if name in actions:
+                return actions[name].__get__(self, self.__class__)
+        return None
+
+    def action_response(
+        self,
+        *,
+        html: str | None = None,
+        signals: dict[str, Any] | None = None,
+        toast: Any | None = None,
+        toasts: list[Any] | None = None,
+        target: str | None = None,
+        swap: str | None = None,
+        swap_delay: int | None = None,
+        settle_delay: int | None = None,
+        transition: bool = False,
+        focus: str | None = None,
+        push_url: str | None = None,
+        replace_url: str | None = None,
+        strict_targets: bool | None = None,
+        oob: Any | None = None,
+        status: int = 200,
+        headers: dict[str, str] | None = None,
+        action: str | None = None,
+        request: HttpRequest | None = None,
+        context_updates: dict[str, Any] | None = None,
+    ) -> ActionResult:
+        rendered_html = html
+        if rendered_html is None and action and request is not None:
+            rendered_html = self.render_block(
+                request=request,
+                block_name=action,
+                context_updates=context_updates,
+            )
+
+        toast_items = list(toasts or [])
+        if toast is not None:
+            toast_items.append(toast)
+
+        return ActionResult(
+            html=rendered_html,
+            signals=signals or {},
+            toasts=toast_items,
+            target=target,
+            swap=swap,
+            swap_delay=swap_delay,
+            settle_delay=settle_delay,
+            transition=transition,
+            focus=focus,
+            push_url=push_url,
+            replace_url=replace_url,
+            strict_targets=strict_targets,
+            oob=oob or {},
+            status=status,
+            headers=headers or {},
+        )
+
+
+class Page(HyperView):
+    """Backward-compatible alias for HyperView."""

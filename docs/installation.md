@@ -70,6 +70,8 @@ urlpatterns = [
 ]
 ```
 
+If you only use `PageTemplate` packages from custom Django views, route inclusion is optional.
+
 ## 4) Scaffold starter files and JS tooling
 
 ```bash
@@ -80,6 +82,8 @@ Generated structure:
 
 - `hyper/routes/index/page.py`
 - `hyper/routes/index/index.html`
+- `hyper/templates/profile_card/page.py`
+- `hyper/templates/profile_card/index.html`
 - `hyper/layouts/base/layout.py`
 - `hyper/layouts/base/index.html`
 - `hyper/layouts/base/entry.ts`

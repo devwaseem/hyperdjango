@@ -6,10 +6,10 @@ from pathlib import Path
 from types import ModuleType
 from typing import TypeVar
 
-from hyperdjango.page import Page
+from hyperdjango.page import HyperView
 
 
-TPage = TypeVar("TPage", bound=type[Page])
+TPage = TypeVar("TPage", bound=type[HyperView])
 
 
 class RouteLoadError(Exception):
@@ -26,17 +26,17 @@ def load_module_from_path(file_path: Path, module_name: str) -> ModuleType:
     return module
 
 
-def find_page_class(module: ModuleType) -> type[Page]:
+def find_page_class(module: ModuleType) -> type[HyperView]:
     for value in vars(module).values():
         if (
             isinstance(value, type)
-            and issubclass(value, Page)
-            and value is not Page
+            and issubclass(value, HyperView)
+            and value is not HyperView
             and value.__module__ == module.__name__
         ):
             return value
-    raise RouteLoadError(f"No Page subclass found in {module.__name__}")
+    raise RouteLoadError(f"No HyperView subclass found in {module.__name__}")
 
 
-def find_layout_class(module: ModuleType) -> type[Page]:
+def find_layout_class(module: ModuleType) -> type[HyperView]:
     return find_page_class(module)

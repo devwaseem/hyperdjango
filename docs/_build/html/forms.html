@@ -46,8 +46,15 @@
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="guides/index.html">Guides</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guides/custom-base-template.html">Custom Base Template</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guides/vite-production-build.html">Vite Production Build</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guides/template-packages.html">Template Packages (<code class="docutils literal notranslate"><span class="pre">hyper/templates</span></code>)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="routing.html">Routing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pages-and-actions.html">Pages and Actions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guides/request-lifecycle.html">Request Lifecycle Guide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guides/oob-workflow.html">OOB Workflow Guide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guides/transitions.html">Transitions Guide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guides/navigation-patterns.html">Navigation Patterns Guide</a></li>
 <li class="toctree-l2"><a class="reference internal" href="signals.html">Signals</a></li>
 <li class="toctree-l2"><a class="reference internal" href="runtime-reference.html">Runtime Reference</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Forms</a><ul>
@@ -148,7 +155,7 @@
 <h2>Server Pattern (Django <code class="docutils literal notranslate"><span class="pre">Form</span></code>)<a class="headerlink" href="#server-pattern-django-form" title="Link to this heading"></a></h2>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">django</span><span class="w"> </span><span class="kn">import</span> <span class="n">forms</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">hyperdjango.actions</span><span class="w"> </span><span class="kn">import</span> <span class="n">action</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">hyperdjango.page</span><span class="w"> </span><span class="kn">import</span> <span class="n">Page</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hyperdjango.page</span><span class="w"> </span><span class="kn">import</span> <span class="n">HyperView</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">ProfileForm</span><span class="p">(</span><span class="n">forms</span><span class="o">.</span><span class="n">Form</span><span class="p">):</span>
@@ -156,7 +163,7 @@
     <span class="n">name</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span><span class="n">max_length</span><span class="o">=</span><span class="mi">80</span><span class="p">)</span>
 
 
-<span class="k">class</span><span class="w"> </span><span class="nc">ProfilePage</span><span class="p">(</span><span class="n">Page</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ProfilePage</span><span class="p">(</span><span class="n">HyperView</span><span class="p">):</span>
     <span class="nd">@action</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">save_profile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
         <span class="n">form</span> <span class="o">=</span> <span class="n">ProfileForm</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="p">)</span>

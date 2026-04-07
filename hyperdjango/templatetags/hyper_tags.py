@@ -3,10 +3,10 @@ from __future__ import annotations
 from typing import cast
 
 from django import template
-from django.utils.safestring import mark_safe
+from django.utils.safestring import SafeString, mark_safe
 
 from hyperdjango.assets import AssetTag
-from hyperdjango.page import Page
+from hyperdjango.page import PageTemplate
 
 
 register = template.Library()
@@ -16,14 +16,16 @@ class PageContextNotFoundError(Exception):
     pass
 
 
-def _get_page(context: template.Context) -> Page:
+def _get_page(context: template.Context) -> PageTemplate:
     if "page" not in context:
         raise PageContextNotFoundError("Page not found in template context")
-    return cast(Page, context["page"])
+    return cast(PageTemplate, context["page"])
 
 
-def _render_tags(tags: list[AssetTag], nonce: str | None = None) -> str:
-    return mark_safe("\n".join(tag.render(nonce=nonce) for tag in tags))
+def _render_tags(tags: list[AssetTag], nonce: str | None = None) -> SafeString:
+    return cast(
+        SafeString, mark_safe("\n".join(tag.render(nonce=nonce) for tag in tags))
+    )
 
 
 def _get_csp_nonce(context: template.Context) -> str | None:

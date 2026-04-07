@@ -34,6 +34,10 @@ class HomePage(BaseLayout):
                 {"url": "/dashboard/settings", "label": "Nested layout + static child"},
                 {"url": "/todos", "label": "SPA-like todos with partial actions"},
                 {"url": "/signals", "label": "Signals: local vs global ($key)"},
+                {
+                    "url": "/template-card",
+                    "label": "Template package used from custom Django view",
+                },
                 {"url": "/profile", "label": "Django form enhanced with hyper-form"},
             ],
         }

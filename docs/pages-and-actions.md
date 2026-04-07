@@ -2,18 +2,20 @@
 
 Pages and actions separate full-page rendering from interaction-level updates. Keep standard Django request handlers for initial load, then add focused `@action` methods for partial updates, signals, and UX metadata.
 
-## `Page` Class
+## `HyperView` Class
 
 Create page classes in each route file:
 
 ```python
-from hyperdjango.page import Page
+from hyperdjango.page import HyperView
 
 
-class HomePage(Page):
+class HomePage(HyperView):
     def get(self, request):
         return {"title": "Home"}
 ```
+
+For non-routed template packages, use `PageTemplate` instead (see `docs/guides/template-packages.md`).
 
 Handler return types:
 
@@ -35,9 +37,10 @@ Actions provide a stable server contract for incremental updates without introdu
 
 ```python
 from hyperdjango.actions import action
+from hyperdjango.page import HyperView
 
 
-class ProductPage(Page):
+class ProductPage(HyperView):
     @action
     def details(self, request, slug=""):
         return {"slug": slug}

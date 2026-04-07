@@ -56,6 +56,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="guides/custom-base-template.html">Custom Base Template</a></li>
 <li class="toctree-l2"><a class="reference internal" href="guides/vite-production-build.html">Vite Production Build</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guides/template-packages.html">Template Packages (<code class="docutils literal notranslate"><span class="pre">hyper/templates</span></code>)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="routing.html">Routing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pages-and-actions.html">Pages and Actions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="guides/request-lifecycle.html">Request Lifecycle Guide</a></li>
@@ -127,10 +128,6 @@
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>hyperdjango
 </pre></div>
 </div>
-<p>From source (development):</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
-</pre></div>
-</div>
 </section>
 <section id="configure-django-settings">
 <h2>2) Configure Django settings<a class="headerlink" href="#configure-django-settings" title="Link to this heading"></a></h2>
@@ -173,6 +170,7 @@
 <span class="p">]</span>
 </pre></div>
 </div>
+<p>If you only use <code class="docutils literal notranslate"><span class="pre">PageTemplate</span></code> packages from custom Django views, route inclusion is optional.</p>
 </section>
 <section id="scaffold-starter-files-and-js-tooling">
 <h2>4) Scaffold starter files and JS tooling<a class="headerlink" href="#scaffold-starter-files-and-js-tooling" title="Link to this heading"></a></h2>
@@ -183,6 +181,8 @@
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">hyper/routes/index/page.py</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">hyper/routes/index/index.html</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hyper/templates/profile_card/page.py</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hyper/templates/profile_card/index.html</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">hyper/layouts/base/layout.py</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">hyper/layouts/base/index.html</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">hyper/layouts/base/entry.ts</span></code></p></li>

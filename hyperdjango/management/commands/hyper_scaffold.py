@@ -35,6 +35,7 @@ class Command(BaseCommand):
         base_dir = Path(settings.BASE_DIR)
         hyper_dir = base_dir / "hyper"
         routes_dir = hyper_dir / "routes"
+        templates_dir = hyper_dir / "templates"
         layouts_dir = hyper_dir / "layouts"
         shared_dir = hyper_dir / "shared"
 
@@ -54,6 +55,7 @@ class Command(BaseCommand):
 
         write(hyper_dir / "__init__.py", "")
         write(routes_dir / "__init__.py", "")
+        write(templates_dir / "__init__.py", "")
         write(layouts_dir / "__init__.py", "")
         write(shared_dir / "__init__.py", "")
 
@@ -63,6 +65,8 @@ class Command(BaseCommand):
 
         write(routes_dir / "index" / "page.py", INDEX_PAGE_PY)
         write(routes_dir / "index" / "index.html", INDEX_HTML)
+        write(templates_dir / "profile_card" / "page.py", TEMPLATE_PAGE_PY)
+        write(templates_dir / "profile_card" / "index.html", TEMPLATE_INDEX_HTML)
 
         write(base_dir / "vite.config.js", VITE_CONFIG)
 
@@ -256,10 +260,10 @@ def _merge_package_json(payload: dict[str, Any]) -> dict[str, Any]:
     return merged
 
 
-LAYOUT_PY = """from hyperdjango.page import Page
+LAYOUT_PY = """from hyperdjango.page import HyperView
 
 
-class BaseLayout(Page):
+class BaseLayout(HyperView):
     def __init__(self) -> None:
         super().__init__()
         self.title = "HyperDjango"
@@ -362,15 +366,17 @@ function discoverInputs(baseDirs) {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd());
   const routesRoot = path.resolve(\"./hyper/routes\");
+  const templatesRoot = path.resolve(\"./hyper/templates\");
   const layoutsRoot = path.resolve(\"./hyper/layouts\");
   const sharedRoot = path.resolve(\"./hyper/shared\");
-  const inputs = discoverInputs([routesRoot, layoutsRoot, sharedRoot]);
+  const inputs = discoverInputs([routesRoot, templatesRoot, layoutsRoot, sharedRoot]);
 
   return {
     root: \".\",
     resolve: {
       alias: {
         \"@routes\": routesRoot,
+        \"@templates\": templatesRoot,
         \"@layouts\": layoutsRoot,
         \"@shared\": sharedRoot,
       },
@@ -385,4 +391,19 @@ export default defineConfig(({ mode }) => {
     },
   };
 });
+"""
+
+
+TEMPLATE_PAGE_PY = """from hyperdjango.page import PageTemplate
+
+
+class ProfileCardTemplate(PageTemplate):
+    pass
+"""
+
+
+TEMPLATE_INDEX_HTML = """<article>
+  <h2>{{ title|default:\"Profile\" }}</h2>
+  <p>{{ description|default:\"Reusable template package\" }}</p>
+</article>
 """

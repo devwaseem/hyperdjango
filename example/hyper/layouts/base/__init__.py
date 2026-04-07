@@ -1,7 +1,7 @@
-from hyperdjango.page import Page
+from hyperdjango.page import HyperView
 
 
-class BaseLayout(Page):
+class BaseLayout(HyperView):
     def __init__(self) -> None:
         super().__init__()
         self.title = "HyperDjango Example"

@@ -6,6 +6,7 @@ Reference pages describe exact contracts and behavior for runtime integration.
 :maxdepth: 1
 
 ../config-reference
+page-api
 navigation
 loading
 forms-attributes

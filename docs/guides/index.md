@@ -8,6 +8,7 @@ Use these guides to understand feature behavior end-to-end and adopt HyperDjango
 ../installation
 custom-base-template
 vite-production-build
+template-packages
 ../routing
 ../pages-and-actions
 request-lifecycle

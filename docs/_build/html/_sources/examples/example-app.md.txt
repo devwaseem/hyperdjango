@@ -8,6 +8,7 @@ What it demonstrates:
 - nested layouts (`/dashboard`, `/dashboard/settings`)
 - action-driven swaps and OOB updates (`/todos`)
 - local and global signals (`/signals`)
+- template package rendered by custom Django view (`/template-card`)
 - sync behavior for live interactions (`/search`)
 - Django form enhancement with `hyper-form` (`/profile`)
 

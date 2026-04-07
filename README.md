@@ -102,7 +102,7 @@ STATICFILES_DIRS = [HYPER_VITE_OUTPUT_DIR]
 python manage.py hyper_scaffold
 ```
 
-This generates `hyper/` directories, starter route/layout files, `vite.config.js`, and `package.json` dependencies/scripts. By default it also wires your Django settings + urls file. Use `--no-wire` to skip patching, or `--force` to overwrite scaffolded files.
+This generates `hyper/` directories (including `routes/`, `templates/`, `layouts/`), starter files, `vite.config.js`, and `package.json` dependencies/scripts. By default it also wires your Django settings + urls file. Use `--no-wire` to skip patching, or `--force` to overwrite scaffolded files.
 
 3) If you used `--no-wire`, mount routes manually in `urls.py`:
 
@@ -126,10 +126,10 @@ python manage.py hyper_routes
 ## Basic Page
 
 ```python
-from hyperdjango.page import Page
+from hyperdjango.page import HyperView
 
 
-class AboutPage(Page):
+class AboutPage(HyperView):
     def get(self, request):
         return {"title": "About"}
 ```
@@ -142,10 +142,10 @@ Use `@action` for partial updates, signal patches, toasts, OOB updates, and swap
 
 ```python
 from hyperdjango.actions import action
-from hyperdjango.page import Page
+from hyperdjango.page import HyperView
 
 
-class TodosPage(Page):
+class TodosPage(HyperView):
     @action
     def add(self, request, title=""):
         html = self.render_block(
@@ -159,6 +159,26 @@ class TodosPage(Page):
             swap="inner",
             toast={"type": "success", "message": "Added"},
         )
+```
+
+## Use PageTemplate Without Routes
+
+If you do not want file-based URL routing for a feature, create a template package in `hyper/templates/**` and render it from your own Django view.
+
+```python
+from hyperdjango.page import PageTemplate
+
+
+class ProfileCardTemplate(PageTemplate):
+    pass
+```
+
+```python
+from hyperdjango.shortcuts import render_template_page
+
+
+def profile_card(request):
+    return render_template_page(request, ProfileCardTemplate, context={"title": "Account"})
 ```
 
 ## Client Runtime
@@ -210,7 +230,9 @@ Available tags:
 - [Installation](docs/installation.md)
 - [Custom Base Template](docs/guides/custom-base-template.md)
 - [Vite Production Build](docs/guides/vite-production-build.md)
+- [Template Packages](docs/guides/template-packages.md)
 - [Config Reference](docs/config-reference.md)
+- [Page API](docs/reference/page-api.md)
 - [Routing](docs/routing.md)
 - [Pages and Actions](docs/pages-and-actions.md)
 - [Signals](docs/signals.md)

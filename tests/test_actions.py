@@ -1,8 +1,8 @@
 from hyperdjango.actions import action
-from hyperdjango.page import Page
+from hyperdjango.page import HyperView
 
 
-class BaseLayout(Page):
+class BaseLayout(HyperView):
     pass
 
 

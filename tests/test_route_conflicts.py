@@ -7,10 +7,10 @@ import pytest
 from hyperdjango.routing.compiler import compile_routes
 
 
-PAGE_TEMPLATE = """from hyperdjango.page import Page
+PAGE_TEMPLATE = """from hyperdjango.page import HyperView
 
 
-class DemoPage(Page):
+class DemoPage(HyperView):
     pass
 """
 
@@ -38,3 +38,15 @@ def test_conflict_for_same_path_shape_with_different_param_names(
 
     with pytest.raises(RuntimeError, match="Route conflict detected"):
         compile_routes(routes_dir)
+
+
+def test_templates_folder_page_files_are_not_routed(tmp_path: Path) -> None:
+    routes_dir = tmp_path / "frontend" / "routes"
+    templates_dir = tmp_path / "frontend" / "templates"
+    _write(routes_dir / "home" / "page.py", PAGE_TEMPLATE)
+    _write(templates_dir / "profile_card" / "page.py", PAGE_TEMPLATE)
+
+    compiled = compile_routes(routes_dir)
+
+    assert len(compiled) == 1
+    assert compiled[0].django_path == "home"

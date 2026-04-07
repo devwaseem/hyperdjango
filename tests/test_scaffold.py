@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 
 from hyperdjango.management.commands.hyper_scaffold import (
+    LAYOUT_PY,
+    VITE_CONFIG,
     _ensure_package_json,
     _merge_package_json,
     _wire_settings,
@@ -79,3 +81,9 @@ def test_wire_urls_is_idempotent(tmp_path: Path) -> None:
     assert changed_second is False
     assert "from hyperdjango.urls import include_routes" in content
     assert "urlpatterns = [*include_routes(), *urlpatterns]" in content
+
+
+def test_scaffold_templates_and_hyperview_defaults() -> None:
+    assert "from hyperdjango.page import HyperView" in LAYOUT_PY
+    assert 'const templatesRoot = path.resolve("./hyper/templates");' in VITE_CONFIG
+    assert '"@templates": templatesRoot' in VITE_CONFIG

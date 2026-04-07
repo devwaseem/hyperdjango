@@ -46,9 +46,12 @@
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="guides/index.html">Guides</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guides/custom-base-template.html">Custom Base Template</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guides/vite-production-build.html">Vite Production Build</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guides/template-packages.html">Template Packages (<code class="docutils literal notranslate"><span class="pre">hyper/templates</span></code>)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="routing.html">Routing</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Pages and Actions</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#page-class"><code class="docutils literal notranslate"><span class="pre">Page</span></code> Class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#hyperview-class"><code class="docutils literal notranslate"><span class="pre">HyperView</span></code> Class</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#templates">Templates</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#action"><code class="docutils literal notranslate"><span class="pre">&#64;action</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#action-inputs">Action Inputs</a></li>
@@ -105,17 +108,18 @@
   <section id="pages-and-actions">
 <h1>Pages and Actions<a class="headerlink" href="#pages-and-actions" title="Link to this heading"></a></h1>
 <p>Pages and actions separate full-page rendering from interaction-level updates. Keep standard Django request handlers for initial load, then add focused <code class="docutils literal notranslate"><span class="pre">&#64;action</span></code> methods for partial updates, signals, and UX metadata.</p>
-<section id="page-class">
-<h2><code class="docutils literal notranslate"><span class="pre">Page</span></code> Class<a class="headerlink" href="#page-class" title="Link to this heading"></a></h2>
+<section id="hyperview-class">
+<h2><code class="docutils literal notranslate"><span class="pre">HyperView</span></code> Class<a class="headerlink" href="#hyperview-class" title="Link to this heading"></a></h2>
 <p>Create page classes in each route file:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">hyperdjango.page</span><span class="w"> </span><span class="kn">import</span> <span class="n">Page</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">hyperdjango.page</span><span class="w"> </span><span class="kn">import</span> <span class="n">HyperView</span>
 
 
-<span class="k">class</span><span class="w"> </span><span class="nc">HomePage</span><span class="p">(</span><span class="n">Page</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">HomePage</span><span class="p">(</span><span class="n">HyperView</span><span class="p">):</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
         <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Home&quot;</span><span class="p">}</span>
 </pre></div>
 </div>
+<p>For non-routed template packages, use <code class="docutils literal notranslate"><span class="pre">PageTemplate</span></code> instead (see <code class="docutils literal notranslate"><span class="pre">docs/guides/template-packages.md</span></code>).</p>
 <p>Handler return types:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">dict</span></code> -&gt; rendered with route template (<code class="docutils literal notranslate"><span class="pre">index.html</span></code> by default)</p></li>
@@ -136,9 +140,10 @@
 <p>Actions are methods decorated with <code class="docutils literal notranslate"><span class="pre">&#64;action</span></code>:</p>
 <p>Actions provide a stable server contract for incremental updates without introducing a second API layer.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">hyperdjango.actions</span><span class="w"> </span><span class="kn">import</span> <span class="n">action</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hyperdjango.page</span><span class="w"> </span><span class="kn">import</span> <span class="n">HyperView</span>
 
 
-<span class="k">class</span><span class="w"> </span><span class="nc">ProductPage</span><span class="p">(</span><span class="n">Page</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ProductPage</span><span class="p">(</span><span class="n">HyperView</span><span class="p">):</span>
     <span class="nd">@action</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">details</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">slug</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
         <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;slug&quot;</span><span class="p">:</span> <span class="n">slug</span><span class="p">}</span>

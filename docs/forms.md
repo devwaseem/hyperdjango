@@ -51,7 +51,7 @@ This split keeps GET requests URL-friendly and cacheable while preserving normal
 ```python
 from django import forms
 from hyperdjango.actions import action
-from hyperdjango.page import Page
+from hyperdjango.page import HyperView
 
 
 class ProfileForm(forms.Form):
@@ -59,7 +59,7 @@ class ProfileForm(forms.Form):
     name = forms.CharField(max_length=80)
 
 
-class ProfilePage(Page):
+class ProfilePage(HyperView):
     @action
     def save_profile(self, request):
         form = ProfileForm(request.POST)
