@@ -4,12 +4,12 @@ import importlib.util
 import sys
 from pathlib import Path
 from types import ModuleType
-from typing import TypeVar
+from typing import Any, TypeVar
 
 from hyperdjango.page import HyperView
 
 
-TPage = TypeVar("TPage", bound=type[HyperView])
+TPage = TypeVar("TPage", bound=type[Any])
 
 
 class RouteLoadError(Exception):
@@ -26,7 +26,7 @@ def load_module_from_path(file_path: Path, module_name: str) -> ModuleType:
     return module
 
 
-def find_page_class(module: ModuleType) -> type[HyperView]:
+def find_page_class(module: ModuleType) -> type[Any]:
     page_view = getattr(module, "PageView", None)
     if isinstance(page_view, type) and page_view.__module__ == module.__name__:
         return page_view

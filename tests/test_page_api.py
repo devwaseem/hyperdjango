@@ -2,8 +2,15 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import django
+from django.conf import settings
+from django.http import HttpResponse
+from django.test import RequestFactory
+from django.views import View
+
 from hyperdjango.actions import ActionResult, action
 from hyperdjango.page import HyperActionMixin, HyperView, Page, PageTemplate
+from hyperdjango.routing.compiler import build_route_view
 
 
 def test_page_is_backward_compatible_hyperview() -> None:
@@ -53,3 +60,24 @@ def test_page_template_resolves_template_path(monkeypatch, tmp_path: Path) -> No
     assert (
         ProfileCardTemplate.get_template_name() == "templates/profile_card/index.html"
     )
+
+
+def test_route_view_uses_django_view_as_view_setup() -> None:
+    if not settings.configured:
+        settings.configure(
+            DEFAULT_CHARSET="utf-8",
+            SECRET_KEY="test",
+            ALLOWED_HOSTS=["*"],
+        )
+        django.setup()
+
+    class PageView(View):
+        def get(self, request):
+            return HttpResponse(b"True" if request is self.request else b"False")
+
+    request = RequestFactory().get("/")
+    view = build_route_view(PageView)
+    response = view(request)
+
+    assert response.status_code == 200
+    assert response.content == b"True"

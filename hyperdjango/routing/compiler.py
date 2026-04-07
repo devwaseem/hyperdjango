@@ -3,12 +3,12 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
+from typing import Any, Callable
 
 from django.http import HttpRequest, HttpResponse
 from django.urls import path
+from django.views import View
 
-from hyperdjango.page import HyperView
 from hyperdjango.routing.graph import make_route_key
 from hyperdjango.routing.loader import (
     find_layout_class,
@@ -22,13 +22,11 @@ from hyperdjango.routing.scanner import discover_layout_files, scan_route_files
 @dataclass(frozen=True)
 class CompiledRoute:
     django_path: str
-    page_class: type[HyperView]
+    page_class: type[Any]
     view_name: str
 
 
-def compose_page_class(
-    page_class: type[HyperView], layouts: list[type[HyperView]]
-) -> type[HyperView]:
+def compose_page_class(page_class: type[Any], layouts: list[type[Any]]) -> type[Any]:
     if not layouts:
         return page_class
 
@@ -43,7 +41,10 @@ def compose_page_class(
     return type(class_name, bases, {"__module__": page_class.__module__})
 
 
-def build_route_view(page_class: type[HyperView]) -> Callable[..., HttpResponse]:
+def build_route_view(page_class: type[Any]) -> Callable[..., HttpResponse]:
+    if issubclass(page_class, View):
+        return page_class.as_view()
+
     def view(request: HttpRequest, **kwargs: str) -> HttpResponse:
         page = page_class()
         return page.dispatch(request, **kwargs)
@@ -72,7 +73,7 @@ def compile_routes(routes_dir: Path, *, url_prefix: str = "") -> list[CompiledRo
         page_module = load_module_from_path(route_file.page_file, page_module_name)
         page_class = find_page_class(page_module)
 
-        layout_classes: list[type[HyperView]] = []
+        layout_classes: list[type[Any]] = []
         for layout_file in discover_layout_files(route_file.directory, routes_dir):
             module_name = _module_name(layout_file)
             module = load_module_from_path(layout_file, module_name)
