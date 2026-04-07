@@ -16,6 +16,8 @@ Example:
 HYPER_FRONTEND_DIR = BASE_DIR / "hyper"
 ```
 
+In development, this directory is also used for `runserver` autoreload file watching.
+
 ### `HYPER_VITE_OUTPUT_DIR`
 
 - type: `Path | str`

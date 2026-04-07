@@ -29,6 +29,14 @@ class PageView(BaseLayout):
                     "url": "/docs/getting-started/install",
                     "label": "Catch-all route: docs/[...path]",
                 },
+                {
+                    "url": "/account/reset/abc123-token456",
+                    "label": "Composite segment: account/reset/[uidb36]-[key]",
+                },
+                {
+                    "url": "/regex/release-v42",
+                    "label": "Regex segment: regex/[kind]-v[version]",
+                },
                 {"url": "/pricing", "label": "Route group: (marketing)/pricing"},
                 {"url": "/dashboard", "label": "Nested layout: dashboard/index"},
                 {"url": "/dashboard/settings", "label": "Nested layout + static child"},

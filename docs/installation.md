@@ -107,3 +107,9 @@ Useful flags:
 python manage.py hyper_routes
 python manage.py hyper_routes --json
 ```
+
+## Development autoreload
+
+When `runserver` is used, HyperDjango registers autoreload watchers for `HYPER_FRONTEND_DIR`.
+
+Changes in `hyper/**` files (`.py`, `.html`, `.js`, `.ts`, `.css`, `.json`) trigger Django server reload automatically.

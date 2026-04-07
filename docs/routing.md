@@ -14,6 +14,7 @@ This routing model keeps route intent in the filesystem and reduces URLconf drif
 - `about` -> static segment (`about`)
 - `[slug]` -> dynamic segment (`<slug>`)
 - `[...path]` -> catch-all segment (`<path:path>`)
+- `[uid]-[key]` -> composite/regex segment in one path part
 - `(group)` -> route group (ignored in URL path)
 
 ## Examples
@@ -22,7 +23,33 @@ This routing model keeps route intent in the filesystem and reduces URLconf drif
 - `routes/account/index/page.py` -> `/account`
 - `routes/blog/[slug]/page.py` -> `/blog/<slug>`
 - `routes/docs/[...path]/page.py` -> `/docs/<path:path>`
+- `routes/accounts/reset/[uidb36]-[key]/page.py` -> `/accounts/reset/<uidb36>-<key>`
 - `routes/(marketing)/pricing/page.py` -> `/pricing`
+
+## Composite (Regex) Segments
+
+Use composite segments when one URL part contains multiple parameters and literals.
+
+Example directory:
+
+- `routes/accounts/password/reset/key/[uidb36]-[key]/page.py`
+
+This compiles to a regex route and supports Django `reverse()` with both kwargs:
+
+```python
+from django.urls import reverse
+
+reverse(
+    "hyper_accounts_password_reset_key_uidb36_key",
+    kwargs={"uidb36": uid, "key": token},
+)
+```
+
+Notes:
+
+- composite segments are detected automatically from mixed `[param]` + literals
+- they use `re_path(...)` internally
+- catch-all (`[...path]`) cannot be mixed inside a composite segment
 
 ## Nested Layouts
 

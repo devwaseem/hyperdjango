@@ -65,3 +65,12 @@ Checks:
 - inspect `python manage.py hyper_routes`
 - remove equivalent route shapes (for example `[slug]` and `[id]` in same path level)
 - remove group-colliding paths (`(group)/x` vs `x`)
+
+## `runserver` does not reload after editing `hyper/*`
+
+Checks:
+
+- ensure `hyperdjango` is in `INSTALLED_APPS`
+- ensure `HYPER_FRONTEND_DIR` points to the directory you edit
+- restart `runserver` once after changing settings
+- verify you are using Django `runserver` autoreload (not a custom process manager without reload)

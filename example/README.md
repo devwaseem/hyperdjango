@@ -17,6 +17,8 @@ This example is an end-to-end Django app wired to `hyperdjango`.
 - `/about` -> `hyper/routes/about/page.py`
 - `/blog/<slug>` -> `hyper/routes/blog/[slug]/page.py`
 - `/docs/<path:path>` -> `hyper/routes/docs/[...path]/page.py`
+- `/account/reset/<uidb36>-<key>` -> `hyper/routes/account/reset/[uidb36]-[key]/page.py`
+- `/regex/<kind>-v<version>` -> `hyper/routes/regex/[kind]-v[version]/page.py`
 - `/pricing` -> `hyper/routes/(marketing)/pricing/page.py`
 - `/dashboard` -> `hyper/routes/dashboard/page.py`
 - `/dashboard/settings` -> `hyper/routes/dashboard/settings/page.py`
@@ -67,3 +69,5 @@ Open `http://127.0.0.1:8000/`.
 6. `/profile` returns server-rendered validation errors and success partials.
 7. `/template-card` renders a `PageTemplate` from a custom Django view (no file route).
 8. `/plain-django-view` demonstrates file route resolution with plain `django.views.View`.
+9. `/account/reset/abc123-token456` resolves both `uidb36` and `key` from one segment.
+10. `/regex/release-v42` demonstrates literal + params composite regex matching.

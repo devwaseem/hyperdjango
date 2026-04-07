@@ -205,6 +205,7 @@ HyperDjango exposes helpers globally and as Alpine magics:
 - `routes/about/page.py` -> `/about`
 - `routes/blog/[slug]/page.py` -> `/blog/<slug>`
 - `routes/docs/[...path]/page.py` -> `/docs/<path:path>`
+- `routes/accounts/reset/[uidb36]-[key]/page.py` -> `/accounts/reset/<uidb36>-<key>`
 - `routes/(marketing)/pricing/page.py` -> `/pricing`
 
 Reverse URL names are generated automatically (for example `routes/blog/[slug]/page.py` -> `hyper_blog_slug`) and can be overridden per page with `route_name` on `PageView`.

@@ -1,0 +1,12 @@
+{% extends "layouts/base/index.html" %}
+
+{% block page %}
+    <section>
+        <h1>{{ title }}</h1>
+        <p>This route uses literal + params in one segment: <code>[kind]-v[version]</code>.</p>
+        <ul>
+            <li><strong>kind:</strong> <code>{{ kind }}</code></li>
+            <li><strong>version:</strong> <code>{{ version }}</code></li>
+        </ul>
+    </section>
+{% endblock page %}

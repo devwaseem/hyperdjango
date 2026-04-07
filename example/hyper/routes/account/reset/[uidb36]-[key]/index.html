@@ -1,0 +1,12 @@
+{% extends "layouts/base/index.html" %}
+
+{% block page %}
+    <section>
+        <h1>{{ title }}</h1>
+        <p>This route demonstrates composite segment matching for allauth-like reset links.</p>
+        <ul>
+            <li><strong>uidb36:</strong> <code>{{ uidb36 }}</code></li>
+            <li><strong>key:</strong> <code>{{ key }}</code></li>
+        </ul>
+    </section>
+{% endblock page %}

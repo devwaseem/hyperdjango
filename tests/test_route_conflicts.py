@@ -92,3 +92,23 @@ def test_route_view_name_defaults_and_custom_override(tmp_path: Path) -> None:
 
     assert by_path["blog/<slug>"] == "hyper_blog_slug"
     assert by_path["docs/<path:path>"] == "docs_custom"
+
+
+def test_conflict_for_pattern_shape_with_different_param_names(tmp_path: Path) -> None:
+    routes_dir = tmp_path / "frontend" / "routes"
+    _write(routes_dir / "reset" / "[uid]-[key]" / "page.py", PAGE_TEMPLATE)
+    _write(routes_dir / "reset" / "[u]-[k]" / "page.py", PAGE_TEMPLATE)
+
+    with pytest.raises(RuntimeError, match="Route conflict detected"):
+        compile_routes(routes_dir)
+
+
+def test_pattern_segment_compiles_regex_route(tmp_path: Path) -> None:
+    routes_dir = tmp_path / "frontend" / "routes"
+    _write(routes_dir / "reset" / "[uidb36]-[key]" / "page.py", PAGE_TEMPLATE)
+
+    compiled = compile_routes(routes_dir)
+
+    assert len(compiled) == 1
+    assert compiled[0].django_path == "reset/[uidb36]-[key]"
+    assert compiled[0].regex_path == "^reset/(?P<uidb36>[^/]+)\\-(?P<key>[^/]+)$"
