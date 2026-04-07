@@ -7,7 +7,7 @@ from hyper.layouts.base import BaseLayout
 from hyperdjango.actions import action
 
 
-class TodosPage(BaseLayout):
+class PageView(BaseLayout):
     def get(self, request, **params):
         todos = self._todos(request)
         return {

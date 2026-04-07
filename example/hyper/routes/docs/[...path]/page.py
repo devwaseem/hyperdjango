@@ -1,7 +1,7 @@
 from hyper.layouts.base import BaseLayout
 
 
-class DocsCatchAllPage(BaseLayout):
+class PageView(BaseLayout):
     def get(self, request, path, **params):
         parts = [part for part in path.split("/") if part]
         return {

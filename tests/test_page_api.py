@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from hyperdjango.actions import action
-from hyperdjango.page import HyperView, Page, PageTemplate
+from hyperdjango.actions import ActionResult, action
+from hyperdjango.page import HyperActionMixin, HyperView, Page, PageTemplate
 
 
 def test_page_is_backward_compatible_hyperview() -> None:
@@ -19,6 +19,20 @@ def test_hyperview_registers_actions() -> None:
 
     page = Demo()
     assert page.get_action("save") is not None
+
+
+def test_hyper_action_mixin_works_without_hyperview() -> None:
+    class DemoMixin(HyperActionMixin):
+        @action
+        def ping(self, request):
+            return self.action_response(html="ok")
+
+    obj = DemoMixin()
+    method = obj.get_action("ping")
+    assert method is not None
+    result = method(None)
+    assert isinstance(result, ActionResult)
+    assert result.html == "ok"
 
 
 def test_page_template_resolves_template_path(monkeypatch, tmp_path: Path) -> None:

@@ -299,7 +299,7 @@ INDEX_PAGE_PY = """from hyperdjango.actions import action
 from hyper.layouts.base import BaseLayout
 
 
-class HomePage(BaseLayout):
+class PageView(BaseLayout):
     def get(self, request):
         return {\"message\": \"Welcome to HyperDjango\"}
 

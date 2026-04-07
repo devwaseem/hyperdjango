@@ -27,6 +27,21 @@ def load_module_from_path(file_path: Path, module_name: str) -> ModuleType:
 
 
 def find_page_class(module: ModuleType) -> type[HyperView]:
+    page_view = getattr(module, "PageView", None)
+    if (
+        isinstance(page_view, type)
+        and issubclass(page_view, HyperView)
+        and page_view.__module__ == module.__name__
+    ):
+        return page_view
+
+    raise RouteLoadError(
+        f"No PageView class found in {module.__name__}. "
+        "Route modules must define `class PageView(HyperView)`"
+    )
+
+
+def find_layout_class(module: ModuleType) -> type[HyperView]:
     for value in vars(module).values():
         if (
             isinstance(value, type)
@@ -36,7 +51,3 @@ def find_page_class(module: ModuleType) -> type[HyperView]:
         ):
             return value
     raise RouteLoadError(f"No HyperView subclass found in {module.__name__}")
-
-
-def find_layout_class(module: ModuleType) -> type[HyperView]:
-    return find_page_class(module)

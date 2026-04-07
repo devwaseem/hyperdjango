@@ -5,7 +5,7 @@ from hyperdjango.actions import action
 from hyper.layouts.base import BaseLayout
 
 
-class HomePage(BaseLayout):
+class PageView(BaseLayout):
     TIPS = [
         "Use folder names to define URLs.",
         "Actions can return HTML, signals, and toasts.",

@@ -3,7 +3,7 @@ from hyperdjango.actions import action
 from hyper.layouts.dashboard import DashboardLayout
 
 
-class DashboardHomePage(DashboardLayout):
+class PageView(DashboardLayout):
     def get(self, request, **params):
         return {
             "headline": "Dashboard overview",

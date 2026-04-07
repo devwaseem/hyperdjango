@@ -10,12 +10,14 @@ Create page classes in each route file:
 from hyperdjango.page import HyperView
 
 
-class HomePage(HyperView):
+class PageView(HyperView):
     def get(self, request):
         return {"title": "Home"}
 ```
 
 For non-routed template packages, use `PageTemplate` instead (see `docs/guides/template-packages.md`).
+
+If you only need action semantics in a custom class, use `HyperActionMixin`.
 
 Handler return types:
 
@@ -40,7 +42,7 @@ from hyperdjango.actions import action
 from hyperdjango.page import HyperView
 
 
-class ProductPage(HyperView):
+class PageView(HyperView):
     @action
     def details(self, request, slug=""):
         return {"slug": slug}

@@ -26,6 +26,17 @@ Adds:
 
 Use this for routed pages under `hyper/routes/**/page.py`.
 
+## `HyperActionMixin`
+
+Mixin providing action registration and hypermedia response helpers.
+
+Adds:
+
+- `get_action(name)`
+- `action_response(...)`
+
+`HyperView` includes this mixin by default. You can also use it in non-routed custom view classes when you only need action semantics.
+
 ## `Page` (compatibility)
 
 `Page` is a backward-compatible alias for `HyperView`.

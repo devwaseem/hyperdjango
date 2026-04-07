@@ -1,7 +1,7 @@
 from hyper.layouts.base import BaseLayout
 
 
-class AboutPage(BaseLayout):
+class PageView(BaseLayout):
     def get(self, request, **params):
         return {
             "title_text": "About this example",

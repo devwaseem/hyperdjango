@@ -11,7 +11,7 @@ class ProfileForm(forms.Form):
     name = forms.CharField(max_length=255)
 
 
-class ProfilePage(BaseLayout):
+class PageView(BaseLayout):
     def get(self, request, **params):
         initial = request.session.get("profile", {"email": "", "name": ""})
         form = ProfileForm(initial=initial)

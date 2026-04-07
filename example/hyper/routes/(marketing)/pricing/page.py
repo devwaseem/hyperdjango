@@ -1,7 +1,7 @@
 from hyper.layouts.base import BaseLayout
 
 
-class PricingPage(BaseLayout):
+class PageView(BaseLayout):
     def get(self, request, **params):
         return {
             "plans": [

@@ -5,7 +5,7 @@ from hyper.layouts.base import BaseLayout
 from hyperdjango.actions import action
 
 
-class SignalsPage(BaseLayout):
+class PageView(BaseLayout):
     def get(self, request, **params):
         global_count = int(request.session.get("global_count", 0))
         return {"global_count": global_count}

@@ -73,22 +73,6 @@ class PageTemplateMeta(type):
                     seen.add(tag)
 
 
-class HyperViewMeta(PageTemplateMeta):
-    def __init__(
-        cls,
-        name: str,
-        bases: tuple[type, ...],
-        namespace: dict[str, Any],
-    ) -> None:
-        super().__init__(name, bases, namespace)
-
-        cls._actions = {}
-        for _, value in inspect.getmembers(cls):
-            if callable(value) and getattr(value, "_hyper_action", False):
-                action_name = cast(str, getattr(value, "_hyper_action_name"))
-                cls._actions[action_name] = value
-
-
 class PageTemplate(metaclass=PageTemplateMeta):
     _assets: dict[str, list[AssetTag]] = {}
 
@@ -220,14 +204,16 @@ class PageTemplate(metaclass=PageTemplateMeta):
         return str(file_path.relative_to(frontend_dir.parent))
 
 
-class HyperView(PageTemplate, metaclass=HyperViewMeta):
+class HyperActionMixin:
     _actions: dict[str, Any] = {}
 
-    def dispatch(self, request: HttpRequest, **params: Any):
-        return dispatch_page(self, request, **params)
-
-    def get(self, request: HttpRequest, **params: Any) -> dict[str, Any]:
-        return self.get_context()
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        super().__init_subclass__(**kwargs)
+        cls._actions = {}
+        for _, value in inspect.getmembers(cls):
+            if callable(value) and getattr(value, "_hyper_action", False):
+                action_name = cast(str, getattr(value, "_hyper_action_name"))
+                cls._actions[action_name] = value
 
     def get_action(self, name: str) -> Any | None:
         for cls in self.__class__.__mro__:
@@ -261,7 +247,11 @@ class HyperView(PageTemplate, metaclass=HyperViewMeta):
     ) -> ActionResult:
         rendered_html = html
         if rendered_html is None and action and request is not None:
-            rendered_html = self.render_block(
+            if not hasattr(self, "render_block"):
+                raise RuntimeError(
+                    "action_response(action=...) requires render_block on the class"
+                )
+            rendered_html = cast(Any, self).render_block(
                 request=request,
                 block_name=action,
                 context_updates=context_updates,
@@ -288,6 +278,16 @@ class HyperView(PageTemplate, metaclass=HyperViewMeta):
             status=status,
             headers=headers or {},
         )
+
+
+class HyperView(PageTemplate, HyperActionMixin):
+    _actions: dict[str, Any] = {}
+
+    def dispatch(self, request: HttpRequest, **params: Any):
+        return dispatch_page(self, request, **params)
+
+    def get(self, request: HttpRequest, **params: Any) -> dict[str, Any]:
+        return self.get_context()
 
 
 class Page(HyperView):

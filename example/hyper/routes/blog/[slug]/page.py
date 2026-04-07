@@ -3,7 +3,7 @@ from hyperdjango.actions import action
 from hyper.layouts.base import BaseLayout
 
 
-class BlogPostPage(BaseLayout):
+class PageView(BaseLayout):
     def get(self, request, slug, **params):
         return {
             "slug": slug,

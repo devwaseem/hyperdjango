@@ -129,12 +129,14 @@ python manage.py hyper_routes
 from hyperdjango.page import HyperView
 
 
-class AboutPage(HyperView):
+class PageView(HyperView):
     def get(self, request):
         return {"title": "About"}
 ```
 
 Place this in `hyper/routes/about/page.py` and create `hyper/routes/about/index.html`.
+
+Note: each `hyper/routes/**/page.py` must define `class PageView(HyperView)`.
 
 ## Actions
 
@@ -145,7 +147,7 @@ from hyperdjango.actions import action
 from hyperdjango.page import HyperView
 
 
-class TodosPage(HyperView):
+class PageView(HyperView):
     @action
     def add(self, request, title=""):
         html = self.render_block(

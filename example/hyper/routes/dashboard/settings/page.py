@@ -1,7 +1,7 @@
 from hyper.layouts.dashboard import DashboardLayout
 
 
-class DashboardSettingsPage(DashboardLayout):
+class PageView(DashboardLayout):
     def get(self, request, **params):
         return {
             "settings": [

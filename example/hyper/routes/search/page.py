@@ -38,7 +38,7 @@ NAMES = [
 ]
 
 
-class SearchPage(BaseLayout):
+class PageView(BaseLayout):
     def get(self, request, **params):
         return {"results": []}
 

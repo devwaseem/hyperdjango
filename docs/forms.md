@@ -59,7 +59,7 @@ class ProfileForm(forms.Form):
     name = forms.CharField(max_length=80)
 
 
-class ProfilePage(HyperView):
+class PageView(HyperView):
     @action
     def save_profile(self, request):
         form = ProfileForm(request.POST)
