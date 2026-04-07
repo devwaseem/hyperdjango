@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Generator, cast
 
 from django.http import HttpRequest
+from django.http.response import HttpResponseBase
 from django.template import RequestContext, loader
 from django.views import View
 from render_block import render_block_to_string
@@ -284,7 +285,9 @@ class HyperActionMixin:
 class HyperView(PageTemplate, HyperActionMixin, View):
     _actions: dict[str, Any] = {}
 
-    def dispatch(self, request: HttpRequest, *args: Any, **params: Any):
+    def dispatch(
+        self, request: HttpRequest, *args: Any, **params: Any
+    ) -> HttpResponseBase:
         return dispatch_page(self, request, **params)
 
 
