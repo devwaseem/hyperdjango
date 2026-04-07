@@ -62,3 +62,15 @@ def test_route_page_requires_pageview_class_name(tmp_path: Path) -> None:
 
     with pytest.raises(RouteLoadError, match="PageView"):
         compile_routes(routes_dir)
+
+
+def test_route_page_uses_pageview_name_only(tmp_path: Path) -> None:
+    routes_dir = tmp_path / "frontend" / "routes"
+    _write(
+        routes_dir / "home" / "page.py",
+        """class PageView:\n    pass\n""",
+    )
+
+    compiled = compile_routes(routes_dir)
+    assert len(compiled) == 1
+    assert compiled[0].django_path == "home"

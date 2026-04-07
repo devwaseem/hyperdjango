@@ -6,7 +6,9 @@ This release introduces API and routing conventions that may require code update
 
 ## 1) Routed classes must be named `PageView`
 
-Every `hyper/routes/**/page.py` module must define:
+Every `hyper/routes/**/page.py` module must define a class named `PageView`.
+
+Recommended form:
 
 ```python
 class PageView(HyperView):

@@ -136,7 +136,7 @@ class PageView(HyperView):
 
 Place this in `hyper/routes/about/page.py` and create `hyper/routes/about/index.html`.
 
-Note: each `hyper/routes/**/page.py` must define `class PageView(HyperView)`.
+Note: each `hyper/routes/**/page.py` must define a class named `PageView` (typically inheriting `HyperView`).
 
 ## Actions
 

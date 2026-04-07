@@ -2,7 +2,9 @@
 
 HyperDjango discovers every `page.py` under `HYPER_FRONTEND_DIR/routes` and maps directory segments to Django URL patterns.
 
-Each route module must define a class named `PageView` (subclass of `HyperView`).
+Each route module must define a class named `PageView`.
+
+For routed page behavior, `PageView` should inherit `HyperView`.
 
 This routing model keeps route intent in the filesystem and reduces URLconf drift. You keep Django views/classes, with a predictable structure similar to file-routed frameworks.
 
