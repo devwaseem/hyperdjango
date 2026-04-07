@@ -287,9 +287,6 @@ class HyperView(PageTemplate, HyperActionMixin, View):
     def dispatch(self, request: HttpRequest, *args: Any, **params: Any):
         return dispatch_page(self, request, **params)
 
-    def get(self, request: HttpRequest, **params: Any) -> dict[str, Any]:
-        return self.get_context()
-
 
 class Page(HyperView):
     """Backward-compatible alias for HyperView."""

@@ -26,10 +26,14 @@ def dispatch_page(page: Any, request: HttpRequest, **params: Any) -> HttpRespons
         action_name = get_action_name(request)
         return _dispatch_action(page, request, action_name=action_name, **params)
 
-    handler_name = request.method.lower()
+    request_method = request.method
+    method = request_method if isinstance(request_method, str) else "GET"
+    handler_name = method.lower()
     if not hasattr(page, handler_name):
+        if handler_name == "get" and hasattr(page, "get_context"):
+            return _to_full_response(page, request, page.get_context())
         raise DispatchError(
-            f"Method {request.method} not allowed for page {page.__class__.__name__}"
+            f"Method {method} not allowed for page {page.__class__.__name__}"
         )
     handler = getattr(page, handler_name)
     result = handler(request, **params)
@@ -53,7 +57,7 @@ def _dispatch_action(
     if isinstance(result, ActionResult):
         return to_action_http_response(result)
     if isinstance(result, str):
-        return ensure_action_response_headers(HttpResponse(result))
+        return ensure_action_response_headers(HttpResponse(result.encode()))
     if isinstance(result, dict):
         block_name = get_target_name(request) or action_name
         html = page.render_block(
@@ -61,7 +65,7 @@ def _dispatch_action(
             block_name=block_name,
             context_updates=result,
         )
-        return ensure_action_response_headers(HttpResponse(html))
+        return ensure_action_response_headers(HttpResponse(html.encode()))
 
     raise DispatchError(f"Unsupported action return type: {type(result).__name__}")
 
@@ -84,7 +88,9 @@ def _extract_action_kwargs(request: HttpRequest) -> dict[str, Any]:
         if key not in kwargs:
             kwargs[key] = values[-1] if values else ""
 
-    if request.method.upper() != "GET":
+    request_method = request.method
+    method = request_method if isinstance(request_method, str) else "GET"
+    if method.upper() != "GET":
         for key, values in request.POST.lists():
             if key == "_action":
                 continue
@@ -98,10 +104,10 @@ def _to_full_response(page: Any, request: HttpRequest, result: Any) -> HttpRespo
     if isinstance(result, HttpResponse):
         return result
     if isinstance(result, str):
-        return HttpResponse(result)
+        return HttpResponse(result.encode())
     if isinstance(result, dict):
         html = page.render(request=request, context_updates=result)
-        return HttpResponse(html)
+        return HttpResponse(html.encode())
     raise DispatchError(
         f"Unsupported page handler return type: {type(result).__name__}"
     )
