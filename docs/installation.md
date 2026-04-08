@@ -70,7 +70,7 @@ urlpatterns = [
 ]
 ```
 
-If you only use `PageTemplate` packages from custom Django views, route inclusion is optional.
+If you only use `HyperPageTemplate` packages from custom Django views, route inclusion is optional.
 
 ## 4) Scaffold starter files and JS tooling
 

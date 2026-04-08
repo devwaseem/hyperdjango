@@ -5,11 +5,19 @@ from pathlib import Path
 import django
 from django.conf import settings
 from django.http import HttpResponse
+from django.test import override_settings
 from django.test import RequestFactory
 from django.views import View
 
 from hyperdjango.actions import ActionResult, action
-from hyperdjango.page import HyperActionMixin, HyperView, Page, PageTemplate
+from hyperdjango.assets import ModuleTag
+from hyperdjango.page import (
+    HyperActionMixin,
+    HyperPageTemplate,
+    HyperPartialTemplateResult,
+    HyperView,
+    Page,
+)
 from hyperdjango.routing.compiler import build_route_view
 from hyperdjango.runtime.responses import to_action_http_response
 
@@ -27,7 +35,7 @@ def _ensure_settings() -> None:
 
 def test_page_is_backward_compatible_hyperview() -> None:
     assert issubclass(Page, HyperView)
-    assert issubclass(HyperView, PageTemplate)
+    assert issubclass(HyperView, HyperPageTemplate)
     assert issubclass(HyperView, View)
 
 
@@ -45,7 +53,7 @@ def test_hyper_action_mixin_works_without_hyperview() -> None:
     class DemoMixin(HyperActionMixin):
         @action
         def ping(self, request):
-            return self.action_response(html="ok")
+            return self.action_response(content="ok")
 
     obj = DemoMixin()
     method = obj.get_action("ping")
@@ -80,6 +88,33 @@ def test_action_http_response_serializes_redirects() -> None:
     assert response.content == b'{"redirect_to": "/dashboard/"}'
 
 
+def test_action_response_accepts_partial_content() -> None:
+    class DemoMixin(HyperActionMixin):
+        pass
+
+    obj = DemoMixin()
+    result = obj.action_response(
+        content=HyperPartialTemplateResult(
+            html="<div>Modal</div>", js="/static/modal.js"
+        )
+    )
+
+    assert isinstance(result, ActionResult)
+    assert result.html == "<div>Modal</div>"
+    assert result.js == "/static/modal.js"
+
+
+def test_action_http_response_serializes_partial_js() -> None:
+    _ensure_settings()
+    response = to_action_http_response(
+        ActionResult(html="<div>Modal</div>", js="/static/modal.js")
+    )
+
+    assert response.status_code == 200
+    assert response["Content-Type"] == "application/json"
+    assert response.content == b'{"js": "/static/modal.js", "html": "<div>Modal</div>"}'
+
+
 def test_action_response_rejects_redirect_with_swap_fields() -> None:
     class DemoMixin(HyperActionMixin):
         pass
@@ -110,13 +145,63 @@ def test_page_template_resolves_template_path(monkeypatch, tmp_path: Path) -> No
 
     monkeypatch.setattr("hyperdjango.page.get_frontend_dir", lambda: frontend_dir)
 
-    class ProfileCardTemplate(PageTemplate):
+    class ProfileCardTemplate(HyperPageTemplate):
         @classmethod
         def _get_file_path(cls) -> str:
             return str(page_file)
 
     assert (
         ProfileCardTemplate.get_template_name() == "templates/profile_card/index.html"
+    )
+
+
+def test_page_template_renders_relative_template_directory(
+    monkeypatch, tmp_path: Path
+) -> None:
+    frontend_dir = tmp_path / "hyper"
+    page_file = frontend_dir / "routes" / "dashboard" / "+page.py"
+    modal_dir = frontend_dir / "templates" / "modal"
+    template_file = modal_dir / "index.html"
+    entry_file = modal_dir / "entry.ts"
+    page_file.parent.mkdir(parents=True, exist_ok=True)
+    modal_dir.mkdir(parents=True, exist_ok=True)
+    page_file.write_text("# test")
+    template_file.write_text("<div>{{ title }}</div>")
+    entry_file.write_text("import './modal.css';")
+
+    monkeypatch.setattr("hyperdjango.page.get_frontend_dir", lambda: frontend_dir)
+    monkeypatch.setattr(
+        "hyperdjango.page.ViteAssetResolver.get_imports",
+        lambda *, file: iter([ModuleTag(src=f"/static/{file}.js")]),
+    )
+
+    class DashboardPage(HyperPageTemplate):
+        @classmethod
+        def _get_file_path(cls) -> str:
+            return str(page_file)
+
+    page = DashboardPage()
+    request = RequestFactory().get("/")
+    _ensure_settings()
+    with override_settings(
+        TEMPLATES=[
+            {
+                "BACKEND": "django.template.backends.django.DjangoTemplates",
+                "DIRS": [frontend_dir],
+                "APP_DIRS": True,
+                "OPTIONS": {"context_processors": []},
+            }
+        ]
+    ):
+        partial = page.render_template(
+            "../../templates/modal",
+            request=request,
+            context_updates={"title": "Hello modal"},
+        )
+
+    assert partial == HyperPartialTemplateResult(
+        html="<div>Hello modal</div>",
+        js="/static/hyper/templates/modal/entry.ts.js",
     )
 
 

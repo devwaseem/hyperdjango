@@ -7,6 +7,7 @@ const Hyper = (() => {
   const activeByKey = new Map();
   const activeByAction = new Map();
   const activeByTarget = new Map();
+  const loadedModuleScripts = new Map();
   const config = {
     strictTargets: false,
   };
@@ -368,6 +369,33 @@ const Hyper = (() => {
       return;
     }
     window.location.assign(url);
+  }
+
+  function ensureModuleScript(src) {
+    if (!src) {
+      return Promise.resolve();
+    }
+    if (loadedModuleScripts.has(src)) {
+      return loadedModuleScripts.get(src);
+    }
+    const existing = document.querySelector(`script[type="module"][src="${CSS.escape(src)}"]`);
+    if (existing) {
+      const promise = Promise.resolve();
+      loadedModuleScripts.set(src, promise);
+      return promise;
+    }
+
+    const promise = new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.type = "module";
+      script.src = src;
+      script.addEventListener("load", () => resolve());
+      script.addEventListener("error", () => reject(new Error(`Failed to load module: ${src}`)));
+      document.body.appendChild(script);
+    });
+
+    loadedModuleScripts.set(src, promise);
+    return promise;
   }
 
   function csrfTokenFromCookie() {
@@ -1158,6 +1186,7 @@ const Hyper = (() => {
           });
         },
       });
+      await ensureModuleScript(result.data.js || null);
       return result.data;
     }
 

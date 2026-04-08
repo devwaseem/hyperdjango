@@ -41,7 +41,7 @@ Use this when you want file routing without Hyper action behavior.
 
 - Use `PageView(HyperView)` for Hyper actions, signals, swaps, and template helpers.
 - Use `PageView(View)` for plain Django CBV behavior in file-routed modules.
-- Use `PageTemplate` for reusable non-routed template packages (`hyper/templates/**`).
+- Use `HyperPageTemplate` for reusable non-routed template packages (`hyper/templates/**`).
 
 ## Checklist
 

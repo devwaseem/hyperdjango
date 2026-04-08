@@ -7,6 +7,7 @@ from typing import Any, Callable
 @dataclass(slots=True)
 class ActionResult:
     html: str | None = None
+    js: str | None = None
     signals: dict[str, Any] = field(default_factory=dict)
     toasts: list[Any] = field(default_factory=list)
     redirect_to: str | None = None

@@ -1,9 +1,9 @@
 from hyperdjango.actions import action
-from hyperdjango.page import HyperActionMixin, HyperView, Page, PageTemplate
+from hyperdjango.page import HyperActionMixin, HyperPageTemplate, HyperView, Page
 from hyperdjango.shortcuts import render_template_block, render_template_page
 
 __all__ = [
-    "PageTemplate",
+    "HyperPageTemplate",
     "HyperActionMixin",
     "HyperView",
     "Page",

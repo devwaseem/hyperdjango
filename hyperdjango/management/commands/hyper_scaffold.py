@@ -394,10 +394,10 @@ export default defineConfig(({ mode }) => {
 """
 
 
-TEMPLATE_PAGE_PY = """from hyperdjango.page import PageTemplate
+TEMPLATE_PAGE_PY = """from hyperdjango.page import HyperPageTemplate
 
 
-class ProfileCardTemplate(PageTemplate):
+class ProfileCardTemplate(HyperPageTemplate):
     pass
 """
 

@@ -17,11 +17,11 @@ class PageView(HyperView):
 
 Previous class names like `HomePage`, `ProfilePage`, etc. are no longer discovered for route compilation.
 
-## 2) `Page` is split into `PageTemplate` + `HyperView`
+## 2) `Page` is split into `HyperPageTemplate` + `HyperView`
 
 New model:
 
-- `PageTemplate`: rendering + assets (`render`, `render_block`, template path helpers)
+- `HyperPageTemplate`: rendering + assets (`render`, `render_block`, template path helpers)
 - `HyperView`: routed request/action behavior
 - `Page`: backward-compatible alias of `HyperView`
 
@@ -62,15 +62,15 @@ from hyperdjango.page import HyperView
 
 `Page` still works, but `HyperView` makes intent explicit.
 
-## C) Move non-routed reusable UI to `PageTemplate`
+## C) Move non-routed reusable UI to `HyperPageTemplate`
 
 Use `hyper/templates/**` for template packages consumed by custom Django views.
 
 ```python
-from hyperdjango.page import PageTemplate
+from hyperdjango.page import HyperPageTemplate
 
 
-class ProfileCardTemplate(PageTemplate):
+class ProfileCardTemplate(HyperPageTemplate):
     pass
 ```
 
@@ -80,7 +80,7 @@ class ProfileCardTemplate(PageTemplate):
 from hyperdjango.shortcuts import render_template_page, render_template_block
 ```
 
-These helpers render `PageTemplate` classes directly to `HttpResponse`.
+These helpers render `HyperPageTemplate` classes directly to `HttpResponse`.
 
 ## Common Errors
 
@@ -104,5 +104,5 @@ Confirm each route maps to the expected module and class.
 
 - Rename all routed classes to `PageView`
 - Use `HyperView` in `hyper/routes/**`
-- Use `PageTemplate` in `hyper/templates/**`
+- Use `HyperPageTemplate` in `hyper/templates/**`
 - Run tests + `python manage.py hyper_routes`

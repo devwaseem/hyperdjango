@@ -4,12 +4,12 @@ from typing import Any
 
 from django.http import HttpRequest, HttpResponse
 
-from hyperdjango.page import PageTemplate
+from hyperdjango.page import HyperPageTemplate
 
 
 def render_template_page(
     request: HttpRequest,
-    template_cls: type[PageTemplate],
+    template_cls: type[HyperPageTemplate],
     *,
     context: dict[str, Any] | None = None,
     status: int = 200,
@@ -25,7 +25,7 @@ def render_template_page(
 
 def render_template_block(
     request: HttpRequest,
-    template_cls: type[PageTemplate],
+    template_cls: type[HyperPageTemplate],
     block_name: str,
     *,
     context: dict[str, Any] | None = None,

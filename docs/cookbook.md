@@ -164,13 +164,13 @@ No `hyper-nav` means normal browser navigation.
 
 Missing target selectors throw errors early and surface integration drift.
 
-## 13) Use `PageTemplate` in a custom Django view
+## 13) Use `HyperPageTemplate` in a custom Django view
 
 ```python
-from hyperdjango.page import PageTemplate
+from hyperdjango.page import HyperPageTemplate
 
 
-class ProfileCardTemplate(PageTemplate):
+class ProfileCardTemplate(HyperPageTemplate):
     pass
 ```
 

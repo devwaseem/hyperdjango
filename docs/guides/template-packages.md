@@ -4,7 +4,7 @@ Use `hyper/templates` when you want HyperDjango templating/assets without file-r
 
 This is useful for custom Django views where you still want:
 
-- `PageTemplate` rendering helpers
+- `HyperPageTemplate` rendering helpers
 - Vite entry discovery for co-located JS
 - Hyper asset tags in templates
 
@@ -26,10 +26,10 @@ Anything under `hyper/templates` is not auto-mounted as a route.
 ## Define a Template Class
 
 ```python
-from hyperdjango.page import PageTemplate
+from hyperdjango.page import HyperPageTemplate
 
 
-class ProfileCardTemplate(PageTemplate):
+class ProfileCardTemplate(HyperPageTemplate):
     pass
 ```
 

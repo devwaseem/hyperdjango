@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from hyperdjango.page import PageTemplate
+from hyperdjango.page import HyperPageTemplate
 
 
-class ProfileCardTemplate(PageTemplate):
+class ProfileCardTemplate(HyperPageTemplate):
     pass

@@ -24,12 +24,15 @@ This example is an end-to-end Django app wired to `hyperdjango`.
 - `/pricing` -> `hyper/routes/(marketing)/pricing/+page.py`
 - `/dashboard` -> `hyper/routes/dashboard/index/+page.py`
 - `/dashboard/settings` -> `hyper/routes/dashboard/settings/+page.py`
+- `/modal-demo` -> `hyper/routes/modal-demo/+page.py`
 - `/search` -> `hyper/routes/search/+page.py`
 - `/todos` -> `hyper/routes/todos/+page.py`
 - `/signals` -> `hyper/routes/signals/+page.py`
 - `/profile` -> `hyper/routes/profile/+page.py`
 - `/template-card` -> custom URL + `hyper/templates/profile_card/page.py`
 - `/plain-django-view` -> `hyper/routes/plain-django-view/+page.py` (`django.views.View`)
+
+`/modal-demo` demonstrates `HyperPageTemplate.render_template(...)` rendering a directory-relative partial package with its own `entry.ts`, then returning it through `action_response(content=...)`.
 
 ## Run
 
@@ -69,7 +72,7 @@ Open `http://127.0.0.1:8000/`.
 4. `/todos` supports add/toggle/delete with partial swaps + OOB updates.
 5. `/signals` demonstrates `count` (local) vs `$count` (global store) patching.
 6. `/profile` returns server-rendered validation errors and success partials.
-7. `/template-card` renders a `PageTemplate` from a custom Django view (no file route).
+7. `/template-card` renders a `HyperPageTemplate` from a custom Django view (no file route).
 8. `/plain-django-view` demonstrates file route resolution with plain `django.views.View`.
 9. `/account/reset/abc123-token456` resolves both `uidb36` and `key` from one segment.
 10. `/regex/release-v42` demonstrates literal + params composite regex matching.

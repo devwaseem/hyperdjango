@@ -1,0 +1,14 @@
+{% extends "layouts/base/index.html" %}
+{% block page %}
+    <section x-data="{}">
+        <h1>Modal partial demo</h1>
+        <p>This page opens a standalone partial template rendered from a folder relative to the route.</p>
+        <p>
+            The partial includes its own <code>entry.ts</code>, which Hyper loads after the HTML swap.
+        </p>
+        <p>
+            <button type="button" x-on:click="$get('open_modal')">Open modal partial</button>
+        </p>
+        <div id="modal-root"></div>
+    </section>
+{% endblock page %}

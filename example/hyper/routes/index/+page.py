@@ -49,6 +49,10 @@ class PageView(BaseLayout):
                 {"url": "/dashboard", "label": "Nested layout: dashboard/index"},
                 {"url": "/dashboard/settings", "label": "Nested layout + static child"},
                 {"url": "/todos", "label": "SPA-like todos with partial actions"},
+                {
+                    "url": "/modal-demo",
+                    "label": "Standalone partial template with entry.ts",
+                },
                 {"url": "/signals", "label": "Signals: local vs global ($key)"},
                 {
                     "url": "/template-card",

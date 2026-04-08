@@ -15,7 +15,7 @@ class PageView(HyperView):
         return {"title": "Home"}
 ```
 
-For non-routed template packages, use `PageTemplate` instead (see `docs/guides/template-packages.md`).
+For non-routed template packages, use `HyperPageTemplate` instead (see `docs/guides/template-packages.md`).
 
 If you only need action semantics in a custom class, use `HyperActionMixin`.
 

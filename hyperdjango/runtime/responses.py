@@ -25,7 +25,8 @@ def ensure_action_response_headers(response: HttpResponse) -> HttpResponse:
 
 def to_action_http_response(result: ActionResult) -> HttpResponse:
     should_return_json = bool(
-        result.signals
+        result.js
+        or result.signals
         or result.toasts
         or result.redirect_to
         or result.target
@@ -42,6 +43,8 @@ def to_action_http_response(result: ActionResult) -> HttpResponse:
 
     if should_return_json:
         payload: dict[str, Any] = {}
+        if result.js:
+            payload["js"] = result.js
         if result.signals:
             payload["signals"] = result.signals
         if result.toasts:

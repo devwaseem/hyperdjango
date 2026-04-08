@@ -6,7 +6,7 @@ from django import template
 from django.utils.safestring import SafeString, mark_safe
 
 from hyperdjango.assets import AssetTag
-from hyperdjango.page import PageTemplate
+from hyperdjango.page import HyperPageTemplate
 
 
 register = template.Library()
@@ -16,10 +16,10 @@ class PageContextNotFoundError(Exception):
     pass
 
 
-def _get_page(context: template.Context) -> PageTemplate:
+def _get_page(context: template.Context) -> HyperPageTemplate:
     if "page" not in context:
         raise PageContextNotFoundError("Page not found in template context")
-    return cast(PageTemplate, context["page"])
+    return cast(HyperPageTemplate, context["page"])
 
 
 def _render_tags(tags: list[AssetTag], nonce: str | None = None) -> SafeString:

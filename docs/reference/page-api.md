@@ -1,6 +1,6 @@
 # Page API Reference
 
-## `PageTemplate`
+## `HyperPageTemplate`
 
 Base class for template/asset packaging without routing.
 
@@ -15,7 +15,7 @@ Use this for `hyper/templates/**` packages consumed by custom Django views.
 
 ## `HyperView`
 
-`HyperView` extends `PageTemplate` with request/action behavior.
+`HyperView` extends `HyperPageTemplate` with request/action behavior.
 
 Adds:
 
@@ -51,7 +51,7 @@ Adds:
 from hyperdjango.shortcuts import render_template_page
 ```
 
-Renders a `PageTemplate` subclass into `HttpResponse`.
+Renders a `HyperPageTemplate` subclass into `HttpResponse`.
 
 ### `render_template_block(...)`
 
@@ -59,4 +59,4 @@ Renders a `PageTemplate` subclass into `HttpResponse`.
 from hyperdjango.shortcuts import render_template_block
 ```
 
-Renders a named template block from a `PageTemplate` subclass into `HttpResponse`.
+Renders a named template block from a `HyperPageTemplate` subclass into `HttpResponse`.

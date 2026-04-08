@@ -163,15 +163,15 @@ class PageView(HyperView):
         )
 ```
 
-## Use PageTemplate Without Routes
+## Use HyperPageTemplate Without Routes
 
 If you do not want file-based URL routing for a feature, create a template package in `hyper/templates/**` and render it from your own Django view.
 
 ```python
-from hyperdjango.page import PageTemplate
+from hyperdjango.page import HyperPageTemplate
 
 
-class ProfileCardTemplate(PageTemplate):
+class ProfileCardTemplate(HyperPageTemplate):
     pass
 ```
 

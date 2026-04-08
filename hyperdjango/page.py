@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import inspect
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Generator, cast
 
@@ -28,7 +29,13 @@ class FileNotLoadedFromViteError(Exception):
         super().__init__(f"{file_name} was not included in Vite manifest")
 
 
-class PageTemplateMeta(type):
+@dataclass(slots=True)
+class HyperPartialTemplateResult:
+    html: str
+    js: str | None = None
+
+
+class HyperPageTemplateMeta(type):
     def __init__(
         cls,
         name: str,
@@ -37,7 +44,7 @@ class PageTemplateMeta(type):
     ) -> None:
         super().__init__(name, bases, namespace)
 
-        if cls.__name__ == "PageTemplate":
+        if cls.__name__ in {"HyperPageTemplate", "PageTemplate"}:
             return
 
         cls._assets = {
@@ -75,7 +82,7 @@ class PageTemplateMeta(type):
                     seen.add(tag)
 
 
-class PageTemplate(metaclass=PageTemplateMeta):
+class HyperPageTemplate(metaclass=HyperPageTemplateMeta):
     _assets: dict[str, list[AssetTag]] = {}
 
     def __init__(self) -> None:
@@ -132,6 +139,28 @@ class PageTemplate(metaclass=PageTemplateMeta):
                 context=RequestContext(request, context),
                 request=request,
             ),
+        )
+
+    def render_template(
+        self,
+        template_dir: str,
+        *,
+        request: HttpRequest,
+        context_updates: dict[str, Any] | None = None,
+    ) -> HyperPartialTemplateResult:
+        target_dir = self._resolve_template_dir(template_dir)
+        template_name = self._to_template_name(target_dir / "index.html")
+        context = self.get_context()
+        context.update(context_updates or {})
+        html = str(
+            loader.get_template(template_name=template_name).render(
+                context=context,
+                request=request,
+            )
+        )
+        return HyperPartialTemplateResult(
+            html=html,
+            js=self._resolve_template_js(target_dir),
         )
 
     @classmethod
@@ -205,6 +234,36 @@ class PageTemplate(metaclass=PageTemplateMeta):
             return None
         return str(file_path.relative_to(frontend_dir.parent))
 
+    @classmethod
+    def _resolve_template_js(cls, target_dir: Path) -> str | None:
+        for file_name in ("entry.js", "entry.ts"):
+            entry_file = target_dir / file_name
+            if not entry_file.exists():
+                continue
+            manifest_name = cls._to_manifest_name(entry_file)
+            if not manifest_name:
+                raise FileNotLoadedFromViteError(file_name=file_name)
+            for tag in ViteAssetResolver.get_imports(file=manifest_name):
+                if isinstance(tag, ModuleTag) and not tag.src.endswith("@vite/client"):
+                    return tag.src
+            break
+        return None
+
+    @classmethod
+    def _resolve_template_dir(cls, template_dir: str) -> Path:
+        target_dir = (cls._get_base_path() / template_dir).resolve()
+        frontend_dir = get_frontend_dir().resolve()
+        if target_dir != frontend_dir and frontend_dir not in target_dir.parents:
+            raise RuntimeError(
+                f"Template directory must stay inside frontend dir: {template_dir}"
+            )
+        if not target_dir.is_dir():
+            raise FileNotFoundError(target_dir)
+        template_file = target_dir / "index.html"
+        if not template_file.exists():
+            raise FileNotFoundError(template_file)
+        return target_dir
+
 
 class HyperActionMixin:
     _actions: dict[str, Any] = {}
@@ -227,6 +286,7 @@ class HyperActionMixin:
     def action_response(
         self,
         *,
+        content: str | HyperPartialTemplateResult | None = None,
         html: str | None = None,
         signals: dict[str, Any] | None = None,
         toast: Any | None = None,
@@ -248,8 +308,13 @@ class HyperActionMixin:
         request: HttpRequest | None = None,
         context_updates: dict[str, Any] | None = None,
     ) -> ActionResult:
+        if content is not None and html is not None:
+            raise ValueError("action_response() received both content and html")
+
         if redirect_to:
             invalid_fields: list[str] = []
+            if content is not None:
+                invalid_fields.append("content")
             if html is not None:
                 invalid_fields.append("html")
             if signals:
@@ -288,7 +353,15 @@ class HyperActionMixin:
                     + ", ".join(invalid_fields)
                 )
 
-        rendered_html = html
+        partial_content = content if content is not None else html
+        rendered_js: str | None = None
+        rendered_html: str | None
+        if isinstance(partial_content, HyperPartialTemplateResult):
+            rendered_html = partial_content.html
+            rendered_js = partial_content.js
+        else:
+            rendered_html = partial_content
+
         if rendered_html is None and action and request is not None:
             if not hasattr(self, "render_block"):
                 raise RuntimeError(
@@ -306,6 +379,7 @@ class HyperActionMixin:
 
         return ActionResult(
             html=rendered_html,
+            js=rendered_js,
             signals=signals or {},
             toasts=toast_items,
             redirect_to=redirect_to,
@@ -324,7 +398,7 @@ class HyperActionMixin:
         )
 
 
-class HyperView(PageTemplate, HyperActionMixin, View):
+class HyperView(HyperPageTemplate, HyperActionMixin, View):
     _actions: dict[str, Any] = {}
 
     def dispatch(
@@ -335,3 +409,6 @@ class HyperView(PageTemplate, HyperActionMixin, View):
 
 class Page(HyperView):
     """Backward-compatible alias for HyperView."""
+
+
+PageTemplate = HyperPageTemplate

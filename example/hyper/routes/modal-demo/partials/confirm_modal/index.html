@@ -1,0 +1,75 @@
+<div x-data="{ open: false }"
+     x-init="$watch('open', value => { if (!value) { setTimeout(() => $el.remove(), 200) } }); $nextTick(() => { open = true })"
+     x-on:keydown.escape.window="open = false"
+     data-demo-modal-root
+     style="position: fixed;
+            inset: 0;
+            z-index: 1000">
+    <div x-show="open"
+         x-on:click="open = false"
+         x-transition.opacity.duration.200ms
+         style="position: absolute;
+                inset: 0;
+                background: rgba(15, 23, 42, 0.55);"></div>
+    <div style="position: relative;
+                display: flex;
+                min-height: 100%;
+                align-items: center;
+                justify-content: center;
+                padding: 1.5rem;">
+        <div x-show="open"
+             x-transition.scale.opacity.duration.200ms
+         style="width: min(100%, 32rem);
+                border-radius: 16px;
+                background: white;
+                box-shadow: 0 24px 80px rgba(15, 23, 42, 0.35);
+                overflow: hidden">
+            <header style="display: flex;
+                           align-items: center;
+                           justify-content: space-between;
+                           gap: 1rem;
+                           padding: 1rem 1.25rem;
+                           border-bottom: 1px solid #e2e8f0">
+                <h2 style="margin: 0; font-size: 1.1rem;">{{ title }}</h2>
+                <button type="button"
+                        data-demo-modal-close
+                        x-on:click="open = false"
+                        aria-label="Close modal"
+                        style="border: 0;
+                               background: transparent;
+                               font-size: 1.25rem;
+                               cursor: pointer">&times;</button>
+            </header>
+            <div style="padding: 1.25rem;">
+                <p style="margin-top: 0;">{{ message }}</p>
+                <p style="margin-bottom: 0; color: #475569; font-size: 0.95rem;">
+                    Try closing it with the close button, backdrop click, or Escape.
+                </p>
+            </div>
+            <footer style="display: flex;
+                           justify-content: flex-end;
+                           gap: 0.75rem;
+                           padding: 1rem 1.25rem;
+                           border-top: 1px solid #e2e8f0;
+                           background: #f8fafc">
+                <button type="button"
+                        data-demo-modal-close
+                        x-on:click="open = false"
+                        style="border: 1px solid #cbd5e1;
+                               background: white;
+                               border-radius: 999px;
+                               padding: 0.65rem 1rem;
+                               cursor: pointer">Cancel</button>
+                <button type="button"
+                        data-demo-modal-close
+                        x-on:click="open = false"
+                        style="border: 0;
+                               background: #2563eb;
+                               color: white;
+                               border-radius: 999px;
+                               padding: 0.65rem 1rem;
+                               cursor: pointer">{{ confirm_label }}</button>
+            </footer>
+        </div>
+    </div>
+</div>
