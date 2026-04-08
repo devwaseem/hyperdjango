@@ -107,13 +107,10 @@ class HyperPageTemplate(metaclass=HyperPageTemplateMeta):
             if not relative_template_name
             else self.get_relative_template_name(relative_template_name)
         )
-        context = self.get_context(request)
-        context.update(context_updates or {})
-        return str(
-            loader.get_template(template_name=template_name).render(
-                context=context,
-                request=request,
-            )
+        return self._render_template_name(
+            template_name,
+            request=request,
+            context=self._build_context(request, context_updates),
         )
 
     def render_block(
@@ -129,8 +126,7 @@ class HyperPageTemplate(metaclass=HyperPageTemplateMeta):
             if not relative_template_name
             else self.get_relative_template_name(relative_template_name)
         )
-        context = self.get_context(request)
-        context.update(context_updates or {})
+        context = self._build_context(request, context_updates)
         return cast(
             str,
             render_block_to_string(
@@ -150,13 +146,10 @@ class HyperPageTemplate(metaclass=HyperPageTemplateMeta):
     ) -> HyperPartialTemplateResult:
         target_dir = self._resolve_template_dir(template_dir)
         template_name = self._to_template_name(target_dir / "index.html")
-        context = self.get_context(request)
-        context.update(context_updates or {})
-        html = str(
-            loader.get_template(template_name=template_name).render(
-                context=context,
-                request=request,
-            )
+        html = self._render_template_name(
+            template_name,
+            request=request,
+            context=self._build_context(request, context_updates),
         )
         return HyperPartialTemplateResult(
             html=html,
@@ -194,6 +187,23 @@ class HyperPageTemplate(metaclass=HyperPageTemplateMeta):
         self.preload_imports = cast(list[ModulePreloadTag], collected["preloads"])
         self.head_imports = cast(list[ModuleTag], collected["head"])
         self.body_imports = cast(list[ModuleTag], collected["body"])
+
+    def _build_context(
+        self, request: HttpRequest, context_updates: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        context = self.get_context(request)
+        context.update(context_updates or {})
+        return context
+
+    def _render_template_name(
+        self, template_name: str, *, request: HttpRequest, context: dict[str, Any]
+    ) -> str:
+        return str(
+            loader.get_template(template_name=template_name).render(
+                context=context,
+                request=request,
+            )
+        )
 
     @classmethod
     def resolve_import(cls, *, file_name: str) -> Generator[AssetTag, None, None]:

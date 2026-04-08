@@ -21,6 +21,9 @@ class DispatchError(Exception):
     pass
 
 
+_NO_PAGE_RESULT = object()
+
+
 def dispatch_page(page: Any, request: HttpRequest, **params: Any) -> HttpResponse:
     if is_action_request(request):
         action_name = get_action_name(request)
@@ -31,7 +34,7 @@ def dispatch_page(page: Any, request: HttpRequest, **params: Any) -> HttpRespons
     handler_name = method.lower()
     if not hasattr(page, handler_name):
         if handler_name == "get" and hasattr(page, "get_context"):
-            return _to_full_response(page, request, page.get_context(request))
+            return _to_full_response(page, request, _NO_PAGE_RESULT)
         raise DispatchError(
             f"Method {method} not allowed for page {page.__class__.__name__}"
         )
@@ -105,8 +108,17 @@ def _to_full_response(page: Any, request: HttpRequest, result: Any) -> HttpRespo
         return result
     if isinstance(result, str):
         return HttpResponse(result.encode())
-    if isinstance(result, dict):
-        html = page.render(request=request, context_updates=result)
+    if result is _NO_PAGE_RESULT or isinstance(result, dict):
+        context_updates = result if isinstance(result, dict) else None
+        if hasattr(page, "_build_context") and hasattr(page, "_render_template_name"):
+            context = page._build_context(request, context_updates)
+            html = page._render_template_name(
+                page.get_template_name(),
+                request=request,
+                context=context,
+            )
+        else:
+            html = page.render(request=request, context_updates=context_updates)
         return HttpResponse(html.encode())
     raise DispatchError(
         f"Unsupported page handler return type: {type(result).__name__}"

@@ -19,6 +19,7 @@ from hyperdjango.page import (
     Page,
 )
 from hyperdjango.routing.compiler import build_route_view
+from hyperdjango.runtime.dispatcher import dispatch_page
 from hyperdjango.runtime.responses import to_action_http_response
 
 
@@ -216,6 +217,46 @@ def test_page_template_renders_relative_template_directory(
         html="<div>Hello modal</div>",
         js="/static/hyper/templates/modal/entry.ts.js",
     )
+
+
+def test_dispatch_page_merges_get_context_with_get_result(
+    monkeypatch, tmp_path: Path
+) -> None:
+    frontend_dir = tmp_path / "hyper"
+    page_file = frontend_dir / "routes" / "dashboard" / "+page.py"
+    template_file = page_file.parent / "index.html"
+    page_file.parent.mkdir(parents=True, exist_ok=True)
+    page_file.write_text("# test")
+    template_file.write_text("<div>{{ base }} {{ title }}</div>")
+
+    monkeypatch.setattr("hyperdjango.page.get_frontend_dir", lambda: frontend_dir)
+
+    class DashboardPage(HyperPageTemplate):
+        @classmethod
+        def _get_file_path(cls) -> str:
+            return str(page_file)
+
+        def get_context(self, request):
+            return {"page": self, "base": "Base"}
+
+        def get(self, request, **params):
+            return {"title": "Dashboard"}
+
+    _ensure_settings()
+    with override_settings(
+        TEMPLATES=[
+            {
+                "BACKEND": "django.template.backends.django.DjangoTemplates",
+                "DIRS": [frontend_dir],
+                "APP_DIRS": True,
+                "OPTIONS": {"context_processors": []},
+            }
+        ]
+    ):
+        response = dispatch_page(DashboardPage(), RequestFactory().get("/dashboard"))
+
+    assert response.status_code == 200
+    assert response.content == b"<div>Base Dashboard</div>"
 
 
 def test_route_view_uses_django_view_as_view_setup() -> None:
