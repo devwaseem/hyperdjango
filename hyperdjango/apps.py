@@ -1,6 +1,16 @@
 from django.apps import AppConfig
 
 
+WATCH_GLOBS = (
+    "**/*.py",
+    "**/*.html",
+    "**/*.js",
+    "**/*.ts",
+    "**/*.css",
+    "**/*.json",
+)
+
+
 class HyperDjangoConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"  # type: ignore[assignment]
     name = "hyperdjango"
@@ -17,10 +27,8 @@ class HyperDjangoConfig(AppConfig):
                 watch_dir = getattr(sender, "watch_dir", None)
                 if not callable(watch_dir):
                     return
-                watch_dir(
-                    frontend_dir,
-                    "**/*.{py,html,js,ts,css,json}",
-                )
+                for glob in WATCH_GLOBS:
+                    watch_dir(frontend_dir, glob)
 
             autoreload.autoreload_started.connect(
                 _watch_hyper_frontend,

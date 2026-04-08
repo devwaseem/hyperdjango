@@ -80,7 +80,7 @@ python manage.py hyper_scaffold
 
 Generated structure:
 
-- `hyper/routes/index/page.py`
+- `hyper/routes/index/+page.py`
 - `hyper/routes/index/index.html`
 - `hyper/templates/profile_card/page.py`
 - `hyper/templates/profile_card/index.html`

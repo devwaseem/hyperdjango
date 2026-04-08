@@ -18,7 +18,7 @@ def scan_route_files(routes_dir: Path) -> list[RouteFile]:
         raise RuntimeError(f"Route directory does not exist: {routes_dir}")
 
     route_files: list[RouteFile] = []
-    for page_file in routes_dir.rglob("page.py"):
+    for page_file in routes_dir.rglob("+page.py"):
         directory = page_file.parent
         rel = directory.relative_to(routes_dir)
         raw_segments = [seg for seg in rel.parts if seg]

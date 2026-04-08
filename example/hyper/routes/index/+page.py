@@ -18,7 +18,7 @@ class PageView(BaseLayout):
         tip_index = self._tip_index(request)
         return {
             "headline": "HyperDjango file routing is live",
-            "description": "This page is served from hyper/routes/index/page.py",
+            "description": "This page is served from hyper/routes/index/+page.py",
             "editable_text": editable_text,
             "tip_index": tip_index,
             "tip_text": self.TIPS[tip_index],

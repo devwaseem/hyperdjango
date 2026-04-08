@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
@@ -142,7 +143,8 @@ def build_urlpatterns(routes_dir: Path, *, url_prefix: str = "") -> list:
 
 def _module_name(file_path: Path) -> str:
     digest = hashlib.md5(str(file_path).encode(), usedforsecurity=False).hexdigest()
-    return f"hyperdjango.dynamic.{file_path.stem}.{digest}"
+    stem = re.sub(r"[^0-9A-Za-z_]+", "_", file_path.stem)
+    return f"hyperdjango.dynamic.{stem}.{digest}"
 
 
 def _view_name(segments: list[RouteSegment], page_class: type[Any]) -> str:

@@ -13,23 +13,23 @@ This example is an end-to-end Django app wired to `hyperdjango`.
 
 ## Route Map
 
-- `/` -> `hyper/routes/index/page.py`
-- `/about` -> `hyper/routes/about/page.py`
-- `/blog/<slug>` -> `hyper/routes/blog/[slug]/page.py`
-- `/docs/<path:path>` -> `hyper/routes/docs/[...path]/page.py`
-- `/account/reset/<uidb36>-<key>` -> `hyper/routes/account/reset/[uidb36]-[key]/page.py`
-- `/regex/<kind>-v<version>` -> `hyper/routes/regex/[kind]-v[version]/page.py`
-- `/typed/<str:slug>` -> `hyper/routes/typed/[str__slug]/page.py`
-- `/regex-inline/<uidb36>-<key>` -> `hyper/routes/regex-inline/[uidb36__[0-9A-Za-z]+]-[key__.+]/page.py`
-- `/pricing` -> `hyper/routes/(marketing)/pricing/page.py`
-- `/dashboard` -> `hyper/routes/dashboard/page.py`
-- `/dashboard/settings` -> `hyper/routes/dashboard/settings/page.py`
-- `/search` -> `hyper/routes/search/page.py`
-- `/todos` -> `hyper/routes/todos/page.py`
-- `/signals` -> `hyper/routes/signals/page.py`
-- `/profile` -> `hyper/routes/profile/page.py`
+- `/` -> `hyper/routes/index/+page.py`
+- `/about` -> `hyper/routes/about/+page.py`
+- `/blog/<slug>` -> `hyper/routes/blog/[slug]/+page.py`
+- `/docs/<path:path>` -> `hyper/routes/docs/[...path]/+page.py`
+- `/account/reset/<uidb36>-<key>` -> `hyper/routes/account/reset/[uidb36]-[key]/+page.py`
+- `/regex/<kind>-v<version>` -> `hyper/routes/regex/[kind]-v[version]/+page.py`
+- `/typed/<str:slug>` -> `hyper/routes/typed/[str__slug]/+page.py`
+- `/regex-inline/<uidb36>-<key>` -> `hyper/routes/regex-inline/[uidb36__[0-9A-Za-z]+]-[key__.+]/+page.py`
+- `/pricing` -> `hyper/routes/(marketing)/pricing/+page.py`
+- `/dashboard` -> `hyper/routes/dashboard/index/+page.py`
+- `/dashboard/settings` -> `hyper/routes/dashboard/settings/+page.py`
+- `/search` -> `hyper/routes/search/+page.py`
+- `/todos` -> `hyper/routes/todos/+page.py`
+- `/signals` -> `hyper/routes/signals/+page.py`
+- `/profile` -> `hyper/routes/profile/+page.py`
 - `/template-card` -> custom URL + `hyper/templates/profile_card/page.py`
-- `/plain-django-view` -> `hyper/routes/plain-django-view/page.py` (`django.views.View`)
+- `/plain-django-view` -> `hyper/routes/plain-django-view/+page.py` (`django.views.View`)
 
 ## Run
 

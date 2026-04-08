@@ -63,7 +63,7 @@ class Command(BaseCommand):
         write(layouts_dir / "base" / "index.html", LAYOUT_HTML)
         write(layouts_dir / "base" / "entry.ts", LAYOUT_ENTRY_TS)
 
-        write(routes_dir / "index" / "page.py", INDEX_PAGE_PY)
+        write(routes_dir / "index" / "+page.py", INDEX_PAGE_PY)
         write(routes_dir / "index" / "index.html", INDEX_HTML)
         write(templates_dir / "profile_card" / "page.py", TEMPLATE_PAGE_PY)
         write(templates_dir / "profile_card" / "index.html", TEMPLATE_INDEX_HTML)

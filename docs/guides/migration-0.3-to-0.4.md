@@ -45,7 +45,7 @@ Use this when you want file routing without Hyper action behavior.
 
 ## Checklist
 
-- Ensure every `hyper/routes/**/page.py` defines a class named `PageView`.
+- Ensure every `hyper/routes/**/+page.py` defines a class named `PageView`.
 - For Hyper features, keep inheriting `HyperView`.
 - For plain Django routes, subclass `django.views.View`.
 - Run:

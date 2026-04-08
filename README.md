@@ -53,7 +53,7 @@ This keeps the code you change for a feature close together.
 
 ## What You Get
 
-- file-based routing from `hyper/routes/**/page.py`
+- file-based routing from `hyper/routes/**/+page.py`
 - nested `layout.py` composition
 - class-based pages with native `get/post/...` handlers
 - `@action` methods for hypermedia interactions
@@ -134,9 +134,9 @@ class PageView(HyperView):
         return {"title": "About"}
 ```
 
-Place this in `hyper/routes/about/page.py` and create `hyper/routes/about/index.html`.
+Place this in `hyper/routes/about/+page.py` and create `hyper/routes/about/index.html`.
 
-Note: each `hyper/routes/**/page.py` must define a class named `PageView` (typically inheriting `HyperView`).
+Note: each `hyper/routes/**/+page.py` must define a class named `PageView` (typically inheriting `HyperView`).
 
 ## Actions
 
@@ -201,16 +201,16 @@ HyperDjango exposes helpers globally and as Alpine magics:
 
 ## Route Naming Conventions
 
-- `routes/index/page.py` -> `/`
-- `routes/about/page.py` -> `/about`
-- `routes/blog/[slug]/page.py` -> `/blog/<slug>`
-- `routes/blog/[str__slug]/page.py` -> `/blog/<str:slug>`
-- `routes/docs/[...path]/page.py` -> `/docs/<path:path>`
-- `routes/accounts/reset/[uidb36]-[key]/page.py` -> `/accounts/reset/<uidb36>-<key>`
-- `routes/account/reset/[uid__[0-9A-Za-z]+]-[key__.+]/page.py` -> inline regex segment
-- `routes/(marketing)/pricing/page.py` -> `/pricing`
+- `routes/index/+page.py` -> `/`
+- `routes/about/+page.py` -> `/about`
+- `routes/blog/[slug]/+page.py` -> `/blog/<slug>`
+- `routes/blog/[str__slug]/+page.py` -> `/blog/<str:slug>`
+- `routes/docs/[...path]/+page.py` -> `/docs/<path:path>`
+- `routes/accounts/reset/[uidb36]-[key]/+page.py` -> `/accounts/reset/<uidb36>-<key>`
+- `routes/account/reset/[uid__[0-9A-Za-z]+]-[key__.+]/+page.py` -> inline regex segment
+- `routes/(marketing)/pricing/+page.py` -> `/pricing`
 
-Reverse URL names are generated automatically (for example `routes/blog/[slug]/page.py` -> `hyper_blog_slug`) and can be overridden per page with `route_name` on `PageView`.
+Reverse URL names are generated automatically (for example `routes/blog/[slug]/+page.py` -> `hyper_blog_slug`) and can be overridden per page with `route_name` on `PageView`.
 
 ## Template Tags
 

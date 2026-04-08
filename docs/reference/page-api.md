@@ -24,7 +24,7 @@ Adds:
 - action registration via `@action`
 - `action_response(...)`
 
-Use this for routed pages under `hyper/routes/**/page.py`.
+Use this for routed pages under `hyper/routes/**/+page.py`.
 
 `HyperView` subclasses Django `View`, so routed pages get normal CBV setup (`self.request`, `args`, `kwargs`) via `as_view()`.
 

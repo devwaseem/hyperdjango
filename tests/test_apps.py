@@ -4,7 +4,7 @@ from pathlib import Path
 
 import hyperdjango
 
-from hyperdjango.apps import HyperDjangoConfig
+from hyperdjango.apps import HyperDjangoConfig, WATCH_GLOBS
 
 
 class _Signal:
@@ -50,4 +50,4 @@ def test_ready_registers_hyper_frontend_watch(monkeypatch) -> None:
     sender = _Sender()
     autoreload.autoreload_started.receiver(sender=sender)
 
-    assert sender.calls == [(frontend_dir, "**/*.{py,html,js,ts,css,json}")]
+    assert sender.calls == [(frontend_dir, glob) for glob in WATCH_GLOBS]

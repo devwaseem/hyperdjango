@@ -21,14 +21,14 @@ This routing model keeps route intent in the filesystem and reduces URLconf drif
 
 ## Examples
 
-- `routes/index/page.py` -> `/`
-- `routes/account/index/page.py` -> `/account`
-- `routes/blog/[slug]/page.py` -> `/blog/<slug>`
-- `routes/blog/[str__slug]/page.py` -> `/blog/<str:slug>`
-- `routes/docs/[...path]/page.py` -> `/docs/<path:path>`
-- `routes/accounts/reset/[uidb36]-[key]/page.py` -> `/accounts/reset/<uidb36>-<key>`
-- `routes/account/reset/[uidb36__[0-9A-Za-z]+]-[key__.+]/page.py` -> regex-constrained reset path
-- `routes/(marketing)/pricing/page.py` -> `/pricing`
+- `routes/index/+page.py` -> `/`
+- `routes/account/index/+page.py` -> `/account`
+- `routes/blog/[slug]/+page.py` -> `/blog/<slug>`
+- `routes/blog/[str__slug]/+page.py` -> `/blog/<str:slug>`
+- `routes/docs/[...path]/+page.py` -> `/docs/<path:path>`
+- `routes/accounts/reset/[uidb36]-[key]/+page.py` -> `/accounts/reset/<uidb36>-<key>`
+- `routes/account/reset/[uidb36__[0-9A-Za-z]+]-[key__.+]/+page.py` -> regex-constrained reset path
+- `routes/(marketing)/pricing/+page.py` -> `/pricing`
 
 ## Composite (Regex) Segments
 
@@ -36,7 +36,7 @@ Use composite segments when one URL part contains multiple parameters and litera
 
 Example directory:
 
-- `routes/accounts/password/reset/key/[uidb36]-[key]/page.py`
+- `routes/accounts/password/reset/key/[uidb36]-[key]/+page.py`
 
 This compiles to a regex route and supports Django `reverse()` with both kwargs:
 
@@ -68,9 +68,9 @@ Example:
 
 - `routes/layout.py`
 - `routes/dashboard/layout.py`
-- `routes/dashboard/settings/page.py`
+- `routes/dashboard/settings/+page.py`
 
-`settings/page.py` inherits both layouts (outer to inner) plus its own page class.
+`settings/+page.py` inherits both layouts (outer to inner) plus its own page class.
 
 ## Conflict Detection
 
