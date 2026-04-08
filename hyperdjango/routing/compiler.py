@@ -9,6 +9,7 @@ from django.http import HttpRequest, HttpResponse
 from django.urls import path, re_path
 from django.views import View
 
+from hyperdjango.conf import get_append_slash
 from hyperdjango.routing.graph import make_route_key
 from hyperdjango.routing.parser import (
     RouteSegment,
@@ -62,6 +63,7 @@ def compile_routes(routes_dir: Path, *, url_prefix: str = "") -> list[CompiledRo
     route_files = scan_route_files(routes_dir)
     compiled: list[CompiledRoute] = []
     seen_paths: dict[str, tuple[tuple[str, ...], Path, str]] = {}
+    append_slash = get_append_slash()
 
     for route_file in route_files:
         prefix_segments = [
@@ -69,7 +71,9 @@ def compile_routes(routes_dir: Path, *, url_prefix: str = "") -> list[CompiledRo
         ]
         all_segments = [*prefix_segments, *route_file.segments]
         key = make_route_key(all_segments)
-        display_path = build_django_route(all_segments) or "/"
+        display_path = (
+            build_django_route(all_segments, append_slash=append_slash) or "/"
+        )
         if key.path in seen_paths:
             previous_shape, previous_file, previous_display_path = seen_paths[key.path]
             raise RuntimeError(
@@ -90,9 +94,9 @@ def compile_routes(routes_dir: Path, *, url_prefix: str = "") -> list[CompiledRo
             layout_classes.append(find_layout_class(module))
 
         effective_page_class = compose_page_class(page_class, layout_classes)
-        route_path = build_django_route(all_segments)
+        route_path = build_django_route(all_segments, append_slash=append_slash)
         regex_path = (
-            build_regex_route(all_segments)
+            build_regex_route(all_segments, append_slash=append_slash)
             if any(segment.kind == "pattern" for segment in all_segments)
             else None
         )

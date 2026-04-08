@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import django
 import pytest
+from django.conf import settings
+from django.test import override_settings
 
 from hyperdjango.routing.compiler import compile_routes
 from hyperdjango.routing.loader import RouteLoadError
@@ -14,6 +17,17 @@ PAGE_TEMPLATE = """from hyperdjango.page import HyperView
 class PageView(HyperView):
     pass
 """
+
+
+def _ensure_settings() -> None:
+    if settings.configured:
+        return
+    settings.configure(
+        DEFAULT_CHARSET="utf-8",
+        SECRET_KEY="test",
+        ALLOWED_HOSTS=["*"],
+    )
+    django.setup()
 
 
 def _write(path: Path, content: str) -> None:
@@ -50,7 +64,7 @@ def test_templates_folder_page_files_are_not_routed(tmp_path: Path) -> None:
     compiled = compile_routes(routes_dir)
 
     assert len(compiled) == 1
-    assert compiled[0].django_path == "home"
+    assert compiled[0].django_path == "home/"
 
 
 def test_route_page_requires_pageview_class_name(tmp_path: Path) -> None:
@@ -73,7 +87,7 @@ def test_route_page_uses_pageview_name_only(tmp_path: Path) -> None:
 
     compiled = compile_routes(routes_dir)
     assert len(compiled) == 1
-    assert compiled[0].django_path == "home"
+    assert compiled[0].django_path == "home/"
 
 
 def test_route_view_name_defaults_and_custom_override(tmp_path: Path) -> None:
@@ -90,8 +104,8 @@ def test_route_view_name_defaults_and_custom_override(tmp_path: Path) -> None:
     compiled = compile_routes(routes_dir)
     by_path = {item.django_path: item.view_name for item in compiled}
 
-    assert by_path["blog/<slug>"] == "hyper_blog_slug"
-    assert by_path["docs/<path:path>"] == "docs_custom"
+    assert by_path["blog/<slug>/"] == "hyper_blog_slug"
+    assert by_path["docs/<path:path>/"] == "docs_custom"
 
 
 def test_conflict_for_pattern_shape_with_different_param_names(tmp_path: Path) -> None:
@@ -110,8 +124,8 @@ def test_pattern_segment_compiles_regex_route(tmp_path: Path) -> None:
     compiled = compile_routes(routes_dir)
 
     assert len(compiled) == 1
-    assert compiled[0].django_path == "reset/[uidb36]-[key]"
-    assert compiled[0].regex_path == "^reset/(?P<uidb36>[^/]+)\\-(?P<key>[^/]+)$"
+    assert compiled[0].django_path == "reset/[uidb36]-[key]/"
+    assert compiled[0].regex_path == "^reset/(?P<uidb36>[^/]+)\\-(?P<key>[^/]+)/$"
 
 
 def test_inline_regex_segment_compiles_regex_route(tmp_path: Path) -> None:
@@ -124,7 +138,7 @@ def test_inline_regex_segment_compiles_regex_route(tmp_path: Path) -> None:
     compiled = compile_routes(routes_dir)
 
     assert len(compiled) == 1
-    assert compiled[0].regex_path == "^reset/(?P<uidb36>[0-9A-Za-z]+)\\-(?P<key>.+)$"
+    assert compiled[0].regex_path == "^reset/(?P<uidb36>[0-9A-Za-z]+)\\-(?P<key>.+)/$"
 
 
 def test_typed_dynamic_segment_path_output(tmp_path: Path) -> None:
@@ -134,4 +148,17 @@ def test_typed_dynamic_segment_path_output(tmp_path: Path) -> None:
     compiled = compile_routes(routes_dir)
 
     assert len(compiled) == 1
-    assert compiled[0].django_path == "blog/<str:slug>"
+    assert compiled[0].django_path == "blog/<str:slug>/"
+
+
+def test_routes_skip_trailing_slash_when_append_slash_disabled(tmp_path: Path) -> None:
+    _ensure_settings()
+    routes_dir = tmp_path / "frontend" / "routes"
+    _write(routes_dir / "reset" / "[uidb36]-[key]" / "page.py", PAGE_TEMPLATE)
+
+    with override_settings(APPEND_SLASH=False):
+        compiled = compile_routes(routes_dir)
+
+    assert len(compiled) == 1
+    assert compiled[0].django_path == "reset/[uidb36]-[key]"
+    assert compiled[0].regex_path == "^reset/(?P<uidb36>[^/]+)\\-(?P<key>[^/]+)$"

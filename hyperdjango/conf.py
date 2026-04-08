@@ -56,3 +56,10 @@ def get_vite_dev_server_url() -> str:
         )
     except ImproperlyConfigured:
         return "http://localhost:5173/"
+
+
+def get_append_slash() -> bool:
+    try:
+        return bool(getattr(settings, "APPEND_SLASH", True))
+    except ImproperlyConfigured:
+        return True

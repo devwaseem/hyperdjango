@@ -84,12 +84,21 @@ def parse_segment(segment: str) -> RouteSegment:
     return RouteSegment(raw=segment, kind="static", name=segment)
 
 
-def build_django_route(segments: list[RouteSegment]) -> str:
+def build_django_route(
+    segments: list[RouteSegment], *, append_slash: bool = True
+) -> str:
     parts = [segment.path_part for segment in segments if segment.path_part]
-    return "/".join(parts)
+    if not parts:
+        return ""
+    route = "/".join(parts)
+    if append_slash:
+        return f"{route}/"
+    return route
 
 
-def build_regex_route(segments: list[RouteSegment]) -> str:
+def build_regex_route(
+    segments: list[RouteSegment], *, append_slash: bool = True
+) -> str:
     parts: list[str] = []
     for segment in segments:
         if segment.kind in {"group", "index"}:
@@ -113,6 +122,10 @@ def build_regex_route(segments: list[RouteSegment]) -> str:
             continue
         parts.append(re.escape(segment.raw))
     body = "/".join(parts)
+    if not body:
+        return r"^$"
+    if append_slash:
+        return f"^{body}/$"
     return f"^{body}$"
 
 

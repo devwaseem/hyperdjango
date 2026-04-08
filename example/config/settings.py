@@ -7,6 +7,7 @@ REPO_DIR = BASE_DIR.parent
 SECRET_KEY = "dev-only-secret-key"
 DEBUG = True
 ALLOWED_HOSTS = []
+APPEND_SLASH = True
 
 INSTALLED_APPS = [
     "django.contrib.admin",

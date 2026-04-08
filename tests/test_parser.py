@@ -29,7 +29,12 @@ def test_route_build_ignores_index_and_groups() -> None:
         parse_segment("index"),
         parse_segment("pricing"),
     ]
-    assert build_django_route(segments) == "pricing"
+    assert build_django_route(segments) == "pricing/"
+
+
+def test_route_build_skips_trailing_slash_when_disabled() -> None:
+    segments = [parse_segment("pricing")]
+    assert build_django_route(segments, append_slash=False) == "pricing"
 
 
 def test_parse_pattern_segment() -> None:
@@ -41,6 +46,12 @@ def test_parse_pattern_segment() -> None:
 def test_build_regex_route_for_pattern_segment() -> None:
     segments = [parse_segment("accounts"), parse_segment("[uidb36]-[key]")]
     regex = build_regex_route(segments)
+    assert regex == "^accounts/(?P<uidb36>[^/]+)\\-(?P<key>[^/]+)/$"
+
+
+def test_build_regex_route_skips_trailing_slash_when_disabled() -> None:
+    segments = [parse_segment("accounts"), parse_segment("[uidb36]-[key]")]
+    regex = build_regex_route(segments, append_slash=False)
     assert regex == "^accounts/(?P<uidb36>[^/]+)\\-(?P<key>[^/]+)$"
 
 
@@ -76,4 +87,4 @@ def test_build_regex_route_for_typed_and_inline_regex() -> None:
         parse_segment("[uid:[0-9]+]-[key:.+]"),
     ]
     regex = build_regex_route(segments)
-    assert regex == "^reset/(?P<slug>[^/]+)/(?P<uid>[0-9]+)\\-(?P<key>.+)$"
+    assert regex == "^reset/(?P<slug>[^/]+)/(?P<uid>[0-9]+)\\-(?P<key>.+)/$"
