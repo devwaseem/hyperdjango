@@ -27,6 +27,7 @@ def to_action_http_response(result: ActionResult) -> HttpResponse:
     should_return_json = bool(
         result.signals
         or result.toasts
+        or result.redirect_to
         or result.target
         or result.swap
         or result.swap_delay is not None
@@ -45,6 +46,8 @@ def to_action_http_response(result: ActionResult) -> HttpResponse:
             payload["signals"] = result.signals
         if result.toasts:
             payload["toasts"] = result.toasts
+        if result.redirect_to:
+            payload["redirect_to"] = result.redirect_to
         if result.html is not None:
             payload["html"] = result.html
         if result.target:

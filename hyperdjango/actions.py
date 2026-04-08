@@ -9,6 +9,7 @@ class ActionResult:
     html: str | None = None
     signals: dict[str, Any] = field(default_factory=dict)
     toasts: list[Any] = field(default_factory=list)
+    redirect_to: str | None = None
     target: str | None = None
     swap: str | None = None
     swap_delay: int | None = None

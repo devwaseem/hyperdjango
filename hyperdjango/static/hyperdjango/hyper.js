@@ -359,6 +359,17 @@ const Hyper = (() => {
     }
   }
 
+  function redirectTo(url, { replace = false } = {}) {
+    if (!url) {
+      return;
+    }
+    if (replace) {
+      window.location.replace(url);
+      return;
+    }
+    window.location.assign(url);
+  }
+
   function csrfTokenFromCookie() {
     const cookie = document.cookie
       .split(";")
@@ -1085,6 +1096,13 @@ const Hyper = (() => {
     }
 
     if (result.kind === "json") {
+      if (result.data.redirect_to) {
+        redirectTo(result.data.redirect_to, {
+          replace: Boolean(result.data.replace_url) && result.data.replace_url === result.data.redirect_to,
+        });
+        return result.data;
+      }
+
       applySignals(result.data, { syncStore });
       applyToasts(result.data.toasts);
       if (result.data.signals) {

@@ -231,6 +231,7 @@ class HyperActionMixin:
         signals: dict[str, Any] | None = None,
         toast: Any | None = None,
         toasts: list[Any] | None = None,
+        redirect_to: str | None = None,
         target: str | None = None,
         swap: str | None = None,
         swap_delay: int | None = None,
@@ -247,6 +248,46 @@ class HyperActionMixin:
         request: HttpRequest | None = None,
         context_updates: dict[str, Any] | None = None,
     ) -> ActionResult:
+        if redirect_to:
+            invalid_fields: list[str] = []
+            if html is not None:
+                invalid_fields.append("html")
+            if signals:
+                invalid_fields.append("signals")
+            if toast is not None:
+                invalid_fields.append("toast")
+            if toasts:
+                invalid_fields.append("toasts")
+            if target is not None:
+                invalid_fields.append("target")
+            if swap is not None:
+                invalid_fields.append("swap")
+            if swap_delay is not None:
+                invalid_fields.append("swap_delay")
+            if settle_delay is not None:
+                invalid_fields.append("settle_delay")
+            if transition:
+                invalid_fields.append("transition")
+            if focus is not None:
+                invalid_fields.append("focus")
+            if push_url is not None:
+                invalid_fields.append("push_url")
+            if replace_url is not None:
+                invalid_fields.append("replace_url")
+            if strict_targets is not None:
+                invalid_fields.append("strict_targets")
+            if oob:
+                invalid_fields.append("oob")
+            if action is not None:
+                invalid_fields.append("action")
+            if context_updates:
+                invalid_fields.append("context_updates")
+            if invalid_fields:
+                raise ValueError(
+                    "action_response(redirect_to=...) cannot be combined with "
+                    + ", ".join(invalid_fields)
+                )
+
         rendered_html = html
         if rendered_html is None and action and request is not None:
             if not hasattr(self, "render_block"):
@@ -267,6 +308,7 @@ class HyperActionMixin:
             html=rendered_html,
             signals=signals or {},
             toasts=toast_items,
+            redirect_to=redirect_to,
             target=target,
             swap=swap,
             swap_delay=swap_delay,

@@ -11,6 +11,18 @@ from django.views import View
 from hyperdjango.actions import ActionResult, action
 from hyperdjango.page import HyperActionMixin, HyperView, Page, PageTemplate
 from hyperdjango.routing.compiler import build_route_view
+from hyperdjango.runtime.responses import to_action_http_response
+
+
+def _ensure_settings() -> None:
+    if settings.configured:
+        return
+    settings.configure(
+        DEFAULT_CHARSET="utf-8",
+        SECRET_KEY="test",
+        ALLOWED_HOSTS=["*"],
+    )
+    django.setup()
 
 
 def test_page_is_backward_compatible_hyperview() -> None:
@@ -41,6 +53,51 @@ def test_hyper_action_mixin_works_without_hyperview() -> None:
     result = method(None)
     assert isinstance(result, ActionResult)
     assert result.html == "ok"
+
+
+def test_action_response_supports_redirects() -> None:
+    class DemoMixin(HyperActionMixin):
+        @action
+        def go(self, request):
+            return self.action_response(redirect_to="/dashboard/")
+
+    obj = DemoMixin()
+    method = obj.get_action("go")
+    assert method is not None
+
+    result = method(None)
+
+    assert isinstance(result, ActionResult)
+    assert result.redirect_to == "/dashboard/"
+
+
+def test_action_http_response_serializes_redirects() -> None:
+    _ensure_settings()
+    response = to_action_http_response(ActionResult(redirect_to="/dashboard/"))
+
+    assert response.status_code == 200
+    assert response["Content-Type"] == "application/json"
+    assert response.content == b'{"redirect_to": "/dashboard/"}'
+
+
+def test_action_response_rejects_redirect_with_swap_fields() -> None:
+    class DemoMixin(HyperActionMixin):
+        pass
+
+    obj = DemoMixin()
+
+    try:
+        obj.action_response(
+            redirect_to="/dashboard/", html="<div>Saved</div>", target="#panel"
+        )
+    except ValueError as exc:
+        assert str(exc) == (
+            "action_response(redirect_to=...) cannot be combined with html, target"
+        )
+    else:
+        raise AssertionError(
+            "Expected action_response to reject redirect + swap fields"
+        )
 
 
 def test_page_template_resolves_template_path(monkeypatch, tmp_path: Path) -> None:
