@@ -39,6 +39,19 @@ def test_page_is_backward_compatible_hyperview() -> None:
     assert issubclass(HyperView, View)
 
 
+def test_page_template_get_context_accepts_request() -> None:
+    _ensure_settings()
+
+    class DemoTemplate(HyperPageTemplate):
+        def get_context(self, request):
+            return {"page": self, "request_path": request.path}
+
+    page = DemoTemplate()
+    request = RequestFactory().get("/demo")
+
+    assert page.get_context(request)["request_path"] == "/demo"
+
+
 def test_hyperview_registers_actions() -> None:
     class Demo(HyperView):
         @action

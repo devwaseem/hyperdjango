@@ -31,7 +31,7 @@ def dispatch_page(page: Any, request: HttpRequest, **params: Any) -> HttpRespons
     handler_name = method.lower()
     if not hasattr(page, handler_name):
         if handler_name == "get" and hasattr(page, "get_context"):
-            return _to_full_response(page, request, page.get_context())
+            return _to_full_response(page, request, page.get_context(request))
         raise DispatchError(
             f"Method {method} not allowed for page {page.__class__.__name__}"
         )

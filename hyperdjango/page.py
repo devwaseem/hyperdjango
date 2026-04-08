@@ -92,7 +92,7 @@ class HyperPageTemplate(metaclass=HyperPageTemplateMeta):
         self.body_imports: list[ModuleTag] = []
         self._collect_inherited_assets()
 
-    def get_context(self) -> dict[str, Any]:
+    def get_context(self, request: HttpRequest) -> dict[str, Any]:
         return {"page": self}
 
     def render(
@@ -107,7 +107,7 @@ class HyperPageTemplate(metaclass=HyperPageTemplateMeta):
             if not relative_template_name
             else self.get_relative_template_name(relative_template_name)
         )
-        context = self.get_context()
+        context = self.get_context(request)
         context.update(context_updates or {})
         return str(
             loader.get_template(template_name=template_name).render(
@@ -129,7 +129,7 @@ class HyperPageTemplate(metaclass=HyperPageTemplateMeta):
             if not relative_template_name
             else self.get_relative_template_name(relative_template_name)
         )
-        context = self.get_context()
+        context = self.get_context(request)
         context.update(context_updates or {})
         return cast(
             str,
@@ -150,7 +150,7 @@ class HyperPageTemplate(metaclass=HyperPageTemplateMeta):
     ) -> HyperPartialTemplateResult:
         target_dir = self._resolve_template_dir(template_dir)
         template_name = self._to_template_name(target_dir / "index.html")
-        context = self.get_context()
+        context = self.get_context(request)
         context.update(context_updates or {})
         html = str(
             loader.get_template(template_name=template_name).render(
