@@ -3,7 +3,7 @@
     <section x-data="{ title: '' }" style="max-width: 42rem;">
         <h1>Todos</h1>
         <p>Server-driven interactions with partial swaps, toasts, loading states, and transitions.</p>
-        <form x-on:submit.prevent="$post('add_todo', { title }, { transition: true })"
+        <form x-on:submit.prevent="$action('add_todo', { title }, { method: 'POST', transition: true })"
               style="display: flex;
                      gap: 0.5rem;
                      margin: 1rem 0">
@@ -31,7 +31,7 @@
         <p style="margin-top: 1rem;">
             <button type="button"
                     hyper-loading-disable
-                    x-on:click="$post('clear_completed', {}, { transition: true })">Clear completed</button>
+                    x-on:click="$action('clear_completed', {}, { method: 'POST', transition: true })">Clear completed</button>
             <a href="/" style="margin-left: 0.75rem;">Back home</a>
         </p>
     </section>

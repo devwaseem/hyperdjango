@@ -1,13 +1,13 @@
 <form
   x-data="{ text: '{{ editable_text|escapejs }}' }"
-  x-on:submit.prevent="$post('save_text', { text }, { transition: true })"
+  x-on:submit.prevent="$action('save_text', { text }, { method: 'POST', transition: true })"
 >
   <label>
     Text
     <input type="text" x-model="text" style="width: 24rem;" />
   </label>
   <button type="submit">Save</button>
-  <button type="button" x-on:click="$get('show_text', {}, { transition: true })">
+  <button type="button" x-on:click="$action('show_text', {}, { transition: true })">
     Cancel
   </button>
 </form>

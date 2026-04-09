@@ -1,43 +1,48 @@
 # Forms
 
-`hyper-form` enhances standard Django forms without replacing Django validation or rendering.
+`$action(..., data, { form })` enhances standard Django forms without replacing Django validation or rendering.
 
 It preserves Django Form ergonomics (server validation, error rendering, CSRF defaults) while adding partial updates, request sync, and loading UX.
 
 ## Minimal Example
 
 ```html
-<form
+<form id="profile-form"
+  x-data="{}"
   method="post"
   action="/profile"
-  hyper-form
-  hyper-action="save_profile"
-  hyper-target="#profile-form"
-  hyper-form-disable
->
+  x-on:submit.prevent="$action('save_profile', {}, {
+    form: $el,
+    target: '#profile-form',
+    swap: 'outer',
+    sync: 'block',
+    focus: 'first-invalid'
+  })">
   {% csrf_token %}
-  <input type="hidden" name="_action" value="save_profile" />
   {{ form.email }} {{ form.email.errors }}
   {{ form.name }} {{ form.name.errors }}
   <button type="submit">Save</button>
 </form>
 ```
 
-## Form Attributes
+## How It Works
 
-These attributes exist so form behavior is explicit in markup and can be tuned per form (for example block submit sync for write actions).
+- `form: $el` or `form: '#form-id'` in the third argument tells Hyper to build the request from the form element
+- form `method` and `action` are used automatically
+- `GET` forms send field values as action kwargs
+- non-`GET` forms send `FormData`, so uploads continue to work
+- action name stays explicit in `$action('save_profile', {}, ...)`
 
-- `hyper-form`: enable enhancement
-- `hyper-action`: action name (fallback: hidden `_action`)
-- `hyper-target`: swap target selector
-- `hyper-swap`: swap mode
-- `hyper-sync`: sync mode (`block` default for hyper-form)
-- `hyper-key`: sync key (fallback: action name)
-- `hyper-transition`: enable View Transition for form updates
-- `hyper-focus`: post-swap focus policy
-- `hyper-form-disable`: auto-apply disable scope to form controls
-- `hyper-strict-targets`: local strict mode
-- `hyper-swap-delay`, `hyper-settle-delay`
+Use normal `$action(...)` options for swap behavior:
+
+- `target`
+- `swap`
+- `sync`
+- `key`
+- `transition`
+- `focus`
+- `strictTargets`
+- `swapDelay`, `settleDelay`
 
 ## GET vs Non-GET
 

@@ -9,8 +9,8 @@
         </ul>
 
         <p>
-            <button type="button" x-on:click="$get('increment_both', { current: count })">Increment local + global</button>
-            <button type="button" x-on:click="$get('reset_global')">Reset global</button>
+            <button type="button" x-on:click="$action('increment_both', { current: count })">Increment local + global</button>
+            <button type="button" x-on:click="$action('reset_global', {})">Reset global</button>
         </p>
 
         <p>Local count: <strong x-text="count"></strong></p>

@@ -7,7 +7,7 @@
             The partial includes its own <code>entry.ts</code>, which Hyper loads after the HTML swap.
         </p>
         <p>
-            <button type="button" x-on:click="$get('open_modal')">Open modal partial</button>
+            <button type="button" x-on:click="$action('open_modal', {})">Open modal partial</button>
         </p>
         <div id="modal-root"></div>
     </section>

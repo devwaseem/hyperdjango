@@ -197,6 +197,37 @@ const Hyper = (() => {
     return out;
   }
 
+  function resolveForm(form) {
+    if (!form) {
+      return null;
+    }
+    if (form instanceof HTMLFormElement) {
+      return form;
+    }
+    if (typeof form === "string") {
+      const resolved = document.querySelector(form);
+      return resolved instanceof HTMLFormElement ? resolved : null;
+    }
+    return null;
+  }
+
+  function appendDataToFormData(formData, data) {
+    if (!data || typeof data !== "object") {
+      return formData;
+    }
+    for (const [key, value] of Object.entries(data)) {
+      formData.delete(key);
+      if (Array.isArray(value)) {
+        for (const item of value) {
+          formData.append(key, item == null ? "" : item);
+        }
+        continue;
+      }
+      formData.append(key, value == null ? "" : value);
+    }
+    return formData;
+  }
+
   function applyFormDisableScope(form, key) {
     if (!form.hasAttribute("hyper-form-disable")) {
       return;
@@ -1487,52 +1518,34 @@ const Hyper = (() => {
       const settleDelay = parseDelay(form.getAttribute("hyper-settle-delay"), 0);
       const focus = form.getAttribute("hyper-focus") || "preserve";
 
-      applyFormDisableScope(form, key);
-      emitEvent("hyper:form:beforeSubmit", {
+      const req = actionRequest(
         action,
-        method,
-        url,
-        target,
-        key,
-      });
-
-      const payload = new FormData(form);
-      if (!payload.has("_action")) {
-        payload.append("_action", action);
-      }
-
-      const req =
-        method === "GET"
-          ? runAction({
-              url,
-              action,
-              method: "GET",
-              target,
-              swap,
-              transition,
-              sync,
-              key,
-              strictTargets,
-              swapDelay,
-              settleDelay,
-              focus,
-              kwargs: formToKwargs(payload),
-            })
-          : runAction({
-              url,
+        {},
+        {
+          form,
+          method,
+          url,
+          target,
+          swap,
+          transition,
+          sync,
+          key,
+          strictTargets,
+          swapDelay,
+          settleDelay,
+          focus,
+          onBeforeSubmit: () => {
+            applyFormDisableScope(form, key);
+            emitEvent("hyper:form:beforeSubmit", {
               action,
               method,
+              url,
               target,
-              swap,
-              transition,
-              sync,
               key,
-              strictTargets,
-              swapDelay,
-              settleDelay,
-              focus,
-              body: payload,
             });
+          },
+        }
+      );
 
       req
         .then((result) => {
@@ -1559,50 +1572,100 @@ const Hyper = (() => {
     });
   }
 
-  async function get(action, kwargs = {}, options = {}) {
-    const url = options.url || window.location.pathname;
+  async function actionRequest(action, data = {}, options = {}) {
+    const form = resolveForm(options.form || null);
+    const inferredMethod = form ? (form.getAttribute("method") || "GET").toUpperCase() : "GET";
+    const method = String(options.method || inferredMethod || "GET").toUpperCase();
+    const url =
+      options.url ||
+      (form ? form.getAttribute("action") || window.location.pathname : window.location.pathname);
+    const target = options.target ?? null;
+    const transition = options.transition || false;
+    const swap = options.swap || "inner";
+    const sync = options.sync || (form ? "block" : "replace");
+    const key = options.key || null;
+    const strictTargets = options.strictTargets;
+    const swapDelay = options.swapDelay;
+    const settleDelay = options.settleDelay;
+    const focus = options.focus || "preserve";
+    const syncStore = options.syncStore ?? true;
+    const bind = options.bind || null;
+    const extraData = data && typeof data === "object" ? data : null;
+
+    if (typeof options.onBeforeSubmit === "function") {
+      options.onBeforeSubmit();
+    }
+
+    if (form) {
+      const payload = appendDataToFormData(new FormData(form), extraData);
+      if (!payload.has("_action")) {
+        payload.append("_action", action);
+      }
+      if (method === "GET") {
+        return runAction({
+          url,
+          action,
+          method: "GET",
+          target,
+          swap,
+          transition,
+          sync,
+          key,
+          strictTargets,
+          swapDelay,
+          settleDelay,
+          focus,
+          syncStore,
+          bind,
+          kwargs: formToKwargs(payload),
+        });
+      }
+      return runAction({
+        url,
+        action,
+        method,
+        target,
+        swap,
+        transition,
+        sync,
+        key,
+        strictTargets,
+        swapDelay,
+        settleDelay,
+        focus,
+        syncStore,
+        bind,
+        body: payload,
+      });
+    }
+
     return runAction({
       url,
       action,
-      method: "GET",
-      target: options.target,
-      syncStore: options.syncStore ?? true,
-      bind: options.bind || null,
-      kwargs,
-      swap: options.swap || "inner",
-      transition: options.transition || false,
+      method,
+      target,
+      syncStore,
+      bind,
+      kwargs: extraData,
+      swap,
+      transition,
       push: options.push || false,
       replace: options.replace || false,
-      sync: options.sync || "replace",
-      key: options.key || null,
-      strictTargets: options.strictTargets,
-      swapDelay: options.swapDelay,
-      settleDelay: options.settleDelay,
-      focus: options.focus || "preserve",
+      sync,
+      key,
+      strictTargets,
+      swapDelay,
+      settleDelay,
+      focus,
     });
   }
 
+  async function get(action, kwargs = {}, options = {}) {
+    return actionRequest(action, kwargs, { ...options, method: "GET" });
+  }
+
   async function post(action, kwargs = {}, options = {}) {
-    const url = options.url || window.location.pathname;
-    return runAction({
-      url,
-      action,
-      method: "POST",
-      target: options.target,
-      syncStore: options.syncStore ?? true,
-      bind: options.bind || null,
-      kwargs,
-      swap: options.swap || "inner",
-      transition: options.transition || false,
-      push: options.push || false,
-      replace: options.replace || false,
-      sync: options.sync || "replace",
-      key: options.key || null,
-      strictTargets: options.strictTargets,
-      swapDelay: options.swapDelay,
-      settleDelay: options.settleDelay,
-      focus: options.focus || "preserve",
-    });
+    return actionRequest(action, kwargs, { ...options, method: "POST" });
   }
 
   function initLoadingIndicators() {
@@ -1612,6 +1675,7 @@ const Hyper = (() => {
 
   return {
     runAction,
+    action: actionRequest,
     get,
     post,
     visit,
@@ -1629,6 +1693,7 @@ const Hyper = (() => {
 })();
 
 window.Hyper = Hyper;
+window.action = Hyper.action;
 window.get = Hyper.get;
 window.post = Hyper.post;
 
@@ -1648,6 +1713,7 @@ function registerAlpineMagicHelpers() {
   if (!window.Alpine || typeof window.Alpine.magic !== "function") {
     return;
   }
+  window.Alpine.magic("action", () => Hyper.action);
   window.Alpine.magic("get", () => Hyper.get);
   window.Alpine.magic("post", () => Hyper.post);
   window.Alpine.magic("hyper", () => {

@@ -7,22 +7,36 @@ The runtime translates server responses into predictable browser behavior (swap,
 ## Global API
 
 - `window.Hyper`
+- `window.action(action, data, options)`
 - `window.get(action, kwargs, options)`
 - `window.post(action, kwargs, options)`
 - `window.Hyper.configure({ strictTargets: boolean })`
 
 Alpine magics:
 
+- `$action(...)`
 - `$get(...)`
 - `$post(...)`
 - `$hyper` (maps to `Alpine.store("hyper")`)
 
 For signal-specific behavior, see `docs/signals.md`.
 
-## `get` / `post` options
+## `action` signature
+
+```javascript
+$action(name, data, options)
+```
+
+- `data`: plain object payload for the action
+- `options`: transport and UX options
+
+## `action` options
 
 These options let callers express UX behavior per interaction instead of enabling broad global behavior that is harder to reason about.
 
+- `form`: `HTMLFormElement` or CSS selector; when present Hyper infers `method` and `url` from the form
+- `method`: defaults to `GET`, unless a form is provided and its `method` says otherwise
+- `data`: object payload for non-form calls, or extra fields merged into a form submit
 - `url`: defaults to current path
 - `target`: CSS selector to swap
 - `swap`: `inner|outer|before|after|prepend|append|delete|none`
@@ -39,15 +53,27 @@ These options let callers express UX behavior per interaction instead of enablin
 Example:
 
 ```javascript
-await $post("save", { email }, {
-  target: "#form",
-  swap: "outer",
+ await $action("save", { email }, {
+   method: "POST",
+   target: "#form",
+   swap: "outer",
   sync: "block",
   key: "profile-save",
   transition: true,
   swapDelay: 40,
   settleDelay: 120,
   focus: "first-invalid",
+});
+```
+
+Form example:
+
+```javascript
+ await $action("save_profile", {}, {
+   form: "#profile-form",
+   target: "#profile-panel",
+   swap: "inner",
+   sync: "block",
 });
 ```
 

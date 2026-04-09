@@ -1,18 +1,19 @@
-<form method="post"
-      hyper-form
-      hyper-action="save_profile"
-      hyper-key="profile-save"
-      hyper-target="#profile-panel"
-      hyper-swap="inner"
-      hyper-transition
-      hyper-focus="first-invalid"
-      hyper-swap-delay="40"
-      hyper-settle-delay="120"
-      hyper-form-disable
+<form x-data="{}"
+      method="post"
+      x-on:submit.prevent="$action('save_profile', {}, {
+        form: $el,
+        target: '#profile-panel',
+        swap: 'inner',
+        transition: true,
+        key: 'profile-save',
+        sync: 'block',
+        focus: 'first-invalid',
+        swapDelay: 40,
+        settleDelay: 120
+      })"
       style="display: grid;
              gap: 0.7rem">
     {% csrf_token %}
-    <input type="hidden" name="_action" value="save_profile" />
     {% if form.non_field_errors %}
         <div style="padding: 0.5rem 0.65rem;
                     border: 1px solid #f2b5b5;

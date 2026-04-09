@@ -17,7 +17,7 @@
             Count bound with x-model:
             <input type="number" x-model="count" style="width: 5rem;" />
         </p>
-        <button type="button" x-on:click="$get('increment', { current: count })">Increment</button>
+        <button type="button" x-on:click="$action('increment', { current: count })">Increment</button>
         <p>
             Live value: <strong x-text="count"></strong>
         </p>
@@ -33,7 +33,7 @@
         <p>Clicking "Next tip" swaps server-rendered HTML with `transition=True`.</p>
         <div id="tip-card">{% include "routes/index/partials/tip_card.html" %}</div>
         <p>
-            <button type="button" x-on:click="$get('next_tip')">Next tip</button>
+            <button type="button" x-on:click="$action('next_tip', {})">Next tip</button>
         </p>
     </section>
 {% endblock page %}

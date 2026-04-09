@@ -9,7 +9,7 @@ This example is an end-to-end Django app wired to `hyperdjango`.
 - action-driven partial updates (`/`, `/todos`, `/search`)
 - OOB updates and toasts (`/todos`)
 - sync lanes and request lifecycle behavior (`/search`)
-- Django form enhancement via `hyper-form` (`/profile`)
+- Django form enhancement via `$action(..., data, { form })` (`/profile`)
 
 ## Route Map
 
