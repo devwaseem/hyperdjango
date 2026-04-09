@@ -53,6 +53,10 @@ class PageView(BaseLayout):
                     "url": "/modal-demo",
                     "label": "Standalone partial template with entry.ts",
                 },
+                {
+                    "url": "/upload-progress",
+                    "label": "Upload progress with $action and window.action",
+                },
                 {"url": "/signals", "label": "Signals: local vs global ($key)"},
                 {
                     "url": "/template-card",
@@ -62,7 +66,10 @@ class PageView(BaseLayout):
                     "url": "/plain-django-view",
                     "label": "File-routed PageView using plain django.views.View",
                 },
-                {"url": "/profile", "label": "Django form enhanced with hyper-form"},
+                {
+                    "url": "/profile",
+                    "label": "Django form enhanced with $action(..., { form })",
+                },
             ],
         }
 

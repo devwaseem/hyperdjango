@@ -1,0 +1,15 @@
+{% if error %}
+    <div style="padding: 0.75rem 0.9rem; border: 1px solid #fecaca; background: #fef2f2; border-radius: 10px; color: #991b1b;">
+        {{ error }}
+    </div>
+{% elif uploaded_name %}
+    <div style="padding: 0.85rem 0.95rem; border: 1px solid #bbf7d0; background: #f0fdf4; border-radius: 10px; color: #166534; display: grid; gap: 0.25rem;">
+        <strong>{{ uploaded_name }}</strong>
+        <span>{{ uploaded_size_kb }} KB</span>
+        <span>{{ content_type }}</span>
+    </div>
+{% else %}
+    <div style="padding: 0.75rem 0.9rem; border: 1px dashed #cbd5e1; background: #f8fafc; border-radius: 10px; color: #475569;">
+        Upload a file to see the result here.
+    </div>
+{% endif %}

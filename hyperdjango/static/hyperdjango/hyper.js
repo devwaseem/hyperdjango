@@ -1218,6 +1218,7 @@ const Hyper = (() => {
     swapDelay = 0,
     settleDelay = 0,
     focus = "preserve",
+    onUploadProgress = null,
   }) {
     const resolvedUrl = url || window.location.pathname;
     const headers = {
@@ -1234,6 +1235,7 @@ const Hyper = (() => {
       method,
       headers,
       body,
+      onUploadProgress,
       hookMeta: {
         kind: "action",
         action,

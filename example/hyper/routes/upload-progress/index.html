@@ -1,0 +1,128 @@
+{% extends "layouts/base/index.html" %}
+{% block page %}
+    <section style="display: grid; gap: 2rem; max-width: 42rem;">
+        <header>
+            <h1>Upload progress</h1>
+            <p>Use a larger file to make progress updates easier to see on localhost.</p>
+            <p style="margin: 0; color: #475569;">
+                Note: Chrome often does not throttle localhost uploads unless DevTools is configured to apply throttling to localhost.
+                If progress jumps from 0%% to 100%%, enable localhost throttling in DevTools and try a larger file.
+            </p>
+        </header>
+
+        <section style="display: grid; gap: 0.85rem; padding: 1rem; border: 1px solid #e2e8f0; border-radius: 12px;">
+            <div>
+                <h2 style="margin: 0 0 0.35rem;">Alpine `$action(...)` + `hyper:uploadProgress`</h2>
+                <p style="margin: 0; color: #475569;">This version listens to the global event and filters by `key`.</p>
+            </div>
+
+            <form id="upload-form-alpine"
+                  x-data="{}"
+                  method="post"
+                  enctype="multipart/form-data"
+                  style="display: grid; gap: 0.75rem;">
+                {% csrf_token %}
+                <input type="file" name="upload" required />
+                <button type="button"
+                        x-on:click="window.demoResetUploadStatus('alpine'); $action('upload_demo', {}, { form: '#upload-form-alpine', method: 'POST', key: 'upload-alpine', target: '#upload-result-alpine', onUploadProgress() {} })">
+                    Upload with Alpine
+                </button>
+            </form>
+
+            <div>
+                <progress id="upload-progress-alpine" max="100" value="0" style="width: 100%;"></progress>
+                <p id="upload-status-alpine" style="margin: 0.4rem 0 0; color: #475569;">Status: idle | 0%</p>
+            </div>
+
+            <div id="upload-result-alpine">{% include "routes/upload-progress/partials/result.html" with error="" uploaded_name="" uploaded_size_kb="" content_type="" %}</div>
+        </section>
+
+        <section style="display: grid; gap: 0.85rem; padding: 1rem; border: 1px solid #e2e8f0; border-radius: 12px;">
+            <div>
+                <h2 style="margin: 0 0 0.35rem;">`window.action(...)` + `onUploadProgress`</h2>
+                <p style="margin: 0; color: #475569;">This version updates a progress bar from the per-call callback.</p>
+            </div>
+
+            <form id="window-upload-form" method="post" enctype="multipart/form-data" style="display: grid; gap: 0.75rem;">
+                {% csrf_token %}
+                <input type="file" name="upload" required />
+                <button type="button" onclick="window.demoWindowUpload()">Upload with window.action</button>
+            </form>
+
+            <div>
+                <progress id="window-upload-progress" max="100" value="0" style="width: 100%;"></progress>
+                <p id="window-upload-status" style="margin: 0.4rem 0 0; color: #475569;">Status: idle | 0%</p>
+            </div>
+
+            <div id="upload-result-window">{% include "routes/upload-progress/partials/result.html" with error="" uploaded_name="" uploaded_size_kb="" content_type="" %}</div>
+        </section>
+
+        <script>
+          (function () {
+            const alpineProgress = document.getElementById("upload-progress-alpine");
+            const alpineStatus = document.getElementById("upload-status-alpine");
+
+            window.addEventListener("hyper:uploadProgress", (event) => {
+              if (event.detail.key !== "upload-alpine" || !alpineProgress || !alpineStatus) {
+                return;
+              }
+              const percent = event.detail.progress == null ? 0 : Math.round(event.detail.progress * 100);
+              alpineProgress.value = percent;
+              alpineStatus.textContent = `Status: uploading | ${percent}%`;
+            });
+
+            window.addEventListener("hyper:afterRequest", (event) => {
+              if (event.detail.key !== "upload-alpine" || !alpineProgress || !alpineStatus) {
+                return;
+              }
+              if (event.detail.ok) {
+                alpineProgress.value = 100;
+                alpineStatus.textContent = "Status: done | 100%";
+              } else {
+                alpineStatus.textContent = "Status: error | 0%";
+              }
+            });
+
+            window.demoResetUploadStatus = function (kind) {
+              const progress = document.getElementById(`upload-progress-${kind}`);
+              const status = document.getElementById(`upload-status-${kind}`);
+              if (!progress || !status) {
+                return;
+              }
+              progress.value = 0;
+              status.textContent = "Status: starting | 0%";
+            };
+
+            window.demoWindowUpload = function () {
+              const progress = document.getElementById("window-upload-progress");
+              const status = document.getElementById("window-upload-status");
+
+              if (!progress || !status) {
+                return;
+              }
+
+              window.demoResetUploadStatus("window");
+
+              window.action("upload_demo", {}, {
+                form: "#window-upload-form",
+                method: "POST",
+                key: "upload-window",
+                target: "#upload-result-window",
+                onUploadProgress(detail) {
+                  const percent = detail.progress == null ? 0 : Math.round(detail.progress * 100);
+                  progress.value = percent;
+                  status.textContent = `Status: uploading | ${percent}%`;
+                },
+              })
+                .then(() => {
+                  progress.value = 100;
+                  status.textContent = "Status: done | 100%";
+                })
+                .catch(() => {
+                  status.textContent = "Status: error | 0%";
+                });
+            };
+          })();
+        </script>
+    </section>
+{% endblock page %}
