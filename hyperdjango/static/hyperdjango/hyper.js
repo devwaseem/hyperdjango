@@ -228,6 +228,25 @@ const Hyper = (() => {
     return formData;
   }
 
+  function buildActionSearchParams(action, data) {
+    const params = new URLSearchParams();
+    params.set("_action", action);
+    if (!data || typeof data !== "object") {
+      return params;
+    }
+    for (const [key, value] of Object.entries(data)) {
+      if (Array.isArray(value)) {
+        params.delete(key);
+        for (const item of value) {
+          params.append(key, item == null ? "" : String(item));
+        }
+        continue;
+      }
+      params.set(key, value == null ? "" : String(value));
+    }
+    return params;
+  }
+
   function applyFormDisableScope(form, key) {
     if (!form.hasAttribute("hyper-form-disable")) {
       return;
@@ -1636,6 +1655,29 @@ const Hyper = (() => {
         syncStore,
         bind,
         body: payload,
+      });
+    }
+
+    if (method !== "GET" && method !== "HEAD") {
+      return runAction({
+        url,
+        action,
+        method,
+        target,
+        syncStore,
+        bind,
+        kwargs: extraData,
+        body: buildActionSearchParams(action, extraData),
+        swap,
+        transition,
+        push: options.push || false,
+        replace: options.replace || false,
+        sync,
+        key,
+        strictTargets,
+        swapDelay,
+        settleDelay,
+        focus,
       });
     }
 
