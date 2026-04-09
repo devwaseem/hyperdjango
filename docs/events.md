@@ -54,10 +54,25 @@ Typical use:
 Common detail fields for lifecycle events:
 
 - `id`: request id
+- `key`: resolved sync/request key
 - `url`, `method`
 - `kind`: `action|visit|nav-form` (when available)
 - `action`, `target` (for action requests)
 - `status`, `ok`, `response` (when response exists)
+
+### `hyper:uploadProgress`
+
+Triggered during request-body uploads when `onUploadProgress` is provided on a request.
+
+Common detail fields:
+
+- `id`: request id
+- `url`, `method`
+- `kind`: `action|visit|nav-form` (when available)
+- `action`, `target` (for action requests)
+- `loaded`, `total`
+- `lengthComputable`
+- `progress`: `0..1` when total size is known, otherwise `null`
 
 ## Sync and Cancellation
 

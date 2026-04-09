@@ -475,6 +475,75 @@ const Hyper = (() => {
     return "";
   }
 
+  function parseXHRHeaders(rawHeaders) {
+    const headers = new Headers();
+    if (!rawHeaders) {
+      return headers;
+    }
+    for (const line of rawHeaders.trim().split(/\r?\n/)) {
+      const index = line.indexOf(":");
+      if (index === -1) {
+        continue;
+      }
+      const key = line.slice(0, index).trim();
+      const value = line.slice(index + 1).trim();
+      if (key) {
+        headers.append(key, value);
+      }
+    }
+    return headers;
+  }
+
+  function createXHRResponse(xhr) {
+    const headers = parseXHRHeaders(xhr.getAllResponseHeaders());
+    const bodyText = xhr.responseText || "";
+    return {
+      ok: xhr.status >= 200 && xhr.status < 300,
+      status: xhr.status,
+      statusText: xhr.statusText,
+      headers,
+      text: async () => bodyText,
+      json: async () => JSON.parse(bodyText),
+    };
+  }
+
+  function requestWithXHR(url, options, meta) {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open(meta.method, url, true);
+      xhr.withCredentials = true;
+
+      for (const [key, value] of Object.entries(meta.headers)) {
+        xhr.setRequestHeader(key, value);
+      }
+
+      if (typeof options.onUploadProgress === "function" && xhr.upload) {
+        xhr.upload.addEventListener("progress", (event) => {
+          const detail = {
+            id: meta.requestId,
+            key: meta.requestKey,
+            url,
+            method: meta.method,
+            loaded: event.loaded,
+            total: event.total,
+            lengthComputable: event.lengthComputable,
+            progress: event.lengthComputable && event.total > 0 ? event.loaded / event.total : null,
+            ...meta.hookMeta,
+          };
+          options.onUploadProgress(detail);
+          emitEvent("hyper:uploadProgress", detail);
+        });
+      }
+
+      xhr.addEventListener("load", () => resolve(createXHRResponse(xhr)));
+      xhr.addEventListener("error", () => reject(new Error(`Hyper request failed: ${meta.method} ${url}`)));
+      xhr.addEventListener("abort", () => reject(new DOMException("The operation was aborted.", "AbortError")));
+
+      meta.controller.abort = () => xhr.abort();
+      xhr.send(options.body);
+    });
+  }
+
   async function request(url, options = {}) {
     const method = (options.method || "GET").toUpperCase();
     const headers = {
@@ -551,12 +620,23 @@ const Hyper = (() => {
     let response;
     let aborted = false;
     try {
-      response = await fetch(url, {
-        ...options,
-        credentials: "same-origin",
-        headers,
-        signal: controller.signal,
-      });
+      const canTrackUpload =
+        typeof options.onUploadProgress === "function" && method !== "GET" && method !== "HEAD" && options.body;
+      response = canTrackUpload
+        ? await requestWithXHR(url, options, {
+            method,
+            headers,
+            hookMeta,
+            requestId,
+            requestKey,
+            controller,
+          })
+        : await fetch(url, {
+            ...options,
+            credentials: "same-origin",
+            headers,
+            signal: controller.signal,
+          });
 
       if (response.ok) {
         emitEvent("hyper:requestSuccess", {
@@ -1609,6 +1689,7 @@ const Hyper = (() => {
     const focus = options.focus || "preserve";
     const syncStore = options.syncStore ?? true;
     const bind = options.bind || null;
+    const onUploadProgress = options.onUploadProgress || null;
     const extraData = data && typeof data === "object" ? data : null;
 
     if (typeof options.onBeforeSubmit === "function") {
@@ -1636,6 +1717,7 @@ const Hyper = (() => {
           focus,
           syncStore,
           bind,
+          onUploadProgress,
           kwargs: formToKwargs(payload),
         });
       }
@@ -1651,11 +1733,12 @@ const Hyper = (() => {
         strictTargets,
         swapDelay,
         settleDelay,
-        focus,
-        syncStore,
-        bind,
-        body: payload,
-      });
+          focus,
+          syncStore,
+          bind,
+          onUploadProgress,
+          body: payload,
+        });
     }
 
     if (method !== "GET" && method !== "HEAD") {
@@ -1678,6 +1761,7 @@ const Hyper = (() => {
         swapDelay,
         settleDelay,
         focus,
+        onUploadProgress,
       });
     }
 
@@ -1699,6 +1783,7 @@ const Hyper = (() => {
       swapDelay,
       settleDelay,
       focus,
+      onUploadProgress,
     });
   }
 

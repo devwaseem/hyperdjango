@@ -45,6 +45,7 @@ These options let callers express UX behavior per interaction instead of enablin
 - `bind`: optional explicit Alpine object to merge returned `signals` (auto-detected from active `x-data` by default)
 - `syncStore`: allow `$`-prefixed signals to patch `Alpine.store("hyper")` (default `true`)
 - `strictTargets`: local strict target enforcement
+- `onUploadProgress`: callback for upload progress detail during body uploads
 
 Example:
 
@@ -72,6 +73,21 @@ Form example:
    sync: "block",
 });
 ```
+
+Upload progress example:
+
+```javascript
+await $action("upload_avatar", {}, {
+  form: "#avatar-form",
+  method: "POST",
+  key: "avatar-upload",
+  onUploadProgress(detail) {
+    console.log(detail.key, detail.loaded, detail.total, detail.progress);
+  },
+});
+```
+
+For correlation, use `detail.key` when you provide an explicit `key`, or fall back to `detail.id` for a per-request identifier.
 
 ## Swap Modes
 
