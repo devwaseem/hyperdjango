@@ -1,0 +1,36 @@
+{% extends "layouts/base/index.html" %}
+{% block page %}
+    <section x-data="{ stream: { phase: 'Idle', progress: 0, done: false } }"
+             style="display: grid; gap: 1rem; max-width: 42rem;">
+        <header>
+            <h1>Long-running SSE demo</h1>
+            <p>This action yields multiple typed items from the server. HyperDjango applies them live over one request.</p>
+        </header>
+
+        <div style="display: grid; gap: 0.6rem; padding: 1rem; border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc;">
+            <p style="margin: 0;">
+                Phase:
+                <strong x-text="stream.phase"></strong>
+            </p>
+            <progress max="100" x-bind:value="stream.progress" style="width: 100%;"></progress>
+            <p style="margin: 0; color: #475569;">
+                Progress:
+                <span x-text="stream.progress + '%'">0%</span>
+                <span x-show="stream.done"> | finished</span>
+            </p>
+            <button type="button"
+                    x-on:click="stream.phase = 'Starting...'; stream.progress = 0; stream.done = false; $action('run_demo', {}, { key: 'sse-demo' })">
+                Start SSE demo
+            </button>
+        </div>
+
+        <div>
+            <h2 style="margin-bottom: 0.6rem;">Live server log</h2>
+            <div id="stream-log" style="display: grid; gap: 0.75rem;">
+                <div style="padding: 0.75rem 0.9rem; border: 1px dashed #cbd5e1; border-radius: 10px; color: #475569;">
+                    Click the button to start the streamed action.
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock page %}

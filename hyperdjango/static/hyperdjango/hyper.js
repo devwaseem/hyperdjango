@@ -510,6 +510,9 @@ const Hyper = (() => {
   function requestWithXHR(url, options, meta) {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
+      let streamedLength = 0;
+      let sseBuffer = "";
+      let streamQueue = Promise.resolve();
       xhr.open(meta.method, url, true);
       xhr.withCredentials = true;
 
@@ -535,13 +538,108 @@ const Hyper = (() => {
         });
       }
 
-      xhr.addEventListener("load", () => resolve(createXHRResponse(xhr)));
+      xhr.addEventListener("progress", () => {
+        if (!meta.expectSSE) {
+          return;
+        }
+        const chunk = xhr.responseText.slice(streamedLength);
+        streamedLength = xhr.responseText.length;
+        if (!chunk) {
+          return;
+        }
+        streamQueue = streamQueue.then(() => consumeSSEChunk(chunk, {
+          buffer: sseBuffer,
+          onEvent: options.onSSEEvent,
+        })).then((nextBuffer) => {
+          sseBuffer = nextBuffer;
+        });
+      });
+
+      xhr.addEventListener("load", () => {
+        streamQueue
+          .then(() => consumeSSEChunk("", {
+            buffer: sseBuffer,
+            onEvent: options.onSSEEvent,
+            flush: true,
+          }))
+          .then(() => resolve(createXHRResponse(xhr)))
+          .catch(reject);
+      });
       xhr.addEventListener("error", () => reject(new Error(`Hyper request failed: ${meta.method} ${url}`)));
       xhr.addEventListener("abort", () => reject(new DOMException("The operation was aborted.", "AbortError")));
 
       meta.controller.abort = () => xhr.abort();
       xhr.send(options.body);
     });
+  }
+
+  async function consumeSSEChunk(chunk, { buffer = "", onEvent = null, flush = false } = {}) {
+    let pending = buffer + chunk;
+    while (true) {
+      const boundary = pending.indexOf("\n\n");
+      if (boundary === -1) {
+        break;
+      }
+      const rawEvent = pending.slice(0, boundary);
+      pending = pending.slice(boundary + 2);
+      const parsed = parseSSEEvent(rawEvent);
+      if (parsed && typeof onEvent === "function") {
+        await onEvent(parsed);
+      }
+    }
+    if (flush && pending.trim()) {
+      const parsed = parseSSEEvent(pending);
+      if (parsed && typeof onEvent === "function") {
+        await onEvent(parsed);
+      }
+      pending = "";
+    }
+    return pending;
+  }
+
+  function parseSSEEvent(rawEvent) {
+    const lines = rawEvent.split(/\r?\n/);
+    let eventName = "message";
+    const dataLines = [];
+    for (const line of lines) {
+      if (!line || line.startsWith(":")) {
+        continue;
+      }
+      if (line.startsWith("event:")) {
+        eventName = line.slice(6).trim();
+        continue;
+      }
+      if (line.startsWith("data:")) {
+        dataLines.push(line.slice(5).trim());
+      }
+    }
+    if (!dataLines.length) {
+      return null;
+    }
+    return {
+      event: eventName,
+      data: JSON.parse(dataLines.join("\n") || "{}"),
+    };
+  }
+
+  async function readSSEStream(response, onEvent) {
+    if (!response.body) {
+      return;
+    }
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) {
+        break;
+      }
+      buffer = await consumeSSEChunk(decoder.decode(value, { stream: true }), {
+        buffer,
+        onEvent,
+      });
+    }
+    await consumeSSEChunk(decoder.decode(), { buffer, onEvent, flush: true });
   }
 
   async function request(url, options = {}) {
@@ -620,6 +718,7 @@ const Hyper = (() => {
     let response;
     let aborted = false;
     try {
+      const expectSSE = headers["X-Hyper-Action"] && typeof options.onSSEEvent === "function";
       const canTrackUpload =
         typeof options.onUploadProgress === "function" && method !== "GET" && method !== "HEAD" && options.body;
       response = canTrackUpload
@@ -630,6 +729,7 @@ const Hyper = (() => {
             requestId,
             requestKey,
             controller,
+            expectSSE,
           })
         : await fetch(url, {
             ...options,
@@ -718,18 +818,33 @@ const Hyper = (() => {
     }
 
     const contentType = response.headers.get("content-type") || "";
+    if (contentType.includes("text/event-stream")) {
+      if (!canUseXHRResponse(response) && typeof options.onSSEEvent === "function") {
+        await readSSEStream(response, options.onSSEEvent);
+      }
+      return { kind: "sse", data: null, response };
+    }
     if (contentType.includes("application/json")) {
       return { kind: "json", data: await response.json(), response };
     }
     return { kind: "html", data: await response.text(), response };
   }
 
+  function canUseXHRResponse(response) {
+    return !response.body && typeof response.text === "function";
+  }
+
   function applySignals(payload, { syncStore = true } = {}) {
-    if (!payload || !payload.signals) {
+    if (!payload) {
       return;
     }
 
-    const patches = splitSignalPatches(payload.signals);
+    const signalPayload = payload.signals || payload;
+    if (!signalPayload || typeof signalPayload !== "object") {
+      return;
+    }
+
+    const patches = splitSignalPatches(signalPayload);
 
     if (
       syncStore &&
@@ -744,7 +859,7 @@ const Hyper = (() => {
       mergeInto(store, patches.global);
     }
 
-    window.dispatchEvent(new CustomEvent("hyper:signals", { detail: payload.signals }));
+    window.dispatchEvent(new CustomEvent("hyper:signals", { detail: signalPayload }));
   }
 
   function applyToasts(toasts) {
@@ -754,6 +869,84 @@ const Hyper = (() => {
 
     for (const toast of toasts) {
       window.dispatchEvent(new CustomEvent("hyper:toast", { detail: toast }));
+    }
+  }
+
+  async function handleActionStreamEvent(event, context) {
+    const payload = event.data || {};
+    switch (event.event) {
+      case "patch_signals": {
+        applySignals(payload, { syncStore: context.syncStore });
+        if (context.bind) {
+          const patches = splitSignalPatches(payload);
+          mergeInto(context.bind, patches.local);
+        }
+        return;
+      }
+      case "toast": {
+        applyToasts([payload]);
+        return;
+      }
+      case "history": {
+        updateHistory({
+          pushUrl: payload.push_url || null,
+          replaceUrl: payload.replace_url || null,
+        });
+        return;
+      }
+      case "patch_html": {
+        const resolvedTarget = payload.target || context.target || null;
+        const resolvedSwap = payload.swap || context.swap || "inner";
+        const resolvedTransition =
+          payload.transition === undefined ? context.transition : Boolean(payload.transition);
+        const resolvedFocus = payload.focus || context.focus || "preserve";
+        const resolvedSwapDelay = parseDelay(payload.swap_delay, parseDelay(context.swapDelay, 0));
+        const resolvedSettleDelay = parseDelay(
+          payload.settle_delay,
+          parseDelay(context.settleDelay, 0)
+        );
+        const strict = strictTargetsEnabled(
+          payload.strict_targets === undefined ? context.strictTargets : Boolean(payload.strict_targets)
+        );
+        const swapMode = normalizeSwap(resolvedSwap);
+        const hasHtml = typeof payload.content === "string";
+        const canSwapWithoutHtml = swapMode === "delete" || swapMode === "none";
+        await applySwapLifecycle({
+          target: resolvedTarget,
+          swapDelay: resolvedSwapDelay,
+          settleDelay: resolvedSettleDelay,
+          detail: { action: context.action, swap: resolvedSwap },
+          focus: resolvedFocus,
+          mutate: async () => {
+            await withViewTransition(resolvedTransition, () => {
+              if (resolvedTarget && (hasHtml || canSwapWithoutHtml)) {
+                const ok = applySwap(resolvedTarget, hasHtml ? payload.content : "", resolvedSwap);
+                if (!ok && strict) {
+                  throw new Error(`Hyper target not found: ${resolvedTarget}`);
+                }
+              }
+            });
+          },
+        });
+        return;
+      }
+      case "patch_oob": {
+        applyOOB(payload.payload || payload, {
+          strict: strictTargetsEnabled(context.strictTargets),
+        });
+        return;
+      }
+      case "load_js": {
+        await ensureModuleScript(payload.src || null);
+        return;
+      }
+      case "redirect": {
+        redirectTo(payload.url, { replace: Boolean(payload.replace) });
+        return;
+      }
+      case "end":
+      default:
+        return;
     }
   }
 
@@ -1221,6 +1414,8 @@ const Hyper = (() => {
     onUploadProgress = null,
   }) {
     const resolvedUrl = url || window.location.pathname;
+    const streamedEvents = [];
+    const targetBind = bind || resolveAutoBindTarget();
     const headers = {
       "X-Hyper-Action": action,
     };
@@ -1236,6 +1431,21 @@ const Hyper = (() => {
       headers,
       body,
       onUploadProgress,
+      onSSEEvent: async (event) => {
+        streamedEvents.push(event);
+        await handleActionStreamEvent(event, {
+          action,
+          target,
+          swap,
+          transition,
+          focus,
+          swapDelay,
+          settleDelay,
+          strictTargets,
+          syncStore,
+          bind: targetBind,
+        });
+      },
       hookMeta: {
         kind: "action",
         action,
@@ -1255,6 +1465,10 @@ const Hyper = (() => {
       );
     }
 
+    if (result.kind === "sse") {
+      return { events: streamedEvents };
+    }
+
     if (result.kind === "json") {
       if (result.data.redirect_to) {
         redirectTo(result.data.redirect_to, {
@@ -1267,7 +1481,6 @@ const Hyper = (() => {
       applyToasts(result.data.toasts);
       if (result.data.signals) {
         const patches = splitSignalPatches(result.data.signals);
-        const targetBind = bind || resolveAutoBindTarget();
         if (targetBind) {
           mergeInto(targetBind, patches.local);
         }

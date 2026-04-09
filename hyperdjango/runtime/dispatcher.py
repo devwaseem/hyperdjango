@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Iterable
 from typing import Any
 
 from django.http import HttpRequest, HttpResponse
@@ -13,6 +14,8 @@ from hyperdjango.runtime.requests import (
 )
 from hyperdjango.runtime.responses import (
     ensure_action_response_headers,
+    is_action_item,
+    is_action_item_iterable,
     to_action_http_response,
 )
 
@@ -60,7 +63,7 @@ def _dispatch_action(
     if isinstance(result, ActionResult):
         return to_action_http_response(result)
     if isinstance(result, str):
-        return ensure_action_response_headers(HttpResponse(result.encode()))
+        return to_action_http_response(ActionResult(html=result))
     if isinstance(result, dict):
         block_name = get_target_name(request) or action_name
         html = page.render_block(
@@ -68,7 +71,9 @@ def _dispatch_action(
             block_name=block_name,
             context_updates=result,
         )
-        return ensure_action_response_headers(HttpResponse(html.encode()))
+        return to_action_http_response(ActionResult(html=html))
+    if is_action_item(result) or is_action_item_iterable(result):
+        return to_action_http_response(result)
 
     raise DispatchError(f"Unsupported action return type: {type(result).__name__}")
 

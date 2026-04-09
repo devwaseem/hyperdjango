@@ -1,4 +1,4 @@
-from hyperdjango.actions import action
+from hyperdjango.actions import Signal, action
 
 from hyper.layouts.dashboard import DashboardLayout
 
@@ -13,4 +13,4 @@ class PageView(DashboardLayout):
     @action
     def pulse(self, request, pulse=0, **params):
         current = int(pulse)
-        return self.action_response(signals={"dashboard": {"pulse": current + 1}})
+        return [Signal(name="dashboard", value={"pulse": current + 1})]

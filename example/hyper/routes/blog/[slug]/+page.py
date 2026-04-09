@@ -1,4 +1,4 @@
-from hyperdjango.actions import action
+from hyperdjango.actions import Signal, action
 
 from hyper.layouts.base import BaseLayout
 
@@ -12,10 +12,4 @@ class PageView(BaseLayout):
 
     @action
     def bookmark(self, request, slug, **params):
-        return self.action_response(
-            signals={
-                "bookmarks": {
-                    slug: True,
-                }
-            }
-        )
+        return [Signal(name="bookmarks", value={slug: True})]

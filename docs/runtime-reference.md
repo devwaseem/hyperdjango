@@ -4,6 +4,8 @@ HyperDjango runtime is served from `hyperdjango/static/hyperdjango/hyper.js` and
 
 The runtime translates server responses into predictable browser behavior (swap, OOB, history, loading, events) while keeping HTML as the primary transport.
 
+Action responses are now consumed as SSE-framed event streams, even for normal one-shot actions. The server closes the stream immediately after the last event.
+
 ## Global API
 
 - `window.Hyper`
@@ -46,6 +48,19 @@ These options let callers express UX behavior per interaction instead of enablin
 - `syncStore`: allow `$`-prefixed signals to patch `Alpine.store("hyper")` (default `true`)
 - `strictTargets`: local strict target enforcement
 - `onUploadProgress`: callback for upload progress detail during body uploads
+
+## Action Stream Events
+
+The action runtime applies explicit SSE event names from the server, including:
+
+- `patch_signals`
+- `patch_html`
+- `toast`
+- `patch_oob`
+- `history`
+- `redirect`
+- `load_js`
+- `end`
 
 Example:
 

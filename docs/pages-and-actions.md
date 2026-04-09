@@ -70,39 +70,51 @@ Input merging lets actions be called consistently from links, forms, and JS help
 
 ## Action Return Types
 
-- `ActionResult` -> JSON or HTML response with Hyper metadata
+- typed item list/generator -> streamed to the browser as SSE-framed action events
+- `ActionResult` -> compatibility path compiled into the same SSE event stream
 - `dict` -> render matching template block (`X-Hyper-Target` or action name)
-- `str` -> HTML response
+- `str` -> HTML patch response
 - `HttpResponse` -> passthrough with cache/vary hardening
 
-## `action_response(...)`
+## Typed Action Items
 
-`Page.action_response` supports:
+Preferred action style is to return typed items such as:
 
-`action_response` centralizes interaction concerns (swap strategy, history, focus, toasts, OOB) in one explicit payload.
-
-- `html`: swapped fragment
-- `signals`: non-`$` keys patch local Alpine component data, `$`-prefixed keys patch `Alpine.store("hyper")` (`$hyper`) (explicit `bind` remains optional)
-- `toast` / `toasts`: emitted as `hyper:toast` events
-- `target`: CSS selector for swap target
-- `swap`: `inner|outer|before|after|prepend|append|delete|none`
-- `swap_delay`, `settle_delay`: milliseconds
-- `transition`: enable View Transitions API for this update
-- `focus`: `preserve|first-invalid|<selector>`
-- `push_url`, `replace_url`: history changes
-- `strict_targets`: raise if target missing
-- `oob`: out-of-band operations
-- `status`, `headers`
+- `Signal(name, value)`
+- `Signals({...})`
+- `HTML(content, target=..., swap=...)`
+- `Toast(payload=...)`
+- `OOB(payload=...)`
+- `Redirect(url=..., replace=False)`
+- `History(push_url=..., replace_url=...)`
+- `LoadJS(src=...)`
 
 Example:
 
 ```python
-return self.action_response(
-    target="#profile-form",
-    swap="outer",
-    html=self.render_block(request=request, block_name="save_profile", context_updates={"form": form}),
-    toast={"type": "success", "message": "Saved"},
-    signals={"profile": {"dirty": False}},
-    focus="first-invalid",
-)
+from hyperdjango.actions import HTML, Signal, Toast, action
+
+
+@action
+def save(self, request):
+    return [
+        Signal(name="profile", value={"dirty": False}),
+        Toast(payload={"type": "success", "message": "Saved"}),
+        HTML(
+            content=self.render_block(
+                request=request,
+                block_name="save_profile",
+                context_updates={"form": form},
+            ),
+            target="#profile-form",
+            swap="outer",
+            focus="first-invalid",
+        ),
+    ]
 ```
+
+These items are streamed to the client as explicit SSE events like `patch_signals`, `patch_html`, `toast`, and `redirect`.
+
+## `action_response(...)`
+
+`action_response(...)` still works as a compatibility helper. It now compiles into the same SSE-framed action event stream used by typed item returns.

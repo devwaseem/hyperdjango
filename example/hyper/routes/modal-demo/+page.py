@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from hyper.layouts.base import BaseLayout
 
-from hyperdjango.actions import action
+from hyperdjango.actions import HTML, LoadJS, action
 
 
 class PageView(BaseLayout):
@@ -14,16 +14,16 @@ class PageView(BaseLayout):
 
     @action
     def open_modal(self, request, **params):
-        return self.action_response(
-            content=self.render_template(
-                "partials/confirm_modal",
-                request=request,
-                context_updates={
-                    "title": "Standalone partial modal",
-                    "message": "This modal shell is extended by a concrete partial, then returned through action_response(content=...).",
-                    "confirm_label": "Looks good",
-                },
-            ),
-            target="#modal-root",
-            swap="inner",
+        partial = self.render_template(
+            "partials/confirm_modal",
+            request=request,
+            context_updates={
+                "title": "Standalone partial modal",
+                "message": "This modal shell is extended by a concrete partial, then returned as typed SSE action items.",
+                "confirm_label": "Looks good",
+            },
         )
+        items = [HTML(content=partial.html, target="#modal-root", swap="inner")]
+        if partial.js:
+            items.append(LoadJS(src=partial.js))
+        return items

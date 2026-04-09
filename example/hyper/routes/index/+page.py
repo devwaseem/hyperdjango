@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from hyperdjango.actions import action
+from hyperdjango.actions import HTML, OOB, Signal, Toast, action
 
 from hyper.layouts.base import BaseLayout
 
@@ -57,6 +57,10 @@ class PageView(BaseLayout):
                     "url": "/upload-progress",
                     "label": "Upload progress with $action and window.action",
                 },
+                {
+                    "url": "/sse-demo",
+                    "label": "Long-running SSE action with live updates",
+                },
                 {"url": "/signals", "label": "Signals: local vs global ($key)"},
                 {
                     "url": "/template-card",
@@ -76,80 +80,100 @@ class PageView(BaseLayout):
     @action
     def increment(self, request, current=0, **params):
         current = int(current)
-        return self.action_response(signals={"count": current + 1})
+        return [Signal(name="count", value=current + 1)]
 
     @action
     def show_editor(self, request, **params):
-        return self.action_response(
-            html=self.render(
-                request=request,
-                relative_template_name="partials/editor_form.html",
-                context_updates={"editable_text": self._current_text(request)},
-            ),
-            target="#editor",
-            oob={
-                "#flash": self.render(
+        return [
+            HTML(
+                content=self.render(
                     request=request,
-                    relative_template_name="partials/flash.html",
-                    context_updates={"message": "Editing..."},
-                )
-            },
-        )
+                    relative_template_name="partials/editor_form.html",
+                    context_updates={"editable_text": self._current_text(request)},
+                ),
+                target="#editor",
+            ),
+            OOB(
+                payload={
+                    "#flash": self.render(
+                        request=request,
+                        relative_template_name="partials/flash.html",
+                        context_updates={"message": "Editing..."},
+                    )
+                }
+            ),
+        ]
 
     @action
     def save_text(self, request, text="", **params):
         request.session["editable_text"] = str(text)
-        return self.action_response(
-            html=self.render(
-                request=request,
-                relative_template_name="partials/text_view.html",
-                context_updates={"editable_text": self._current_text(request)},
+        return [
+            Toast(
+                payload={
+                    "type": "success",
+                    "title": "Saved",
+                    "message": "Text updated.",
+                }
             ),
-            toast={"type": "success", "title": "Saved", "message": "Text updated."},
-            target="#editor",
-            oob={
-                "#flash": self.render(
+            HTML(
+                content=self.render(
                     request=request,
-                    relative_template_name="partials/flash.html",
-                    context_updates={"message": "Saved."},
-                )
-            },
-        )
+                    relative_template_name="partials/text_view.html",
+                    context_updates={"editable_text": self._current_text(request)},
+                ),
+                target="#editor",
+            ),
+            OOB(
+                payload={
+                    "#flash": self.render(
+                        request=request,
+                        relative_template_name="partials/flash.html",
+                        context_updates={"message": "Saved."},
+                    )
+                }
+            ),
+        ]
 
     @action
     def show_text(self, request, **params):
-        return self.action_response(
-            html=self.render(
-                request=request,
-                relative_template_name="partials/text_view.html",
-                context_updates={"editable_text": self._current_text(request)},
-            ),
-            target="#editor",
-            oob={
-                "#flash": self.render(
+        return [
+            HTML(
+                content=self.render(
                     request=request,
-                    relative_template_name="partials/flash.html",
-                    context_updates={"message": "Canceled."},
-                )
-            },
-        )
+                    relative_template_name="partials/text_view.html",
+                    context_updates={"editable_text": self._current_text(request)},
+                ),
+                target="#editor",
+            ),
+            OOB(
+                payload={
+                    "#flash": self.render(
+                        request=request,
+                        relative_template_name="partials/flash.html",
+                        context_updates={"message": "Canceled."},
+                    )
+                }
+            ),
+        ]
 
     @action
     def next_tip(self, request, **params):
         tip_index = (self._tip_index(request) + 1) % len(self.TIPS)
         request.session["tip_index"] = tip_index
-        return self.action_response(
-            html=self.render(
-                request=request,
-                relative_template_name="partials/tip_card.html",
-                context_updates={
-                    "tip_index": tip_index,
-                    "tip_text": self.TIPS[tip_index],
-                },
-            ),
-            target="#tip-card",
-            transition=True,
-        )
+        return [
+            HTML(
+                content=self.render(
+                    request=request,
+                    relative_template_name="partials/tip_card.html",
+                    context_updates={
+                        "tip_index": tip_index,
+                        "tip_text": self.TIPS[tip_index],
+                    },
+                ),
+                target="#tip-card",
+                transition=True,
+            )
+        ]
 
     def _current_text(self, request) -> str:
         return str(

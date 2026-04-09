@@ -295,7 +295,7 @@ Alpine.start();
 """
 
 
-INDEX_PAGE_PY = """from hyperdjango.actions import action
+INDEX_PAGE_PY = """from hyperdjango.actions import Signal, action
 from hyper.layouts.base import BaseLayout
 
 
@@ -305,7 +305,7 @@ class PageView(BaseLayout):
 
     @action
     def counter(self, request, count=0):
-        return self.action_response(signals={\"count\": int(count) + 1})
+        return [Signal(name=\"count\", value=int(count) + 1)]
 """
 
 
@@ -315,7 +315,7 @@ INDEX_HTML = """{% extends \"layouts/base/index.html\" %}
 <section x-data=\"{ count: 0 }\">
   <h1>{{ message }}</h1>
   <p>Count: <span x-text=\"count\"></span></p>
-  <button x-on:click=\"$get('counter', { count })\">Increment Signal</button>
+  <button x-on:click=\"$action('counter', { count })\">Increment Signal</button>
 </section>
 {% endblock page %}
 """

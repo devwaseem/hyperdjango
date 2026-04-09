@@ -5,6 +5,59 @@ from typing import Any, Callable
 
 
 @dataclass(slots=True)
+class Signal:
+    name: str
+    value: Any
+
+
+@dataclass(slots=True)
+class Signals:
+    values: dict[str, Any]
+
+
+@dataclass(slots=True)
+class HTML:
+    content: str
+    target: str | None = None
+    swap: str = "inner"
+    transition: bool = False
+    focus: str | None = None
+    swap_delay: int | None = None
+    settle_delay: int | None = None
+    strict_targets: bool | None = None
+
+
+@dataclass(slots=True)
+class Toast:
+    payload: Any
+
+
+@dataclass(slots=True)
+class OOB:
+    payload: Any
+
+
+@dataclass(slots=True)
+class Redirect:
+    url: str
+    replace: bool = False
+
+
+@dataclass(slots=True)
+class History:
+    push_url: str | None = None
+    replace_url: str | None = None
+
+
+@dataclass(slots=True)
+class LoadJS:
+    src: str
+
+
+ActionItem = Signal | Signals | HTML | Toast | OOB | Redirect | History | LoadJS
+
+
+@dataclass(slots=True)
 class ActionResult:
     html: str | None = None
     js: str | None = None

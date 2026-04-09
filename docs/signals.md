@@ -109,31 +109,36 @@ Signals are also commonly used with request lifecycle events from `docs/events.m
 ### 1) Counter/state patch
 
 ```python
+from hyperdjango.actions import Signal
+
+
 @action
 def increment(self, request, current=0, **params):
-    return self.action_response(signals={"count": int(current) + 1})
+    return [Signal(name="count", value=int(current) + 1)]
 ```
 
 ### 2) Form reset after successful save
 
 ```python
-return self.action_response(
-    html=updated_list_html,
-    target="#list",
-    swap="append",
-    signals={"title": "", "description": ""},
-)
+from hyperdjango.actions import HTML, Signals
+
+
+return [
+    Signals(values={"title": "", "description": ""}),
+    HTML(content=updated_list_html, target="#list", swap="append"),
+]
 ```
 
 ### 3) Partial swap + cross-cutting UI patch
 
 ```python
-return self.action_response(
-    html=row_html,
-    target="#rows",
-    swap="append",
-    signals={"stats": {"total": total, "active": active}},
-)
+from hyperdjango.actions import HTML, Signal
+
+
+return [
+    Signal(name="stats", value={"total": total, "active": active}),
+    HTML(content=row_html, target="#rows", swap="append"),
+]
 ```
 
 ## Notes

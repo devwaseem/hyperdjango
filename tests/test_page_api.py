@@ -9,7 +9,7 @@ from django.test import override_settings
 from django.test import RequestFactory
 from django.views import View
 
-from hyperdjango.actions import ActionResult, action
+from hyperdjango.actions import ActionResult, HTML, Redirect, Signal, action
 from hyperdjango.assets import ModuleTag
 from hyperdjango.page import (
     HyperActionMixin,
@@ -21,6 +21,15 @@ from hyperdjango.page import (
 from hyperdjango.routing.compiler import build_route_view
 from hyperdjango.runtime.dispatcher import dispatch_page
 from hyperdjango.runtime.responses import to_action_http_response
+
+
+def _read_streaming_response(response) -> bytes:
+    if hasattr(response, "streaming_content"):
+        return b"".join(
+            chunk if isinstance(chunk, bytes) else chunk.encode()
+            for chunk in response.streaming_content
+        )
+    return response.content
 
 
 def _ensure_settings() -> None:
@@ -98,8 +107,10 @@ def test_action_http_response_serializes_redirects() -> None:
     response = to_action_http_response(ActionResult(redirect_to="/dashboard/"))
 
     assert response.status_code == 200
-    assert response["Content-Type"] == "application/json"
-    assert response.content == b'{"redirect_to": "/dashboard/"}'
+    assert response["Content-Type"].startswith("text/event-stream")
+    assert _read_streaming_response(response) == (
+        b'event: redirect\ndata: {"url": "/dashboard/", "replace": false}\n\n'
+    )
 
 
 def test_action_response_accepts_partial_content() -> None:
@@ -125,8 +136,27 @@ def test_action_http_response_serializes_partial_js() -> None:
     )
 
     assert response.status_code == 200
-    assert response["Content-Type"] == "application/json"
-    assert response.content == b'{"js": "/static/modal.js", "html": "<div>Modal</div>"}'
+    assert response["Content-Type"].startswith("text/event-stream")
+    assert _read_streaming_response(response) == (
+        b'event: patch_html\ndata: {"content": "<div>Modal</div>", "swap": "inner"}\n\n'
+        b'event: load_js\ndata: {"src": "/static/modal.js"}\n\n'
+        b"event: end\ndata: {}\n\n"
+    )
+
+
+def test_action_http_response_serializes_typed_item_lists() -> None:
+    _ensure_settings()
+    response = to_action_http_response(
+        [Signal(name="count", value=1), HTML(content="<div>Hi</div>", target="#panel")]
+    )
+
+    assert response.status_code == 200
+    assert response["Content-Type"].startswith("text/event-stream")
+    assert _read_streaming_response(response) == (
+        b'event: patch_signals\ndata: {"count": 1}\n\n'
+        b'event: patch_html\ndata: {"content": "<div>Hi</div>", "swap": "inner", "target": "#panel"}\n\n'
+        b"event: end\ndata: {}\n\n"
+    )
 
 
 def test_action_response_rejects_redirect_with_swap_fields() -> None:
@@ -274,7 +304,27 @@ def test_dispatch_page_routes_post_action_from_header() -> None:
     response = dispatch_page(DemoPage(), request)
 
     assert response.status_code == 200
-    assert response.content == b"ok"
+    assert _read_streaming_response(response) == (
+        b'event: patch_html\ndata: {"content": "ok", "swap": "inner"}\n\n'
+        b"event: end\ndata: {}\n\n"
+    )
+
+
+def test_dispatch_page_supports_generator_actions() -> None:
+    class DemoPage(HyperView):
+        @action
+        def save(self, request, **params):
+            yield Signal(name="phase", value="starting")
+            yield Redirect(url="/done/")
+
+    request = RequestFactory().get("/demo", HTTP_X_HYPER_ACTION="save")
+    response = dispatch_page(DemoPage(), request)
+
+    assert response.status_code == 200
+    assert _read_streaming_response(response) == (
+        b'event: patch_signals\ndata: {"phase": "starting"}\n\n'
+        b'event: redirect\ndata: {"url": "/done/", "replace": false}\n\n'
+    )
 
 
 def test_route_view_uses_django_view_as_view_setup() -> None:
