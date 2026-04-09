@@ -115,11 +115,11 @@ Triggered once per toast item when a response includes `toast`/`toasts`.
 
 ### `hyper:form:beforeSubmit`
 
-Triggered immediately before a `hyper-form` submit is dispatched.
+Triggered immediately before a form-driven action submit is dispatched.
 
 ### `hyper:form:success`
 
-Triggered when a `hyper-form` request completes without being blocked/aborted and without throwing.
+Triggered when a form-driven action request completes without being blocked/aborted and without throwing.
 
 ### `hyper:form:blocked`
 

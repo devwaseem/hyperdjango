@@ -57,8 +57,8 @@ This keeps the code you change for a feature close together.
 - nested `layout.py` composition
 - class-based pages with native `get/post/...` handlers
 - `@action` methods for hypermedia interactions
-- Alpine-friendly `$get` / `$post` client helpers
-- progressive enhancement for links/forms (`hyper-nav`, `hyper-form`)
+- Alpine-friendly `$action(name, data, options)` client helper
+- progressive enhancement for links/forms (`hyper-nav`)
 - native Vite integration (dev server + build manifest)
 
 ## Install
@@ -187,13 +187,13 @@ def profile_card(request):
 
 HyperDjango exposes helpers globally and as Alpine magics:
 
-- `window.get(...)` and `window.post(...)`
-- Alpine: `$get(...)` and `$post(...)`
+- `window.action(...)`
+- Alpine: `$action(...)`
 
 ```html
 <div x-data="{ q: '' }">
   <input x-model="q" />
-  <button x-on:click="$get('search', { q }, { target: '#results', key: 'search' })">
+  <button x-on:click="$action('search', { q }, { target: '#results', key: 'search' })">
     Search
   </button>
 </div>

@@ -41,7 +41,7 @@ Action responses include no-store/no-cache and `Vary` headers for Hyper request 
 - run routing checks in CI: `python manage.py hyper_routes`
 - add tests for route conflict cases and action response contracts
 - test back/forward navigation with enhanced links/forms
-- verify 422 validation flows for `hyper-form`
+- verify 422 validation flows for form-driven `$action(..., {}, { form })` submits
 
 ## Deployment Validation
 

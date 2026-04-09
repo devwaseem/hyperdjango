@@ -18,7 +18,7 @@ Allowed values:
 Example:
 
 ```javascript
-$post("save", data, { target: "#panel", swap: "outer" })
+$action("save", data, { method: "POST", target: "#panel", swap: "outer" })
 ```
 
 ## Sync Modes
@@ -34,7 +34,7 @@ Allowed values:
 Example:
 
 ```javascript
-$get("search", { q }, { sync: "replace", key: "live-search" })
+$action("search", { q }, { sync: "replace", key: "live-search" })
 ```
 
 ## Sync Keys
@@ -51,7 +51,7 @@ Strict mode throws when a target selector is missing.
 Enable per call:
 
 ```javascript
-$post("save", data, { target: "#panel", strictTargets: true })
+$action("save", data, { method: "POST", target: "#panel", strictTargets: true })
 ```
 
 Enable globally:

@@ -8,7 +8,7 @@ The cookbook shows practical composition of features in real flows, not just iso
 
 ```html
 <section x-data="{ count: 0 }">
-  <button x-on:click="$get('increment', { current: count })">
+  <button x-on:click="$action('increment', { current: count })">
     Increment
   </button>
   <strong x-text="count"></strong>
@@ -37,7 +37,7 @@ def increment(self, request, current=0, **params):
 
 ```html
 <section x-data="{ count: 0 }">
-  <button x-on:click="$get('increment', { current: count })">Increment</button>
+  <button x-on:click="$action('increment', { current: count })">Increment</button>
   <p>Local: <span x-text="count"></span></p>
   <p>Global: <span x-text="$hyper.count"></span></p>
 </section>
@@ -98,7 +98,7 @@ return self.action_response(
 ```text
 <input
   x-model="q"
-  x-on:input.debounce.250ms="$get('search', { q }, { target: '#results', sync: 'replace', key: 'live-search' })"
+  x-on:input.debounce.250ms="$action('search', { q }, { target: '#results', sync: 'replace', key: 'live-search' })"
 />
 ```
 
@@ -107,7 +107,9 @@ New requests abort in-flight ones in the same key.
 ## 7) Prevent double submits with sync block
 
 ```html
-<form hyper-form hyper-action="save_profile" hyper-sync="block" hyper-key="profile-save">
+<form id="profile-form"
+  x-data="{}"
+  x-on:submit.prevent="$action('save_profile', {}, { form: $el, sync: 'block', key: 'profile-save' })">
   ...
 </form>
 ```

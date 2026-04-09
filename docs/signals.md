@@ -13,15 +13,15 @@ On responses, signals are merged client-side and emitted as an event.
 
 ## Sending Signals to the Server
 
-Use `$get`/`$post` kwargs (second argument):
+Use `$action` data (second argument):
 
 ```html
-<button x-on:click="$get('search', { q, page: 1 }, { target: '#results' })">
+<button x-on:click="$action('search', { q, page: 1 }, { target: '#results' })">
   Search
 </button>
 ```
 
-The runtime serializes kwargs to `X-Hyper-Signals`.
+The runtime serializes that data object to `X-Hyper-Signals`.
 
 Server-side, action kwargs are merged from:
 

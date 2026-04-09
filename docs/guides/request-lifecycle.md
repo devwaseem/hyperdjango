@@ -6,8 +6,7 @@ This guide shows how a Hyper request flows from trigger to DOM update.
 
 A request can start from:
 
-- `$get(...)` / `$post(...)`
-- `hyper-form`
+- `$action(...)`
 - `hyper-nav` links/forms
 
 For action requests, the runtime sends:
@@ -27,7 +26,7 @@ Before fetch starts, sync policy is applied:
 Use explicit `key` for stable request lanes:
 
 ```javascript
-$get("search", { q }, { sync: "replace", key: "live-search" })
+$action("search", { q }, { sync: "replace", key: "live-search" })
 ```
 
 ## 3) Loading State

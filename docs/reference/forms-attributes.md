@@ -1,13 +1,6 @@
 # Form Attributes Reference
 
-These attributes apply to forms using `hyper-form`.
-
-## `hyper-form`
-
-Enables Hyper form submission flow.
-
-- keeps Django form validation/rendering server-side
-- supports partial swaps, sync, transitions, loading controls
+Preferred form style uses `$action(name, data, { form })` from Alpine or JS. These attributes remain available when you want declarative compatibility without JS expressions.
 
 ## `hyper-action`
 
@@ -37,7 +30,7 @@ Allowed values:
 - `block`: ignore new request while one is active
 - `none`: no sync coordination
 
-For `hyper-form`, default is `block`.
+Default is `block`.
 
 ## `hyper-key`
 
@@ -78,7 +71,6 @@ Enables strict target enforcement for this form request.
 <form
   method="post"
   action="/profile"
-  hyper-form
   hyper-action="save_profile"
   hyper-target="#profile-panel"
   hyper-swap="outer"
@@ -89,6 +81,25 @@ Enables strict target enforcement for this form request.
 >
   {% csrf_token %}
   <input type="hidden" name="_action" value="save_profile" />
+  ...
+</form>
+```
+
+Preferred equivalent:
+
+```html
+<form x-data="{}"
+  method="post"
+  action="/profile"
+  x-on:submit.prevent="$action('save_profile', {}, {
+    form: $el,
+    target: '#profile-panel',
+    swap: 'outer',
+    sync: 'block',
+    key: 'profile-save',
+    focus: 'first-invalid'
+  })">
+  {% csrf_token %}
   ...
 </form>
 ```

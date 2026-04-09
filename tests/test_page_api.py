@@ -259,6 +259,24 @@ def test_dispatch_page_merges_get_context_with_get_result(
     assert response.content == b"<div>Base Dashboard</div>"
 
 
+def test_dispatch_page_routes_post_action_from_header() -> None:
+    class DemoPage(HyperView):
+        @action
+        def save(self, request, **params):
+            return "ok"
+
+    request = RequestFactory().post(
+        "/demo",
+        HTTP_X_HYPER_ACTION="save",
+        HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+    )
+
+    response = dispatch_page(DemoPage(), request)
+
+    assert response.status_code == 200
+    assert response.content == b"ok"
+
+
 def test_route_view_uses_django_view_as_view_setup() -> None:
     if not settings.configured:
         settings.configure(

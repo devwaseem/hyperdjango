@@ -26,7 +26,7 @@ Example:
 Enable per request:
 
 ```javascript
-$get("next_tip", {}, { transition: true })
+$action("next_tip", {}, { transition: true })
 ```
 
 or from server response:

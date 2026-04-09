@@ -91,7 +91,6 @@ You can replace it with your own base template. See `docs/guides/custom-base-tem
 
 ### Forms
 
-- `hyper-form`
 - `hyper-form-disable`
 - `hyper-action`
 - `hyper-swap`

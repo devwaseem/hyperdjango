@@ -8,15 +8,11 @@ The runtime translates server responses into predictable browser behavior (swap,
 
 - `window.Hyper`
 - `window.action(action, data, options)`
-- `window.get(action, kwargs, options)`
-- `window.post(action, kwargs, options)`
 - `window.Hyper.configure({ strictTargets: boolean })`
 
 Alpine magics:
 
 - `$action(...)`
-- `$get(...)`
-- `$post(...)`
 - `$hyper` (maps to `Alpine.store("hyper")`)
 
 For signal-specific behavior, see `docs/signals.md`.
@@ -167,7 +163,7 @@ Link attributes:
 - `hyper-sync`, `hyper-key`
 - `hyper-transition`, `hyper-swap-delay`, `hyper-settle-delay`, `hyper-focus`
 
-Form attributes are the same for navigation forms (non-`hyper-form`).
+For enhanced navigation forms, use normal `hyper-nav` form attributes.
 
 Back/forward behavior fetches into `body[hyper-pop-target]` (default `body`).
 
