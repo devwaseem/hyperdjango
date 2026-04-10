@@ -87,10 +87,10 @@ return self.action_response(
 ## 5) Delete row without sending HTML
 
 ```python
-return self.action_response(
-    target=f"#todo-{id}",
-    swap="delete",
-)
+from hyperdjango.actions import Delete
+
+
+return [Delete(target=f"#todo-{id}")]
 ```
 
 ## 6) Typeahead with request replacement

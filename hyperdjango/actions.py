@@ -63,6 +63,11 @@ class OOB:
 
 
 @dataclass(slots=True)
+class Delete:
+    target: str
+
+
+@dataclass(slots=True)
 class Redirect:
     url: str
     replace: bool = False
@@ -86,7 +91,16 @@ class ErrorMessage:
 
 
 ActionItem = (
-    Signal | Signals | HTML | Toast | OOB | Redirect | History | LoadJS | ErrorMessage
+    Signal
+    | Signals
+    | HTML
+    | Toast
+    | OOB
+    | Delete
+    | Redirect
+    | History
+    | LoadJS
+    | ErrorMessage
 )
 
 

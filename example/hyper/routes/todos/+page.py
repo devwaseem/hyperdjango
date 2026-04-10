@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from hyper.layouts.base import BaseLayout
 
-from hyperdjango.actions import action
+from hyperdjango.actions import Delete, OOB, Toast, action
 
 
 class PageView(BaseLayout):
@@ -106,16 +106,18 @@ class PageView(BaseLayout):
 
         self._save_todos(request, remaining)
 
-        return self.action_response(
-            target=f"#todo-{id}",
-            swap="delete",
-            transition=True,
-            oob={
-                "#todo-stats": self._render_stats(request, remaining),
-                "#todo-empty": self._render_empty(request, remaining),
-            },
-            toast={"type": "warning", "title": "Removed", "message": "Todo deleted."},
-        )
+        return [
+            Delete(target=f"#todo-{id}"),
+            Toast(
+                payload={
+                    "type": "warning",
+                    "title": "Removed",
+                    "message": "Todo deleted.",
+                }
+            ),
+            OOB(content=self._render_stats(request, remaining), target="#todo-stats"),
+            OOB(content=self._render_empty(request, remaining), target="#todo-empty"),
+        ]
 
     @action
     def clear_completed(self, request, **params):

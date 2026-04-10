@@ -83,8 +83,9 @@ Preferred action style is to return typed items such as:
 - `Signal(name, value)`
 - `Signals({...})`
 - `HTML(content, target=..., swap=...)`
+- `Delete(target=...)`
 - `Toast(payload=...)`
-- `OOB(payload=...)`
+- `OOB(content=..., target=..., swap=...)`
 - `Redirect(url=..., replace=False)`
 - `History(push_url=..., replace_url=...)`
 - `LoadJS(src=...)`

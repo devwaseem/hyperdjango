@@ -11,6 +11,7 @@ from hyperdjango.actions import (
     ActionItem,
     Actions,
     ActionResult,
+    Delete,
     ErrorMessage,
     HTML,
     History,
@@ -78,7 +79,18 @@ def normalize_action_result(
 def is_action_item(value: Any) -> bool:
     return isinstance(
         value,
-        (Signal, Signals, HTML, Toast, OOB, Redirect, History, LoadJS, ErrorMessage),
+        (
+            Signal,
+            Signals,
+            HTML,
+            Toast,
+            OOB,
+            Delete,
+            Redirect,
+            History,
+            LoadJS,
+            ErrorMessage,
+        ),
     )
 
 
@@ -181,6 +193,12 @@ def serialize_action_item(item: ActionItem) -> tuple[str, dict[str, Any]]:
             "target": item.target,
             "content": item.content,
             "swap": item.swap,
+        }
+    if isinstance(item, Delete):
+        return "patch_html", {
+            "target": item.target,
+            "content": "",
+            "swap": "delete",
         }
     if isinstance(item, Redirect):
         return "redirect", {"url": item.url, "replace": item.replace}

@@ -13,6 +13,7 @@ from django.views import View
 from hyperdjango.actions import (
     Actions,
     ActionResult,
+    Delete,
     HTML,
     OOB,
     Redirect,
@@ -192,6 +193,18 @@ def test_action_http_response_serializes_single_oob_patch() -> None:
     assert response["Content-Type"].startswith("text/event-stream")
     assert _read_streaming_response(response) == (
         b'event: patch_oob\ndata: {"target": "#flash", "content": "<p>Saved</p>", "swap": "outer"}\n\n'
+        b"event: end\ndata: {}\n\n"
+    )
+
+
+def test_action_http_response_serializes_delete_patch() -> None:
+    _ensure_settings()
+    response = to_action_http_response([Delete(target="#todo-1")])
+
+    assert response.status_code == 200
+    assert response["Content-Type"].startswith("text/event-stream")
+    assert _read_streaming_response(response) == (
+        b'event: patch_html\ndata: {"target": "#todo-1", "content": "", "swap": "delete"}\n\n'
         b"event: end\ndata: {}\n\n"
     )
 
