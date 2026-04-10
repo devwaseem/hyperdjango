@@ -94,13 +94,12 @@ class PageView(BaseLayout):
                 target="#editor",
             ),
             OOB(
-                payload={
-                    "#flash": self.render(
-                        request=request,
-                        relative_template_name="partials/flash.html",
-                        context_updates={"message": "Editing..."},
-                    )
-                }
+                content=self.render(
+                    request=request,
+                    relative_template_name="partials/flash.html",
+                    context_updates={"message": "Editing..."},
+                ),
+                target="#flash",
             ),
         ]
 
@@ -124,13 +123,12 @@ class PageView(BaseLayout):
                 target="#editor",
             ),
             OOB(
-                payload={
-                    "#flash": self.render(
-                        request=request,
-                        relative_template_name="partials/flash.html",
-                        context_updates={"message": "Saved."},
-                    )
-                }
+                content=self.render(
+                    request=request,
+                    relative_template_name="partials/flash.html",
+                    context_updates={"message": "Saved."},
+                ),
+                target="#flash",
             ),
         ]
 
@@ -146,13 +144,12 @@ class PageView(BaseLayout):
                 target="#editor",
             ),
             OOB(
-                payload={
-                    "#flash": self.render(
-                        request=request,
-                        relative_template_name="partials/flash.html",
-                        context_updates={"message": "Canceled."},
-                    )
-                }
+                content=self.render(
+                    request=request,
+                    relative_template_name="partials/flash.html",
+                    context_updates={"message": "Canceled."},
+                ),
+                target="#flash",
             ),
         ]
 

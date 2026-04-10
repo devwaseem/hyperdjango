@@ -475,6 +475,20 @@ const Hyper = (() => {
     return "";
   }
 
+  function csrfTokenFromBody(body) {
+    if (!body) {
+      return "";
+    }
+    if (body instanceof FormData) {
+      const token = body.get("csrfmiddlewaretoken");
+      return typeof token === "string" ? token : "";
+    }
+    if (body instanceof URLSearchParams) {
+      return body.get("csrfmiddlewaretoken") || "";
+    }
+    return "";
+  }
+
   function parseXHRHeaders(rawHeaders) {
     const headers = new Headers();
     if (!rawHeaders) {
@@ -692,7 +706,7 @@ const Hyper = (() => {
     }
 
     if (method !== "GET" && method !== "HEAD") {
-      const csrf = csrfTokenFromCookie() || csrfTokenFromDOM();
+      const csrf = csrfTokenFromCookie() || csrfTokenFromDOM() || csrfTokenFromBody(options.body);
       if (csrf && !headers["X-CSRFToken"]) {
         headers["X-CSRFToken"] = csrf;
       }

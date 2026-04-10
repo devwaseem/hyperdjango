@@ -9,7 +9,7 @@ from django.test import override_settings
 from django.test import RequestFactory
 from django.views import View
 
-from hyperdjango.actions import ActionResult, HTML, Redirect, Signal, action
+from hyperdjango.actions import ActionResult, HTML, OOB, Redirect, Signal, action
 from hyperdjango.assets import ModuleTag
 from hyperdjango.page import (
     HyperActionMixin,
@@ -155,6 +155,20 @@ def test_action_http_response_serializes_typed_item_lists() -> None:
     assert _read_streaming_response(response) == (
         b'event: patch_signals\ndata: {"count": 1}\n\n'
         b'event: patch_html\ndata: {"content": "<div>Hi</div>", "swap": "inner", "target": "#panel"}\n\n'
+        b"event: end\ndata: {}\n\n"
+    )
+
+
+def test_action_http_response_serializes_single_oob_patch() -> None:
+    _ensure_settings()
+    response = to_action_http_response(
+        [OOB(content="<p>Saved</p>", target="#flash", swap="outer")]
+    )
+
+    assert response.status_code == 200
+    assert response["Content-Type"].startswith("text/event-stream")
+    assert _read_streaming_response(response) == (
+        b'event: patch_oob\ndata: {"target": "#flash", "content": "<p>Saved</p>", "swap": "outer"}\n\n'
         b"event: end\ndata: {}\n\n"
     )
 

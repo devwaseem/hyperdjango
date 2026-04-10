@@ -12,17 +12,10 @@ class ProfileForm(forms.Form):
 
 
 class PageView(BaseLayout):
-    def get(self, request, **params):
+    def get(self, request):
         initial = request.session.get("profile", {"email": "", "name": ""})
         form = ProfileForm(initial=initial)
         return {"form": form, "saved": False, "saved_name": ""}
-
-    def post(self, request, **params):
-        action_name = str(request.POST.get("_action", "")).strip()
-        if action_name == "save_profile":
-            form, saved_name, is_valid = self._validate_and_save(request)
-            return {"form": form, "saved": is_valid, "saved_name": saved_name}
-        return self.get(request, **params)
 
     @action
     def save_profile(self, request, **params):

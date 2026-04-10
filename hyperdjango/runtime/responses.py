@@ -99,7 +99,25 @@ def compile_action_result(result: ActionResult) -> list[ActionItem]:
             )
         )
     if result.oob:
-        items.append(OOB(payload=result.oob))
+        for selector, entry in result.oob.items():
+            if isinstance(entry, str):
+                items.append(OOB(content=entry, target=selector, swap="inner"))
+                continue
+            if not isinstance(entry, dict):
+                continue
+            items.append(
+                OOB(
+                    content=str(entry.get("html", "")),
+                    target=str(
+                        entry.get("target") or entry.get("selector") or selector
+                    ),
+                    swap=(
+                        entry.get("swap", "inner")
+                        if isinstance(entry.get("swap", "inner"), str)
+                        else "inner"
+                    ),
+                )
+            )
     if result.js:
         items.append(LoadJS(src=result.js))
     return items
@@ -145,7 +163,11 @@ def serialize_action_item(item: ActionItem) -> tuple[str, dict[str, Any]]:
             "value": item.payload
         }
     if isinstance(item, OOB):
-        return "patch_oob", {"payload": item.payload}
+        return "patch_oob", {
+            "target": item.target,
+            "content": item.content,
+            "swap": item.swap,
+        }
     if isinstance(item, Redirect):
         return "redirect", {"url": item.url, "replace": item.replace}
     if isinstance(item, History):

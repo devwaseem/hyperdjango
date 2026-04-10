@@ -1,7 +1,29 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Callable
+from typing import Any, Callable, Literal, TypeAlias, TypedDict
+
+
+SwapMode: TypeAlias = Literal[
+    "inner",
+    "outer",
+    "before",
+    "after",
+    "prepend",
+    "append",
+    "delete",
+    "none",
+]
+
+
+class OOBOperation(TypedDict, total=False):
+    html: str
+    swap: SwapMode
+    target: str
+    selector: str
+
+
+OOBPayload: TypeAlias = dict[str, str | OOBOperation]
 
 
 @dataclass(slots=True)
@@ -19,7 +41,7 @@ class Signals:
 class HTML:
     content: str
     target: str | None = None
-    swap: str = "inner"
+    swap: SwapMode = "inner"
     transition: bool = False
     focus: str | None = None
     swap_delay: int | None = None
@@ -29,12 +51,14 @@ class HTML:
 
 @dataclass(slots=True)
 class Toast:
-    payload: Any
+    payload: dict[str, Any]
 
 
 @dataclass(slots=True)
 class OOB:
-    payload: Any
+    content: str
+    target: str
+    swap: SwapMode = "inner"
 
 
 @dataclass(slots=True)
@@ -62,10 +86,10 @@ class ActionResult:
     html: str | None = None
     js: str | None = None
     signals: dict[str, Any] = field(default_factory=dict)
-    toasts: list[Any] = field(default_factory=list)
+    toasts: list[dict[str, Any]] = field(default_factory=list)
     redirect_to: str | None = None
     target: str | None = None
-    swap: str | None = None
+    swap: SwapMode | None = None
     swap_delay: int | None = None
     settle_delay: int | None = None
     transition: bool = False
@@ -73,7 +97,7 @@ class ActionResult:
     push_url: str | None = None
     replace_url: str | None = None
     strict_targets: bool | None = None
-    oob: Any = field(default_factory=dict)
+    oob: OOBPayload = field(default_factory=dict)
     status: int = 200
     headers: dict[str, str] = field(default_factory=dict)
 
