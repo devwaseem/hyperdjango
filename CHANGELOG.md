@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.16.0
+
+- Refined typed OOB patches so `OOB` now represents a single explicit patch item (`content`, `target`, `swap`) instead of a wrapped payload batch.
+- Kept `action_response(oob=...)` compatibility by compiling legacy selector-keyed OOB payloads into multiple single-patch `OOB(...)` items.
+- Fixed the profile example action signature so form POST fields passed through action kwargs no longer conflict with the handler.
+
 ## 0.15.1
 
 - Refined typed OOB patches so `OOB` now represents a single explicit patch item (`content`, `target`, `swap`) instead of a wrapped payload batch.
