@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.18.0
+
+- Added `Delete(target=...)` as a first-class typed action item for removal flows.
+- Compiled `Delete(...)` into the existing `patch_html` transport with `swap: "delete"` behind the scenes.
+- Updated the todo example to use `Delete(...)` instead of `swap="delete"`.
+- Updated docs to recommend `Delete(...)` and the explicit single-patch `OOB(...)` form in the typed action item model.
+
 ## 0.17.0
 
 - Added `Actions(...)` as a common typed wrapper for returning multiple action items without spelling out large union list annotations.
