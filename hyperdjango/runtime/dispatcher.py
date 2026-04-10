@@ -4,7 +4,9 @@ import json
 from collections.abc import Iterable
 from typing import Any
 
+from django.core.exceptions import PermissionDenied
 from django.http import HttpRequest, HttpResponse
+from django.http import Http404
 
 from hyperdjango.actions import ActionResult
 from hyperdjango.runtime.requests import (
@@ -16,6 +18,7 @@ from hyperdjango.runtime.responses import (
     ensure_action_response_headers,
     is_action_item,
     is_action_item_iterable,
+    to_action_exception_response,
     to_action_http_response,
 )
 
@@ -56,7 +59,16 @@ def _dispatch_action(
         )
 
     action_kwargs = {**_extract_action_kwargs(request), **params}
-    result = action_method(request, **action_kwargs)
+    try:
+        result = action_method(request, **action_kwargs)
+    except PermissionDenied as exc:
+        message = str(exc).strip() or "Forbidden"
+        return to_action_exception_response(status=403, message=message)
+    except Http404 as exc:
+        message = str(exc).strip() or "Not found"
+        return to_action_exception_response(status=404, message=message)
+    except Exception:
+        return to_action_exception_response(status=500, message="Internal server error")
 
     if isinstance(result, HttpResponse):
         return ensure_action_response_headers(result)

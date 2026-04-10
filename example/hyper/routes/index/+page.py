@@ -61,6 +61,10 @@ class PageView(BaseLayout):
                     "url": "/sse-demo",
                     "label": "Long-running SSE action with live updates",
                 },
+                {
+                    "url": "/error-demo",
+                    "label": "Catch requestError and still render server errors",
+                },
                 {"url": "/signals", "label": "Signals: local vs global ($key)"},
                 {
                     "url": "/template-card",

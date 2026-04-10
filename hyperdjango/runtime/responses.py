@@ -9,7 +9,9 @@ from django.utils.cache import patch_vary_headers
 
 from hyperdjango.actions import (
     ActionItem,
+    Actions,
     ActionResult,
+    ErrorMessage,
     HTML,
     History,
     LoadJS,
@@ -49,11 +51,23 @@ def to_action_http_response(result: Any) -> HttpResponse:
     return ensure_action_response_headers(response)
 
 
+def to_action_exception_response(status: int, message: str) -> HttpResponse:
+    response = StreamingHttpResponse(
+        stream_action_sse([ErrorMessage(status=status, message=message)]),
+        status=status,
+        content_type="text/event-stream",
+    )
+    response["X-Accel-Buffering"] = "no"
+    return ensure_action_response_headers(response)
+
+
 def normalize_action_result(
     result: Any,
 ) -> tuple[Iterable[ActionItem], int, dict[str, str]]:
     if isinstance(result, ActionResult):
         return compile_action_result(result), result.status, result.headers
+    if isinstance(result, Actions):
+        return result, 200, {}
     if is_action_item(result):
         return [result], 200, {}
     if is_action_item_iterable(result):
@@ -64,7 +78,7 @@ def normalize_action_result(
 def is_action_item(value: Any) -> bool:
     return isinstance(
         value,
-        (Signal, Signals, HTML, Toast, OOB, Redirect, History, LoadJS),
+        (Signal, Signals, HTML, Toast, OOB, Redirect, History, LoadJS, ErrorMessage),
     )
 
 
@@ -179,6 +193,8 @@ def serialize_action_item(item: ActionItem) -> tuple[str, dict[str, Any]]:
         return "history", payload
     if isinstance(item, LoadJS):
         return "load_js", {"src": item.src}
+    if isinstance(item, ErrorMessage):
+        return "error", {"status": item.status, "message": item.message}
     raise TypeError(f"Unsupported action item type: {type(item).__name__}")
 
 

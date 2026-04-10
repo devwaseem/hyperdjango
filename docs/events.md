@@ -33,6 +33,10 @@ Typical use:
 - error metrics
 - centralized error toasts/logging
 
+For action requests, non-`2xx` responses are still parsed and applied when they contain actionable SSE/JSON/HTML content (for example validation fragments, redirects, signals, or toasts). `hyper:requestError` still fires so callers can observe the status code.
+
+When an action stream emits an explicit server error event, `hyper:requestError` also carries a structured `message` field.
+
 ### `hyper:requestException`
 
 Triggered when request execution throws (network/runtime error), excluding intentional aborts.

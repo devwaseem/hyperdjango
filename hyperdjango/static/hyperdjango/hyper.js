@@ -954,6 +954,26 @@ const Hyper = (() => {
         await ensureModuleScript(payload.src || null);
         return;
       }
+      case "error": {
+        window.dispatchEvent(
+          new CustomEvent("hyper:requestError", {
+            detail: {
+              id: null,
+              key: context.key || null,
+              url: context.url || window.location.pathname,
+              method: context.method || "GET",
+              status: payload.status || null,
+              ok: false,
+              response: null,
+              kind: "action",
+              action: context.action,
+              target: context.target || null,
+              message: payload.message || "",
+            },
+          })
+        );
+        return;
+      }
       case "redirect": {
         redirectTo(payload.url, { replace: Boolean(payload.replace) });
         return;
@@ -1449,6 +1469,9 @@ const Hyper = (() => {
         streamedEvents.push(event);
         await handleActionStreamEvent(event, {
           action,
+          key,
+          url: resolvedUrl,
+          method,
           target,
           swap,
           transition,
@@ -1473,14 +1496,13 @@ const Hyper = (() => {
       return result;
     }
 
-    if (!result.response.ok) {
-      throw new Error(
-        `Hyper action '${action}' failed: ${result.response.status} ${result.response.statusText}`
-      );
-    }
-
     if (result.kind === "sse") {
-      return { events: streamedEvents };
+      if (!result.response.ok && streamedEvents.length === 0) {
+        throw new Error(
+          `Hyper action '${action}' failed: ${result.response.status} ${result.response.statusText}`
+        );
+      }
+      return { events: streamedEvents, ok: result.response.ok, status: result.response.status };
     }
 
     if (result.kind === "json") {
@@ -1546,6 +1568,24 @@ const Hyper = (() => {
         },
       });
       await ensureModuleScript(result.data.js || null);
+      const handled = Boolean(
+        result.data.redirect_to ||
+          result.data.signals ||
+          result.data.toasts ||
+          result.data.html ||
+          result.data.oob ||
+          result.data.js ||
+          result.data.push_url ||
+          result.data.replace_url ||
+          resolvedTarget
+      );
+
+      if (!result.response.ok && !handled) {
+        throw new Error(
+          `Hyper action '${action}' failed: ${result.response.status} ${result.response.statusText}`
+        );
+      }
+
       return result.data;
     }
 
@@ -1566,7 +1606,15 @@ const Hyper = (() => {
           });
         },
       });
+      return result.data;
     }
+
+    if (!result.response.ok) {
+      throw new Error(
+        `Hyper action '${action}' failed: ${result.response.status} ${result.response.statusText}`
+      );
+    }
+
     return result.data;
   }
 

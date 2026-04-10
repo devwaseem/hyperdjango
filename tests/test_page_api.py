@@ -4,12 +4,21 @@ from pathlib import Path
 
 import django
 from django.conf import settings
+from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse
 from django.test import override_settings
 from django.test import RequestFactory
 from django.views import View
 
-from hyperdjango.actions import ActionResult, HTML, OOB, Redirect, Signal, action
+from hyperdjango.actions import (
+    Actions,
+    ActionResult,
+    HTML,
+    OOB,
+    Redirect,
+    Signal,
+    action,
+)
 from hyperdjango.assets import ModuleTag
 from hyperdjango.page import (
     HyperActionMixin,
@@ -159,6 +168,20 @@ def test_action_http_response_serializes_typed_item_lists() -> None:
     )
 
 
+def test_action_http_response_serializes_actions_wrapper() -> None:
+    _ensure_settings()
+    response = to_action_http_response(
+        Actions(Signal(name="count", value=1), Redirect(url="/done/"))
+    )
+
+    assert response.status_code == 200
+    assert response["Content-Type"].startswith("text/event-stream")
+    assert _read_streaming_response(response) == (
+        b'event: patch_signals\ndata: {"count": 1}\n\n'
+        b'event: redirect\ndata: {"url": "/done/", "replace": false}\n\n'
+    )
+
+
 def test_action_http_response_serializes_single_oob_patch() -> None:
     _ensure_settings()
     response = to_action_http_response(
@@ -191,6 +214,22 @@ def test_action_response_rejects_redirect_with_swap_fields() -> None:
         raise AssertionError(
             "Expected action_response to reject redirect + swap fields"
         )
+
+
+def test_action_response_rejects_error_statuses_except_422() -> None:
+    class DemoMixin(HyperActionMixin):
+        pass
+
+    obj = DemoMixin()
+
+    try:
+        obj.action_response(content="nope", status=403)
+    except ValueError as exc:
+        assert str(exc) == (
+            "action_response(status=...) only supports 2xx and 422 statuses; raise exceptions for 403/404/500"
+        )
+    else:
+        raise AssertionError("Expected action_response to reject 403 status")
 
 
 def test_page_template_resolves_template_path(monkeypatch, tmp_path: Path) -> None:
@@ -338,6 +377,22 @@ def test_dispatch_page_supports_generator_actions() -> None:
     assert _read_streaming_response(response) == (
         b'event: patch_signals\ndata: {"phase": "starting"}\n\n'
         b'event: redirect\ndata: {"url": "/done/", "replace": false}\n\n'
+    )
+
+
+def test_dispatch_page_converts_permission_denied_to_error_event() -> None:
+    class DemoPage(HyperView):
+        @action
+        def save(self, request, **params):
+            raise PermissionDenied("Not allowed")
+
+    request = RequestFactory().get("/demo", HTTP_X_HYPER_ACTION="save")
+    response = dispatch_page(DemoPage(), request)
+
+    assert response.status_code == 403
+    assert _read_streaming_response(response) == (
+        b'event: error\ndata: {"status": 403, "message": "Not allowed"}\n\n'
+        b"event: end\ndata: {}\n\n"
     )
 
 

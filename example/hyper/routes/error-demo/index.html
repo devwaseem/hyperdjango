@@ -1,0 +1,50 @@
+{% extends "layouts/base/index.html" %}
+{% block page %}
+    <section style="display: grid; gap: 1rem; max-width: 42rem;">
+        <header>
+            <h1>Request error handling</h1>
+            <p>This page shows how to listen for <code>hyper:requestError</code> to display a toast and render a UI error state after an action raises an exception.</p>
+        </header>
+
+        <div style="display: grid; gap: 0.75rem; padding: 1rem; border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc;">
+            <p style="margin: 0; color: #475569;">Click the button to trigger an action that responds with HTTP 403.</p>
+            <button type="button"
+                    x-on:click="document.getElementById('error-result').innerHTML = ''; $action('forbidden', {}, { key: 'error-demo' })">
+                Trigger 403 action
+            </button>
+        </div>
+
+        <div id="error-result">{% include "routes/error-demo/partials/placeholder.html" %}</div>
+
+        <script>
+          (function () {
+            window.addEventListener("hyper:requestError", (event) => {
+              if (event.detail.key !== "error-demo") {
+                return;
+              }
+
+              const target = document.getElementById("error-result");
+              if (target && event.detail.status === 403 && event.detail.message) {
+                target.innerHTML = `
+                  <div style="padding: 0.95rem 1rem; border: 1px solid #fecaca; border-radius: 12px; background: #fef2f2; color: #991b1b; display: grid; gap: 0.35rem;">
+                    <strong>Forbidden action</strong>
+                    <span>Status: ${event.detail.status}</span>
+                    <span>${event.detail.message}</span>
+                  </div>
+                `;
+              }
+
+              window.dispatchEvent(
+                new CustomEvent("hyper:toast", {
+                    detail: {
+                      type: "error",
+                      title: `Request failed (${event.detail.status})`,
+                      message: "Caught from hyper:requestError after the action raised PermissionDenied.",
+                    },
+                  })
+                );
+            });
+          })();
+        </script>
+    </section>
+{% endblock page %}

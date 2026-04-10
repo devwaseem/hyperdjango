@@ -318,6 +318,11 @@ class HyperActionMixin:
         request: HttpRequest | None = None,
         context_updates: dict[str, Any] | None = None,
     ) -> ActionResult:
+        if status >= 400 and status != 422:
+            raise ValueError(
+                "action_response(status=...) only supports 2xx and 422 statuses; raise exceptions for 403/404/500"
+            )
+
         if content is not None and html is not None:
             raise ValueError("action_response() received both content and html")
 

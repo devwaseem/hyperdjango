@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from typing import Any, Callable, Literal, TypeAlias, TypedDict
 
@@ -78,7 +79,26 @@ class LoadJS:
     src: str
 
 
-ActionItem = Signal | Signals | HTML | Toast | OOB | Redirect | History | LoadJS
+@dataclass(slots=True)
+class ErrorMessage:
+    status: int
+    message: str
+
+
+ActionItem = (
+    Signal | Signals | HTML | Toast | OOB | Redirect | History | LoadJS | ErrorMessage
+)
+
+
+@dataclass(slots=True, init=False)
+class Actions:
+    items: tuple[ActionItem, ...]
+
+    def __init__(self, *items: ActionItem) -> None:
+        self.items = items
+
+    def __iter__(self) -> Iterator[ActionItem]:
+        return iter(self.items)
 
 
 @dataclass(slots=True)
