@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.17.0
+
+- Added `Actions(...)` as a common typed wrapper for returning multiple action items without spelling out large union list annotations.
+- Changed action failure handling to prefer exceptions for `403`, `404`, and `500` instead of `action_response(status=...)`.
+- Converted action exceptions like `PermissionDenied` and `Http404` into structured SSE error events.
+- Merged structured action error payloads into `hyper:requestError`, including a `message` field when available.
+- Added a new `/error-demo` example showing how to catch `hyper:requestError` and turn server-generated failures into UI toasts and inline error states.
+
 ## 0.16.0
 
 - Refined typed OOB patches so `OOB` now represents a single explicit patch item (`content`, `target`, `swap`) instead of a wrapped payload batch.
