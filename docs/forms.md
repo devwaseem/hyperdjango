@@ -13,10 +13,7 @@ It preserves Django Form ergonomics (server validation, error rendering, CSRF de
   action="/profile"
   x-on:submit.prevent="$action('save_profile', {}, {
     form: $el,
-    target: '#profile-form',
-    swap: 'outer',
-    sync: 'block',
-    focus: 'first-invalid'
+    sync: 'block'
   })">
   {% csrf_token %}
   {{ form.email }} {{ form.email.errors }}
@@ -33,16 +30,14 @@ It preserves Django Form ergonomics (server validation, error rendering, CSRF de
 - non-`GET` forms send `FormData`, so uploads continue to work
 - action name stays explicit in `$action('save_profile', {}, ...)`
 
-Use normal `$action(...)` options for swap behavior:
+Use `$action(...)` options for request behavior such as:
 
-- `target`
-- `swap`
 - `sync`
 - `key`
-- `transition`
-- `focus`
-- `strictTargets`
-- `swapDelay`, `settleDelay`
+- `method`
+- `onUploadProgress`
+
+Swap target, swap mode, transition, focus, history, and related UI behavior should come from the server response.
 
 ## GET vs Non-GET
 
@@ -72,7 +67,7 @@ class PageView(HyperView):
             return self.action_response(
                 target="#profile-form",
                 swap="outer",
-                html=self.render_block(
+                content=self.render_block(
                     request=request,
                     block_name="save_profile",
                     context_updates={"form": form},
@@ -84,7 +79,7 @@ class PageView(HyperView):
         return self.action_response(
             target="#profile-result",
             swap="inner",
-            html=self.render_block(
+            content=self.render_block(
                 request=request,
                 block_name="profile_success",
                 context_updates={"data": form.cleaned_data},

@@ -311,7 +311,6 @@ class HyperActionMixin:
         push_url: str | None = None,
         replace_url: str | None = None,
         strict_targets: bool | None = None,
-        oob: Any | None = None,
         status: int = 200,
         headers: dict[str, str] | None = None,
         action: str | None = None,
@@ -356,8 +355,6 @@ class HyperActionMixin:
                 invalid_fields.append("replace_url")
             if strict_targets is not None:
                 invalid_fields.append("strict_targets")
-            if oob:
-                invalid_fields.append("oob")
             if action is not None:
                 invalid_fields.append("action")
             if context_updates:
@@ -407,7 +404,6 @@ class HyperActionMixin:
             push_url=push_url,
             replace_url=replace_url,
             strict_targets=strict_targets,
-            oob=oob or {},
             status=status,
             headers=headers or {},
         )

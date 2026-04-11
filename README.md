@@ -2,7 +2,7 @@
 
 Build interactive Django apps without splitting your product into "backend API + SPA frontend".
 
-HyperDjango keeps rendering and business logic on the server, then layers in partial swaps, signals, OOB updates, and transitions for SPA-like UX.
+HyperDjango keeps rendering and business logic on the server, then layers in partial swaps, signals, and transitions for SPA-like UX.
 
 ## Problem -> Approach -> Outcome
 
@@ -13,7 +13,7 @@ HyperDjango keeps rendering and business logic on the server, then layers in par
 ## Why This Works
 
 - Keep business logic in Django, not duplicated across REST + frontend app layers.
-- Get SPA-like interactions (partial swaps, OOB updates, toasts, transitions) with HTML as the transport.
+- Get SPA-like interactions (partial swaps, toasts, transitions) with HTML as the transport.
 - Organize by feature using file-based routes and co-located templates/assets.
 
 ## Locality of Behavior
@@ -140,7 +140,7 @@ Note: each `hyper/routes/**/+page.py` must define a class named `PageView` (typi
 
 ## Actions
 
-Use `@action` for partial updates, signal patches, toasts, OOB updates, and swap control.
+Use `@action` for partial updates, signal patches, toasts, and swap control.
 
 ```python
 from hyperdjango.actions import action

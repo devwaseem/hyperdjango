@@ -944,12 +944,6 @@ const Hyper = (() => {
         });
         return;
       }
-      case "patch_oob": {
-        applyOOB(payload.payload || payload, {
-          strict: strictTargetsEnabled(context.strictTargets),
-        });
-        return;
-      }
       case "load_js": {
         await ensureModuleScript(payload.src || null);
         return;
@@ -1270,83 +1264,6 @@ const Hyper = (() => {
     }
   }
 
-  function normalizeOOBOperation(entry) {
-    if (!entry || typeof entry !== "object") {
-      return null;
-    }
-
-    const target = String(entry.target || entry.selector || "").trim();
-    if (!target) {
-      return null;
-    }
-
-    const swap = String(entry.swap || "inner").trim();
-
-    return {
-      target,
-      swap: swap || "inner",
-      html: typeof entry.html === "string" ? entry.html : "",
-      order: Number.isFinite(entry.order) ? Number(entry.order) : null,
-    };
-  }
-
-  function normalizeOOBOperations(oob) {
-    if (!oob) {
-      return [];
-    }
-
-    if (Array.isArray(oob)) {
-      const ops = [];
-      for (const item of oob) {
-        const op = normalizeOOBOperation(item);
-        if (op) {
-          ops.push(op);
-        }
-      }
-      return ops;
-    }
-
-    if (typeof oob === "object") {
-      const ops = [];
-      for (const [selector, entry] of Object.entries(oob)) {
-        if (!selector) {
-          continue;
-        }
-
-        if (typeof entry === "string") {
-          ops.push({ target: selector, swap: "inner", html: entry, order: null });
-          continue;
-        }
-
-        if (!entry || typeof entry !== "object") {
-          continue;
-        }
-
-        const op = normalizeOOBOperation({ ...entry, target: selector });
-        if (op) {
-          ops.push(op);
-        }
-      }
-
-      const ordered = ops.filter((op) => op.order !== null);
-      const unordered = ops.filter((op) => op.order === null);
-      ordered.sort((a, b) => a.order - b.order);
-      return [...ordered, ...unordered];
-    }
-
-    return [];
-  }
-
-  function applyOOB(oob, { strict = false } = {}) {
-    const operations = normalizeOOBOperations(oob);
-    for (const op of operations) {
-      const ok = applySwap(op.target, op.html, op.swap);
-      if (!ok && strict) {
-        throw new Error(`Hyper OOB target not found: ${op.target}`);
-      }
-    }
-  }
-
   function deepMerge(target, patch) {
     if (patch == null || typeof patch !== "object" || Array.isArray(patch)) {
       return patch;
@@ -1563,7 +1480,6 @@ const Hyper = (() => {
                 throw new Error(`Hyper target not found: ${resolvedTarget}`);
               }
             }
-            applyOOB(result.data.oob, { strict });
           });
         },
       });
@@ -1573,7 +1489,6 @@ const Hyper = (() => {
           result.data.signals ||
           result.data.toasts ||
           result.data.html ||
-          result.data.oob ||
           result.data.js ||
           result.data.push_url ||
           result.data.replace_url ||
@@ -1670,7 +1585,6 @@ const Hyper = (() => {
                 throw new Error(`Hyper target not found: ${resolvedTarget}`);
               }
             }
-            applyOOB(result.data.oob, { strict });
           });
         },
       });
@@ -1955,15 +1869,8 @@ const Hyper = (() => {
     const url =
       options.url ||
       (form ? form.getAttribute("action") || window.location.pathname : window.location.pathname);
-    const target = options.target ?? null;
-    const transition = options.transition || false;
-    const swap = options.swap || "inner";
     const sync = options.sync || (form ? "block" : "replace");
     const key = options.key || null;
-    const strictTargets = options.strictTargets;
-    const swapDelay = options.swapDelay;
-    const settleDelay = options.settleDelay;
-    const focus = options.focus || "preserve";
     const syncStore = options.syncStore ?? true;
     const bind = options.bind || null;
     const onUploadProgress = options.onUploadProgress || null;
@@ -1983,15 +1890,8 @@ const Hyper = (() => {
           url,
           action,
           method: "GET",
-          target,
-          swap,
-          transition,
           sync,
           key,
-          strictTargets,
-          swapDelay,
-          settleDelay,
-          focus,
           syncStore,
           bind,
           onUploadProgress,
@@ -2002,64 +1902,39 @@ const Hyper = (() => {
         url,
         action,
         method,
-        target,
-        swap,
-        transition,
         sync,
         key,
-        strictTargets,
-        swapDelay,
-        settleDelay,
-          focus,
-          syncStore,
-          bind,
-          onUploadProgress,
+        syncStore,
+        bind,
+        onUploadProgress,
           body: payload,
         });
     }
 
     if (method !== "GET" && method !== "HEAD") {
       return runAction({
-        url,
-        action,
-        method,
-        target,
-        syncStore,
-        bind,
-        kwargs: extraData,
-        body: buildActionSearchParams(action, extraData),
-        swap,
-        transition,
-        push: options.push || false,
-        replace: options.replace || false,
-        sync,
-        key,
-        strictTargets,
-        swapDelay,
-        settleDelay,
-        focus,
-        onUploadProgress,
-      });
+      url,
+      action,
+      method,
+      syncStore,
+      bind,
+      kwargs: extraData,
+      body: buildActionSearchParams(action, extraData),
+      sync,
+      key,
+      onUploadProgress,
+    });
     }
 
     return runAction({
       url,
       action,
       method,
-      target,
       syncStore,
       bind,
       kwargs: extraData,
-      swap,
-      transition,
-      push: options.push || false,
-      replace: options.replace || false,
       sync,
       key,
-      strictTargets,
-      swapDelay,
-      settleDelay,
-      focus,
       onUploadProgress,
     });
   }

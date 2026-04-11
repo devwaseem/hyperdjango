@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from hyperdjango.actions import HTML, OOB, Signal, Toast, action
+from hyperdjango.actions import HTML, Signal, Toast, action
 
 from hyper.layouts.base import BaseLayout
 
@@ -97,7 +97,7 @@ class PageView(BaseLayout):
                 ),
                 target="#editor",
             ),
-            OOB(
+            HTML(
                 content=self.render(
                     request=request,
                     relative_template_name="partials/flash.html",
@@ -126,7 +126,7 @@ class PageView(BaseLayout):
                 ),
                 target="#editor",
             ),
-            OOB(
+            HTML(
                 content=self.render(
                     request=request,
                     relative_template_name="partials/flash.html",
@@ -147,7 +147,7 @@ class PageView(BaseLayout):
                 ),
                 target="#editor",
             ),
-            OOB(
+            HTML(
                 content=self.render(
                     request=request,
                     relative_template_name="partials/flash.html",

@@ -24,7 +24,7 @@
                 {% csrf_token %}
                 <input type="file" name="upload" required />
                 <button type="button"
-                        x-on:click="window.demoResetUploadStatus('alpine'); $action('upload_demo', {}, { form: '#upload-form-alpine', method: 'POST', key: 'upload-alpine', target: '#upload-result-alpine', onUploadProgress() {} })">
+                        x-on:click="window.demoResetUploadStatus('alpine'); $action('upload_demo_alpine', {}, { form: '#upload-form-alpine', method: 'POST', key: 'upload-alpine', onUploadProgress() {} })">
                     Upload with Alpine
                 </button>
             </form>
@@ -103,11 +103,10 @@
 
               window.demoResetUploadStatus("window");
 
-              window.action("upload_demo", {}, {
+              window.action("upload_demo_window", {}, {
                 form: "#window-upload-form",
                 method: "POST",
                 key: "upload-window",
-                target: "#upload-result-window",
                 onUploadProgress(detail) {
                   const percent = detail.progress == null ? 0 : Math.round(detail.progress * 100);
                   progress.value = percent;

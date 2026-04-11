@@ -23,13 +23,7 @@ Example:
 
 ## View Transitions
 
-Enable per request:
-
-```javascript
-$action("next_tip", {}, { transition: true })
-```
-
-or from server response:
+Enable from the server response:
 
 ```python
 return self.action_response(..., transition=True)

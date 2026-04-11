@@ -9,7 +9,7 @@ Action responses in the example now use the typed item style (`Signal`, `HTML`, 
 - file routing (`index`, static, dynamic, catch-all, route groups)
 - nested layouts (`/dashboard`, `/dashboard/settings`)
 - action-driven partial updates (`/`, `/todos`, `/search`)
-- OOB updates and toasts (`/todos`)
+- multi-target HTML updates and toasts (`/todos`)
 - sync lanes and request lifecycle behavior (`/search`)
 - Django form enhancement via `$action(..., data, { form })` (`/profile`)
 
@@ -82,7 +82,7 @@ Open `http://127.0.0.1:8000/`.
 1. `python manage.py hyper_routes` lists all routes above.
 2. `/` increment action updates without full reload.
 3. `/search` cancels/replaces in-flight requests on repeated queries.
-4. `/todos` supports add/toggle/delete with partial swaps + OOB updates.
+4. `/todos` supports add/toggle/delete with partial swaps + multi-target HTML updates.
 5. `/signals` demonstrates `count` (local) vs `$count` (global store) patching.
 6. `/profile` returns server-rendered validation errors and success partials.
 7. `/upload-progress` shows progress updates for file uploads in both callback and event-driven styles.

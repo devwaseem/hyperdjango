@@ -10,7 +10,14 @@ class PageView(BaseLayout):
         return {}
 
     @action
-    def upload_demo(self, request, **params):
+    def upload_demo_alpine(self, request, **params):
+        return self._upload_demo(request, target="#upload-result-alpine")
+
+    @action
+    def upload_demo_window(self, request, **params):
+        return self._upload_demo(request, target="#upload-result-window")
+
+    def _upload_demo(self, request, *, target: str):
         uploaded = request.FILES.get("upload")
         if uploaded is None:
             return [
@@ -24,7 +31,8 @@ class PageView(BaseLayout):
                             "uploaded_size_kb": "",
                             "content_type": "",
                         },
-                    )
+                    ),
+                    target=target,
                 )
             ]
 
@@ -46,6 +54,7 @@ class PageView(BaseLayout):
                         "uploaded_size_kb": f"{uploaded.size / 1024:.1f}",
                         "content_type": uploaded.content_type or "unknown",
                     },
-                )
+                ),
+                target=target,
             ),
         ]

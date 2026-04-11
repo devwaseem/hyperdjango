@@ -49,7 +49,7 @@ While request is active, runtime updates:
 - applies `signals`
 - emits `hyper:toast`
 - performs target swap based on `target` and `swap`
-- applies `oob` operations
+- applies streamed HTML/delete patch events
 - updates history if `push_url` / `replace_url` is set
 
 ## 5) Lifecycle Hooks

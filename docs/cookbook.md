@@ -57,30 +57,24 @@ def show_editor(self, request, **params):
 
 Client call can omit `target` and use server contract.
 
-## 3) OOB updates to keep side panels in sync
+## 3) Multiple targeted HTML patches to keep side panels in sync
 
 ```python
 @action
 def add_todo(self, request, title="", **params):
-    return self.action_response(
-        html="<li>...</li>",
-        target="#todo-list",
-        swap="append",
-        oob={
-            "#todo-stats": "<div>Updated stats</div>",
-            "#flash": "<p>Added</p>",
-        },
+    return Actions(
+        HTML(content="<li>...</li>", target="#todo-list", swap="append"),
+        HTML(content="<div>Updated stats</div>", target="#todo-stats"),
+        HTML(content="<p>Added</p>", target="#flash"),
     )
 ```
 
-## 4) Ordered OOB operations (deterministic updates)
+## 4) Ordered multi-patch updates
 
 ```python
-return self.action_response(
-    oob=[
-        {"target": "#one", "swap": "inner", "html": "A", "order": 1},
-        {"target": "#two", "swap": "outer", "html": "<div id='two'>B</div>", "order": 2},
-    ]
+return Actions(
+    HTML(content="A", target="#one"),
+    HTML(content="<div id='two'>B</div>", target="#two", swap="outer"),
 )
 ```
 
@@ -98,7 +92,7 @@ return [Delete(target=f"#todo-{id}")]
 ```text
 <input
   x-model="q"
-  x-on:input.debounce.250ms="$action('search', { q }, { target: '#results', sync: 'replace', key: 'live-search' })"
+  x-on:input.debounce.250ms="$action('search', { q }, { sync: 'replace', key: 'live-search' })"
 />
 ```
 

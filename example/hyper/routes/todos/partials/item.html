@@ -2,8 +2,8 @@
   <input
     type="checkbox"
     {% if todo.done %}checked{% endif %}
-    x-on:change="$action('toggle_todo', { id: '{{ todo.id }}' }, { method: 'POST', transition: true })"
+    x-on:change="$action('toggle_todo', { id: '{{ todo.id }}' }, { method: 'POST' })"
   />
   <span style="flex: 1; {% if todo.done %}text-decoration: line-through; opacity: 0.6;{% endif %}">{{ todo.title }}</span>
-  <button type="button" x-on:click="$action('delete_todo', { id: '{{ todo.id }}' }, { method: 'POST', transition: true })">Delete</button>
+  <button type="button" x-on:click="$action('delete_todo', { id: '{{ todo.id }}' }, { method: 'POST' })">Delete</button>
 </li>

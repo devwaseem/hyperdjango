@@ -8,18 +8,6 @@ Sets action name for form submission.
 
 - fallback: hidden input `_action`
 
-## `hyper-target`
-
-Target selector for form response swap.
-
-## `hyper-swap`
-
-Swap mode for form response target.
-
-Allowed values:
-
-- `inner`, `outer`, `before`, `after`, `prepend`, `append`, `delete`, `none`
-
 ## `hyper-sync`
 
 Request sync behavior.
@@ -42,29 +30,6 @@ Sync group key.
 
 Applies disable scope to form controls while request is active.
 
-## `hyper-focus`
-
-Post-swap focus policy.
-
-Allowed values:
-
-- `preserve`
-- `first-invalid`
-- CSS selector
-
-## `hyper-transition`
-
-Enables View Transitions for this form interaction.
-
-## Timing Attributes
-
-- `hyper-swap-delay`: delay before swap (ms)
-- `hyper-settle-delay`: delay for settle phase (ms)
-
-## `hyper-strict-targets`
-
-Enables strict target enforcement for this form request.
-
 ## Example
 
 ```html
@@ -72,11 +37,8 @@ Enables strict target enforcement for this form request.
   method="post"
   action="/profile"
   hyper-action="save_profile"
-  hyper-target="#profile-panel"
-  hyper-swap="outer"
   hyper-sync="block"
   hyper-key="profile-save"
-  hyper-focus="first-invalid"
   hyper-form-disable
 >
   {% csrf_token %}
@@ -93,11 +55,8 @@ Preferred equivalent:
   action="/profile"
   x-on:submit.prevent="$action('save_profile', {}, {
     form: $el,
-    target: '#profile-panel',
-    swap: 'outer',
     sync: 'block',
-    key: 'profile-save',
-    focus: 'first-invalid'
+    key: 'profile-save'
   })">
   {% csrf_token %}
   ...

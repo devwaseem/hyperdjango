@@ -16,7 +16,6 @@ from hyperdjango.actions import (
     HTML,
     History,
     LoadJS,
-    OOB,
     Redirect,
     Signal,
     Signals,
@@ -84,7 +83,6 @@ def is_action_item(value: Any) -> bool:
             Signals,
             HTML,
             Toast,
-            OOB,
             Delete,
             Redirect,
             History,
@@ -124,26 +122,6 @@ def compile_action_result(result: ActionResult) -> list[ActionItem]:
                 strict_targets=result.strict_targets,
             )
         )
-    if result.oob:
-        for selector, entry in result.oob.items():
-            if isinstance(entry, str):
-                items.append(OOB(content=entry, target=selector, swap="inner"))
-                continue
-            if not isinstance(entry, dict):
-                continue
-            items.append(
-                OOB(
-                    content=str(entry.get("html", "")),
-                    target=str(
-                        entry.get("target") or entry.get("selector") or selector
-                    ),
-                    swap=(
-                        entry.get("swap", "inner")
-                        if isinstance(entry.get("swap", "inner"), str)
-                        else "inner"
-                    ),
-                )
-            )
     if result.js:
         items.append(LoadJS(src=result.js))
     return items
@@ -187,12 +165,6 @@ def serialize_action_item(item: ActionItem) -> tuple[str, dict[str, Any]]:
     if isinstance(item, Toast):
         return "toast", item.payload if isinstance(item.payload, dict) else {
             "value": item.payload
-        }
-    if isinstance(item, OOB):
-        return "patch_oob", {
-            "target": item.target,
-            "content": item.content,
-            "swap": item.swap,
         }
     if isinstance(item, Delete):
         return "patch_html", {

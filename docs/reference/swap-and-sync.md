@@ -15,11 +15,7 @@ Allowed values:
 - `delete`: remove target element
 - `none`: do not mutate target
 
-Example:
-
-```javascript
-$action("save", data, { method: "POST", target: "#panel", swap: "outer" })
-```
+Server responses control swap targets and swap modes for actions. Use typed items like `HTML(...)` and `Delete(...)` on the server.
 
 ## Sync Modes
 
@@ -48,34 +44,22 @@ $action("search", { q }, { sync: "replace", key: "live-search" })
 
 Strict mode throws when a target selector is missing.
 
-Enable per call:
-
-```javascript
-$action("save", data, { method: "POST", target: "#panel", strictTargets: true })
-```
-
 Enable globally:
 
 ```html
 <body hyper-strict-targets="true">
 ```
 
-## OOB Updates
+## Multiple Patches
 
-Out-of-band updates let one response update elements outside the primary target.
+Server responses can emit multiple `HTML(...)` and `Delete(...)` items in one action stream.
 
-Object format:
+Example:
 
-```json
-{
-  "#stats": { "swap": "inner", "html": "<div>3</div>" }
-}
-```
-
-Array format:
-
-```json
-[
-  { "target": "#stats", "swap": "inner", "html": "<div>3</div>", "order": 1 }
-]
+```python
+return Actions(
+    HTML(content=main_html, target="#panel"),
+    HTML(content=stats_html, target="#stats"),
+    Delete(target="#row-1"),
+)
 ```

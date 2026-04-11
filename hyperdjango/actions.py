@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from dataclasses import dataclass, field
-from typing import Any, Callable, Literal, TypeAlias, TypedDict
+from typing import Any, Callable, Literal, TypeAlias
 
 
 SwapMode: TypeAlias = Literal[
@@ -15,16 +15,6 @@ SwapMode: TypeAlias = Literal[
     "delete",
     "none",
 ]
-
-
-class OOBOperation(TypedDict, total=False):
-    html: str
-    swap: SwapMode
-    target: str
-    selector: str
-
-
-OOBPayload: TypeAlias = dict[str, str | OOBOperation]
 
 
 @dataclass(slots=True)
@@ -53,13 +43,6 @@ class HTML:
 @dataclass(slots=True)
 class Toast:
     payload: dict[str, Any]
-
-
-@dataclass(slots=True)
-class OOB:
-    content: str
-    target: str
-    swap: SwapMode = "inner"
 
 
 @dataclass(slots=True)
@@ -95,7 +78,6 @@ ActionItem = (
     | Signals
     | HTML
     | Toast
-    | OOB
     | Delete
     | Redirect
     | History
@@ -131,7 +113,6 @@ class ActionResult:
     push_url: str | None = None
     replace_url: str | None = None
     strict_targets: bool | None = None
-    oob: OOBPayload = field(default_factory=dict)
     status: int = 200
     headers: dict[str, str] = field(default_factory=dict)
 

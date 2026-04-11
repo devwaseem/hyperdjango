@@ -26,7 +26,7 @@ Action responses include no-store/no-cache and `Vary` headers for Hyper request 
 
 ## Client Contracts
 
-- use stable DOM IDs/selectors for `target` and OOB operations
+- use stable DOM IDs/selectors for server-targeted HTML and delete patches
 - enable strict targets (`hyper-strict-targets`) in QA to catch selector drift
 - define fallback behavior for missing JS (full-page paths should still work)
 

@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from hyper.layouts.base import BaseLayout
 
-from hyperdjango.actions import Delete, OOB, Toast, action
+from hyperdjango.actions import Delete, HTML, Toast, action
 
 
 class PageView(BaseLayout):
@@ -47,10 +47,6 @@ class PageView(BaseLayout):
             target="#todo-list",
             swap="append",
             transition=True,
-            oob={
-                "#todo-stats": self._render_stats(request, todos),
-                "#todo-empty": self._render_empty(request, todos),
-            },
             toast={
                 "type": "success",
                 "title": "Added",
@@ -83,7 +79,6 @@ class PageView(BaseLayout):
             target=f"#todo-{target['id']}",
             swap="outer",
             transition=True,
-            oob={"#todo-stats": self._render_stats(request, todos)},
             toast={
                 "type": "info",
                 "title": "Updated",
@@ -115,8 +110,8 @@ class PageView(BaseLayout):
                     "message": "Todo deleted.",
                 }
             ),
-            OOB(content=self._render_stats(request, remaining), target="#todo-stats"),
-            OOB(content=self._render_empty(request, remaining), target="#todo-empty"),
+            HTML(content=self._render_stats(request, remaining), target="#todo-stats"),
+            HTML(content=self._render_empty(request, remaining), target="#todo-empty"),
         ]
 
     @action
@@ -134,10 +129,6 @@ class PageView(BaseLayout):
             target="#todo-list",
             swap="inner",
             transition=True,
-            oob={
-                "#todo-stats": self._render_stats(request, remaining),
-                "#todo-empty": self._render_empty(request, remaining),
-            },
             toast={
                 "type": "success",
                 "title": "Cleaned",

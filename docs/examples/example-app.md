@@ -6,7 +6,7 @@ What it demonstrates:
 
 - file routing (`index`, static, dynamic, catch-all, route groups)
 - nested layouts (`/dashboard`, `/dashboard/settings`)
-- action-driven swaps and OOB updates (`/todos`)
+- action-driven swaps and multi-target HTML updates (`/todos`)
 - local and global signals (`/signals`)
 - composite segment matching (`/account/reset/<uidb36>-<key>`)
 - literal+param regex segment (`/regex/<kind>-v<version>`)

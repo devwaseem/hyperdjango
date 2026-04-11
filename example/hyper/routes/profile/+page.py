@@ -28,6 +28,7 @@ class PageView(BaseLayout):
                     context_updates={"form": form},
                 ),
                 target="#profile-panel",
+                focus="first-invalid",
             )
 
         return self.action_response(

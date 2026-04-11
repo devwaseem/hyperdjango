@@ -15,7 +15,6 @@ from hyperdjango.actions import (
     ActionResult,
     Delete,
     HTML,
-    OOB,
     Redirect,
     Signal,
     action,
@@ -180,20 +179,6 @@ def test_action_http_response_serializes_actions_wrapper() -> None:
     assert _read_streaming_response(response) == (
         b'event: patch_signals\ndata: {"count": 1}\n\n'
         b'event: redirect\ndata: {"url": "/done/", "replace": false}\n\n'
-    )
-
-
-def test_action_http_response_serializes_single_oob_patch() -> None:
-    _ensure_settings()
-    response = to_action_http_response(
-        [OOB(content="<p>Saved</p>", target="#flash", swap="outer")]
-    )
-
-    assert response.status_code == 200
-    assert response["Content-Type"].startswith("text/event-stream")
-    assert _read_streaming_response(response) == (
-        b'event: patch_oob\ndata: {"target": "#flash", "content": "<p>Saved</p>", "swap": "outer"}\n\n'
-        b"event: end\ndata: {}\n\n"
     )
 
 

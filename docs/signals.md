@@ -16,7 +16,7 @@ On responses, signals are merged client-side and emitted as an event.
 Use `$action` data (second argument):
 
 ```html
-<button x-on:click="$action('search', { q, page: 1 }, { target: '#results' })">
+<button x-on:click="$action('search', { q, page: 1 })">
   Search
 </button>
 ```
@@ -145,4 +145,4 @@ return [
 
 - Signals are best for small state patches, not large document payloads.
 - Keep signal keys stable; treat them like a UI contract.
-- For multi-region DOM updates, combine signals with `oob`.
+- For multi-region DOM updates, combine signals with multiple targeted `HTML(...)` items.

@@ -4,7 +4,7 @@
 
 ## Core Fields
 
-- `html`: response fragment for target swap
+- `content` / `html`: response fragment for target swap
 - `target`: CSS selector for target swap
 - `swap`: swap mode
 - `status`: HTTP status code
@@ -18,10 +18,9 @@
 - `swap_delay`: delay before swap (ms)
 - `settle_delay`: settle delay (ms)
 
-## Data and Multi-Region Fields
+## Data Fields
 
 - `signals`: state patch payload
-- `oob`: out-of-band DOM operations
 
 ## History Fields
 
@@ -36,7 +35,7 @@
 
 ```python
 return self.action_response(
-    html=self.render_block(
+    content=self.render_block(
         request=request,
         block_name="save_profile",
         context_updates={"form": form},
@@ -49,6 +48,5 @@ return self.action_response(
     settle_delay=120,
     toast={"type": "success", "message": "Saved"},
     signals={"profile": {"dirty": False}},
-    oob={"#flash": {"swap": "inner", "html": "<p>Saved</p>"}},
 )
 ```

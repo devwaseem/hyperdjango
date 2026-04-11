@@ -2,7 +2,7 @@
 
 HyperDjango runtime is served from `hyperdjango/static/hyperdjango/hyper.js` and auto-initializes on page load.
 
-The runtime translates server responses into predictable browser behavior (swap, OOB, history, loading, events) while keeping HTML as the primary transport.
+The runtime translates server responses into predictable browser behavior (swap, history, loading, events) while keeping HTML as the primary transport.
 
 Action responses are now consumed as SSE-framed event streams, even for normal one-shot actions. The server closes the stream immediately after the last event.
 
@@ -30,23 +30,16 @@ $action(name, data, options)
 
 ## `action` options
 
-These options let callers express UX behavior per interaction instead of enabling broad global behavior that is harder to reason about.
+`$action(...)` now focuses on request concerns. Swap target, swap mode, transition, focus, history, and related UI behavior are expected to come from server-returned action items such as `HTML(...)`, `Delete(...)`, `Redirect(...)`, and `History(...)`.
 
 - `form`: `HTMLFormElement` or CSS selector; when present Hyper infers `method` and `url` from the form
 - `method`: defaults to `GET`, unless a form is provided and its `method` says otherwise
 - `data`: object payload for non-form calls, or extra fields merged into a form submit
 - `url`: defaults to current path
-- `target`: CSS selector to swap
-- `swap`: `inner|outer|before|after|prepend|append|delete|none`
-- `transition`: View Transition opt-in
-- `swapDelay`, `settleDelay`: delay timing (ms)
-- `focus`: `preserve|first-invalid|<selector>`
-- `push`, `replace`: history behavior
 - `sync`: `replace|block|none`
 - `key`: sync group key
 - `bind`: optional explicit Alpine object to merge returned `signals` (auto-detected from active `x-data` by default)
 - `syncStore`: allow `$`-prefixed signals to patch `Alpine.store("hyper")` (default `true`)
-- `strictTargets`: local strict target enforcement
 - `onUploadProgress`: callback for upload progress detail during body uploads
 
 ## Action Stream Events
@@ -56,7 +49,6 @@ The action runtime applies explicit SSE event names from the server, including:
 - `patch_signals`
 - `patch_html`
 - `toast`
-- `patch_oob`
 - `history`
 - `redirect`
 - `load_js`
@@ -67,15 +59,9 @@ Example:
 ```javascript
  await $action("save", { email }, {
    method: "POST",
-   target: "#form",
-   swap: "outer",
-  sync: "block",
-  key: "profile-save",
-  transition: true,
-  swapDelay: 40,
-  settleDelay: 120,
-  focus: "first-invalid",
-});
+   sync: "block",
+   key: "profile-save",
+ });
 ```
 
 Form example:
@@ -83,10 +69,8 @@ Form example:
 ```javascript
  await $action("save_profile", {}, {
    form: "#profile-form",
-   target: "#profile-panel",
-   swap: "inner",
    sync: "block",
-});
+ });
 ```
 
 Upload progress example:
@@ -127,38 +111,19 @@ Enable strict mode globally:
 
 Or per call/action response with `strictTargets` / `strict_targets`.
 
-## Out-of-Band Updates (`oob`)
+## Multiple Patches
 
-`oob` lets one response update elements outside the primary `target` swap.
+Server responses can emit multiple `HTML(...)` and `Delete(...)` items in one action stream.
 
-Use it when an action changes multiple UI regions at once (for example list + stats + flash message) and you want all updates applied from a single request.
+Example typed item list:
 
-Accepted formats:
-
-- array of operations
-- selector-keyed object
-
-Example response payload:
-
-```json
-{
-  "target": "#todo-list",
-  "swap": "append",
-  "html": "<li>New item</li>",
-  "oob": {
-    "#todo-stats": { "swap": "inner", "html": "<div>3 items</div>" },
-    "#flash": { "swap": "inner", "html": "<p>Saved</p>" }
-  }
-}
+```python
+return Actions(
+    HTML(content=main_html, target="#todo-list", swap="append"),
+    HTML(content=stats_html, target="#todo-stats"),
+    HTML(content=flash_html, target="#flash"),
+)
 ```
-
-Operation shape:
-
-```json
-{ "target": "#flash", "swap": "inner", "html": "...", "order": 10 }
-```
-
-`order` is used when object-style OOB entries need deterministic sequencing.
 
 ## Loading Indicators
 
