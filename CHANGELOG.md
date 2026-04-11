@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.20.0
+
+- Removed `OOB` from the action/runtime model and simplified multi-region updates to use multiple targeted `HTML(...)` and `Delete(...)` items.
+- Removed `oob` from `action_response(...)` and deleted old runtime support for `patch_oob` events.
+- Shifted action UI control fully to the server for normal action calls: targets, swaps, transitions, focus, history, and related patch behavior now come from server-returned items.
+- Narrowed `$action(...)` to request concerns such as `data`, `form`, `method`, `url`, `sync`, `key`, and `onUploadProgress`.
+- Updated examples and docs to reflect the server-owned patch model and the removal of OOB updates.
+
 ## 0.19.0
 
 - Logged Hyper action exceptions through Django's request logger before converting them into SSE error responses.
