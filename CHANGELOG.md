@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.19.0
+
+- Logged Hyper action exceptions through Django's request logger before converting them into SSE error responses.
+- Preserved structured action error handling for the client while making `runserver` output visible again for `PermissionDenied`, `Http404`, and unexpected action exceptions.
+
 ## 0.18.0
 
 - Added `Delete(target=...)` as a first-class typed action item for removal flows.
