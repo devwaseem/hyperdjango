@@ -2,6 +2,8 @@
 
 HyperDjango runtime is served from `hyperdjango/static/hyperdjango/hyper.js` and auto-initializes on page load.
 
+If Alpine is present, `hyperdjango/static/hyperdjango/hyper-alpine.js` auto-detects it and installs the Alpine bridge.
+
 The runtime translates server responses into predictable browser behavior (swap, history, loading, events) while keeping HTML as the primary transport.
 
 Action responses are now consumed as SSE-framed event streams, even for normal one-shot actions. The server closes the stream immediately after the last event.
@@ -12,12 +14,9 @@ Action responses are now consumed as SSE-framed event streams, even for normal o
 - `window.action(action, data, options)`
 - `window.Hyper.configure({ strictTargets: boolean })`
 
-Alpine magics:
+When Alpine is present, HyperDjango installs the `$action(...)` Alpine magic automatically.
 
-- `$action(...)`
-- `$hyper` (maps to `Alpine.store("hyper")`)
-
-For signal-specific behavior, see `docs/signals.md`.
+For Alpine-specific signal behavior, see `docs/signals.md`.
 
 ## `action` signature
 
@@ -38,8 +37,6 @@ $action(name, data, options)
 - `url`: defaults to current path
 - `sync`: `replace|block|none`
 - `key`: sync group key
-- `bind`: optional explicit Alpine object to merge returned `signals` (auto-detected from active `x-data` by default)
-- `syncStore`: allow `$`-prefixed signals to patch `Alpine.store("hyper")` (default `true`)
 - `onUploadProgress`: callback for upload progress detail during body uploads
 
 ## Action Stream Events
@@ -48,6 +45,7 @@ The action runtime applies explicit SSE event names from the server, including:
 
 - `patch_signals`
 - `patch_html`
+- `dispatch_event`
 - `toast`
 - `history`
 - `redirect`
@@ -124,6 +122,18 @@ return Actions(
     HTML(content=flash_html, target="#flash"),
 )
 ```
+
+## Generic Stream Event Hook
+
+Framework-agnostic integrations can listen to the core event stream directly:
+
+```javascript
+window.addEventListener("hyper:streamEvent", (event) => {
+  console.log(event.detail.event, event.detail.data);
+});
+```
+
+Alpine signal patching is implemented on top of this stream in `hyper-alpine.js`.
 
 ## Loading Indicators
 

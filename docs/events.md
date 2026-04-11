@@ -124,7 +124,7 @@ Triggered when the active View Transition finishes (or settles after failure).
 
 ### `hyper:signals`
 
-Triggered when a response includes `signals`; detail contains the merged patch payload.
+Triggered by the Alpine integration when it receives a `patch_signals` stream event and applies the patch to Alpine state/store.
 
 ### `hyper:toast`
 

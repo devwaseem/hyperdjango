@@ -16,30 +16,31 @@ The cookbook shows practical composition of features in real flows, not just iso
 ```
 
 ```python
+from hyperdjango.integrations.alpine.actions import Signal
+
+
 @action
 def increment(self, request, current=0, **params):
-    return self.action_response(signals={"count": int(current) + 1})
+    return [Signal(name="count", value=int(current) + 1)]
 ```
 
 ### Local + global patch (`count` + `$count`)
 
 ```python
+from hyperdjango.integrations.alpine.actions import Signals
+
+
 @action
 def increment(self, request, current=0, **params):
     value = int(current) + 1
-    return self.action_response(
-        signals={
-            "count": value,
-            "$count": value,
-        }
-    )
+    return [Signals(values={"count": value, "$count": value})]
 ```
 
 ```html
 <section x-data="{ count: 0 }">
   <button x-on:click="$action('increment', { current: count })">Increment</button>
   <p>Local: <span x-text="count"></span></p>
-  <p>Global: <span x-text="$hyper.count"></span></p>
+  <p>Global: <span x-text="$store.hyper.count"></span></p>
 </section>
 ```
 

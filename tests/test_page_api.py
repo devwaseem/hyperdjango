@@ -14,6 +14,7 @@ from hyperdjango.actions import (
     Actions,
     ActionResult,
     Delete,
+    Event,
     HTML,
     Redirect,
     Signal,
@@ -190,6 +191,20 @@ def test_action_http_response_serializes_delete_patch() -> None:
     assert response["Content-Type"].startswith("text/event-stream")
     assert _read_streaming_response(response) == (
         b'event: patch_html\ndata: {"target": "#todo-1", "content": "", "swap": "delete"}\n\n'
+        b"event: end\ndata: {}\n\n"
+    )
+
+
+def test_action_http_response_serializes_event_dispatch() -> None:
+    _ensure_settings()
+    response = to_action_http_response(
+        [Event(name="profile:saved", payload={"id": 1}, target="#profile-panel")]
+    )
+
+    assert response.status_code == 200
+    assert response["Content-Type"].startswith("text/event-stream")
+    assert _read_streaming_response(response) == (
+        b'event: dispatch_event\ndata: {"name": "profile:saved", "payload": {"id": 1}, "target": "#profile-panel"}\n\n'
         b"event: end\ndata: {}\n\n"
     )
 

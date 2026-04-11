@@ -848,32 +848,17 @@ const Hyper = (() => {
     return !response.body && typeof response.text === "function";
   }
 
-  function applySignals(payload, { syncStore = true } = {}) {
-    if (!payload) {
-      return;
-    }
-
-    const signalPayload = payload.signals || payload;
-    if (!signalPayload || typeof signalPayload !== "object") {
-      return;
-    }
-
-    const patches = splitSignalPatches(signalPayload);
-
-    if (
-      syncStore &&
-      window.Alpine &&
-      typeof window.Alpine.store === "function" &&
-      Object.keys(patches.global).length > 0
-    ) {
-      const store = ensureHyperStore();
-      if (!store) {
-        return;
-      }
-      mergeInto(store, patches.global);
-    }
-
-    window.dispatchEvent(new CustomEvent("hyper:signals", { detail: signalPayload }));
+  function dispatchStreamEvent(event, context) {
+    const streamEvent = new CustomEvent("hyper:streamEvent", {
+      detail: {
+        event: event.event,
+        data: event.data || {},
+        action: context.action || null,
+        key: context.key || null,
+        sourceEl: context.sourceEl || null,
+      },
+    });
+    window.dispatchEvent(streamEvent);
   }
 
   function applyToasts(toasts) {
@@ -888,17 +873,26 @@ const Hyper = (() => {
 
   async function handleActionStreamEvent(event, context) {
     const payload = event.data || {};
+    dispatchStreamEvent(event, context);
     switch (event.event) {
       case "patch_signals": {
-        applySignals(payload, { syncStore: context.syncStore });
-        if (context.bind) {
-          const patches = splitSignalPatches(payload);
-          mergeInto(context.bind, patches.local);
-        }
         return;
       }
       case "toast": {
         applyToasts([payload]);
+        return;
+      }
+      case "dispatch_event": {
+        const eventTarget = payload.target ? document.querySelector(payload.target) : window;
+        if (!eventTarget) {
+          return;
+        }
+        eventTarget.dispatchEvent(
+          new CustomEvent(payload.name, {
+            detail: payload.payload || {},
+            bubbles: true,
+          })
+        );
         return;
       }
       case "history": {
@@ -986,10 +980,38 @@ const Hyper = (() => {
     el.innerHTML = html;
   }
 
-  function getMorphdom() {
-    if (typeof window.morphdom === "function") {
-      return window.morphdom;
+  function getMorpher() {
+    if (window.Alpine && typeof window.Alpine.morph === "function") {
+      return {
+        inner(el, html) {
+          const shadow = el.cloneNode(false);
+          shadow.innerHTML = html;
+          window.Alpine.morph(el, shadow.outerHTML);
+        },
+        outer(el, html) {
+          window.Alpine.morph(el, html);
+        },
+      };
     }
+
+    if (typeof window.morphdom === "function") {
+      return {
+        inner(el, html) {
+          const shadow = document.createElement(el.tagName.toLowerCase());
+          shadow.innerHTML = html;
+          window.morphdom(el, shadow, { childrenOnly: true });
+        },
+        outer(el, html) {
+          const next = toElement(html);
+          if (!next) {
+            el.remove();
+            return;
+          }
+          window.morphdom(el, next);
+        },
+      };
+    }
+
     return null;
   }
 
@@ -1001,30 +1023,21 @@ const Hyper = (() => {
   }
 
   function morphInner(el, html) {
-    const morphdom = getMorphdom();
-    if (!morphdom) {
+    const morpher = getMorpher();
+    if (!morpher) {
       swapHTML(el, html);
       return;
     }
-
-    const shadow = document.createElement(el.tagName.toLowerCase());
-    shadow.innerHTML = html;
-    morphdom(el, shadow, { childrenOnly: true });
+    morpher.inner(el, html);
   }
 
   function morphOuter(el, html) {
-    const morphdom = getMorphdom();
-    if (!morphdom) {
+    const morpher = getMorpher();
+    if (!morpher) {
       el.outerHTML = html;
       return;
     }
-
-    const next = toElement(html);
-    if (!next) {
-      el.remove();
-      return;
-    }
-    morphdom(el, next);
+    morpher.outer(el, html);
   }
 
   function normalizeSwap(swap) {
@@ -1264,93 +1277,13 @@ const Hyper = (() => {
     }
   }
 
-  function deepMerge(target, patch) {
-    if (patch == null || typeof patch !== "object" || Array.isArray(patch)) {
-      return patch;
-    }
-    const output = { ...(target || {}) };
-    for (const [key, value] of Object.entries(patch)) {
-      if (value != null && typeof value === "object" && !Array.isArray(value)) {
-        output[key] = deepMerge(output[key], value);
-      } else {
-        output[key] = value;
-      }
-    }
-    return output;
-  }
-
-  function mergeInto(target, patch) {
-    if (!target || !patch || typeof patch !== "object") {
-      return;
-    }
-    const merged = deepMerge(target, patch);
-    for (const [key, value] of Object.entries(merged)) {
-      target[key] = value;
-    }
-  }
-
-  function splitSignalPatches(signals) {
-    const local = {};
-    const global = {};
-    if (!signals || typeof signals !== "object") {
-      return { local, global };
-    }
-    for (const [key, value] of Object.entries(signals)) {
-      if (key.startsWith("$") && key.length > 1) {
-        global[key.slice(1)] = value;
-      } else {
-        local[key] = value;
-      }
-    }
-    return { local, global };
-  }
-
-  function ensureHyperStore() {
-    if (!window.Alpine || typeof window.Alpine.store !== "function") {
-      return null;
-    }
-    let store = window.Alpine.store("hyper");
-    if (!store) {
-      const initial =
-        typeof window.Alpine.reactive === "function"
-          ? window.Alpine.reactive({})
-          : {};
-      window.Alpine.store("hyper", initial);
-      store = window.Alpine.store("hyper");
-    }
-    return store;
-  }
-
-  function resolveAutoBindTarget() {
-    if (!window.Alpine || typeof window.Alpine.$data !== "function") {
-      return null;
-    }
-
-    const active = document.activeElement;
-    if (!active || typeof active.closest !== "function") {
-      return null;
-    }
-
-    const root = active.closest("[x-data]");
-    if (!root) {
-      return null;
-    }
-
-    try {
-      return window.Alpine.$data(root);
-    } catch {
-      return null;
-    }
-  }
-
   async function runAction({
     url,
     action,
     target,
     method = "POST",
     body = null,
-    syncStore = true,
-    bind = null,
+    sourceEl = null,
     kwargs = null,
     swap = "inner",
     transition = false,
@@ -1366,7 +1299,6 @@ const Hyper = (() => {
   }) {
     const resolvedUrl = url || window.location.pathname;
     const streamedEvents = [];
-    const targetBind = bind || resolveAutoBindTarget();
     const headers = {
       "X-Hyper-Action": action,
     };
@@ -1396,8 +1328,7 @@ const Hyper = (() => {
           swapDelay,
           settleDelay,
           strictTargets,
-          syncStore,
-          bind: targetBind,
+          sourceEl,
         });
       },
       hookMeta: {
@@ -1430,14 +1361,13 @@ const Hyper = (() => {
         return result.data;
       }
 
-      applySignals(result.data, { syncStore });
-      applyToasts(result.data.toasts);
       if (result.data.signals) {
-        const patches = splitSignalPatches(result.data.signals);
-        if (targetBind) {
-          mergeInto(targetBind, patches.local);
-        }
+        dispatchStreamEvent(
+          { event: "patch_signals", data: result.data.signals },
+          { sourceEl, action, key }
+        );
       }
+      applyToasts(result.data.toasts);
       const resolvedTarget = target || result.data.target || null;
       const resolvedSwap = result.data.swap || swap || "inner";
       const resolvedTransition =
@@ -1565,7 +1495,12 @@ const Hyper = (() => {
     const resolvedSettleDelay = parseDelay(settleDelay, 0);
 
     if (result.kind === "json") {
-      applySignals(result.data);
+      if (result.data.signals) {
+        dispatchStreamEvent(
+          { event: "patch_signals", data: result.data.signals },
+          { sourceEl: null, action: null, key: null }
+        );
+      }
       const resolvedTarget = target || result.data.target || null;
       const resolvedSwap = result.data.swap || swap || "inner";
       const resolvedTransition =
@@ -1871,8 +1806,7 @@ const Hyper = (() => {
       (form ? form.getAttribute("action") || window.location.pathname : window.location.pathname);
     const sync = options.sync || (form ? "block" : "replace");
     const key = options.key || null;
-    const syncStore = options.syncStore ?? true;
-    const bind = options.bind || null;
+    const sourceEl = options.sourceEl || null;
     const onUploadProgress = options.onUploadProgress || null;
     const extraData = data && typeof data === "object" ? data : null;
 
@@ -1892,8 +1826,7 @@ const Hyper = (() => {
           method: "GET",
           sync,
           key,
-          syncStore,
-          bind,
+          sourceEl,
           onUploadProgress,
           kwargs: formToKwargs(payload),
         });
@@ -1904,8 +1837,7 @@ const Hyper = (() => {
         method,
         sync,
         key,
-        syncStore,
-        bind,
+        sourceEl,
         onUploadProgress,
           body: payload,
         });
@@ -1916,8 +1848,7 @@ const Hyper = (() => {
       url,
       action,
       method,
-      syncStore,
-      bind,
+      sourceEl,
       kwargs: extraData,
       body: buildActionSearchParams(action, extraData),
       sync,
@@ -1930,21 +1861,12 @@ const Hyper = (() => {
       url,
       action,
       method,
-      syncStore,
-      bind,
+      sourceEl,
       kwargs: extraData,
       sync,
       key,
       onUploadProgress,
     });
-  }
-
-  async function get(action, kwargs = {}, options = {}) {
-    return actionRequest(action, kwargs, { ...options, method: "GET" });
-  }
-
-  async function post(action, kwargs = {}, options = {}) {
-    return actionRequest(action, kwargs, { ...options, method: "POST" });
   }
 
   function initLoadingIndicators() {
@@ -1955,10 +1877,8 @@ const Hyper = (() => {
   return {
     runAction,
     action: actionRequest,
-    get,
-    post,
     visit,
-    applySignals,
+    dispatchStreamEvent,
     swapHTML,
     applySwap,
     initLoadingIndicators,
@@ -1967,14 +1887,11 @@ const Hyper = (() => {
     navigate,
     configure,
     applyViewNames,
-    ensureHyperStore,
   };
 })();
 
 window.Hyper = Hyper;
 window.action = Hyper.action;
-window.get = Hyper.get;
-window.post = Hyper.post;
 
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", () => {
@@ -1987,23 +1904,3 @@ if (document.readyState === "loading") {
   Hyper.initNavigation();
   Hyper.initForms();
 }
-
-function registerAlpineMagicHelpers() {
-  if (!window.Alpine || typeof window.Alpine.magic !== "function") {
-    return;
-  }
-  window.Alpine.magic("action", () => Hyper.action);
-  window.Alpine.magic("get", () => Hyper.get);
-  window.Alpine.magic("post", () => Hyper.post);
-  window.Alpine.magic("hyper", () => {
-    return Hyper.ensureHyperStore() || {};
-  });
-}
-
-if (window.Alpine) {
-  registerAlpineMagicHelpers();
-}
-
-document.addEventListener("alpine:init", () => {
-  registerAlpineMagicHelpers();
-});

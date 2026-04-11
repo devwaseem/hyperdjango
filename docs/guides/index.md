@@ -14,7 +14,7 @@ template-packages
 ../routing
 ../pages-and-actions
 request-lifecycle
-oob-workflow
+multi-patch-workflow
 transitions
 navigation-patterns
 ../signals

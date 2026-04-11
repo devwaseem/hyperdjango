@@ -1,11 +1,11 @@
 {% extends "layouts/base/index.html" %}
 {% block page %}
-    <section x-data="{ count: 0 }" x-init="$hyper.count = {{ global_count }}">
+    <section x-data="{ count: 0 }" x-init="$store.hyper.count = {{ global_count }}">
         <h1>Signals: local and global</h1>
         <p>This page demonstrates signal key behavior:</p>
         <ul>
             <li><code>count</code> patches local <code>x-data</code>.</li>
-            <li><code>$count</code> patches global <code>$hyper.count</code>.</li>
+            <li><code>$count</code> patches global <code>$store.hyper.count</code>.</li>
         </ul>
 
         <p>
@@ -14,6 +14,6 @@
         </p>
 
         <p>Local count: <strong x-text="count"></strong></p>
-        <p>Global count: <strong x-text="$hyper.count"></strong></p>
+        <p>Global count: <strong x-text="$store.hyper.count"></strong></p>
     </section>
 {% endblock page %}

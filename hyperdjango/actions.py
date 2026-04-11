@@ -4,6 +4,8 @@ from collections.abc import Iterator
 from dataclasses import dataclass, field
 from typing import Any, Callable, Literal, TypeAlias
 
+from hyperdjango.integrations.alpine.actions import Signal, Signals
+
 
 SwapMode: TypeAlias = Literal[
     "inner",
@@ -15,17 +17,6 @@ SwapMode: TypeAlias = Literal[
     "delete",
     "none",
 ]
-
-
-@dataclass(slots=True)
-class Signal:
-    name: str
-    value: Any
-
-
-@dataclass(slots=True)
-class Signals:
-    values: dict[str, Any]
 
 
 @dataclass(slots=True)
@@ -43,6 +34,13 @@ class HTML:
 @dataclass(slots=True)
 class Toast:
     payload: dict[str, Any]
+
+
+@dataclass(slots=True)
+class Event:
+    name: str
+    payload: dict[str, Any]
+    target: str | None = None
 
 
 @dataclass(slots=True)
@@ -67,22 +65,8 @@ class LoadJS:
     src: str
 
 
-@dataclass(slots=True)
-class ErrorMessage:
-    status: int
-    message: str
-
-
 ActionItem = (
-    Signal
-    | Signals
-    | HTML
-    | Toast
-    | Delete
-    | Redirect
-    | History
-    | LoadJS
-    | ErrorMessage
+    Signal | Signals | HTML | Toast | Event | Delete | Redirect | History | LoadJS
 )
 
 

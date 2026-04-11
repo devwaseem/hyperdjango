@@ -260,13 +260,23 @@ def _merge_package_json(payload: dict[str, Any]) -> dict[str, Any]:
     return merged
 
 
-LAYOUT_PY = """from hyperdjango.page import HyperView
+LAYOUT_PY = """from typing import Any, override
+
+from django.http import HttpRequest
+
+from hyperdjango.page import HyperView
 
 
 class BaseLayout(HyperView):
     def __init__(self) -> None:
         super().__init__()
         self.title = "HyperDjango"
+
+    @override
+    def get_context(self, request: HttpRequest) -> dict[str, Any]:
+        context = super().get_context(request)
+        context["title"] = self.title
+        return context
 """
 
 
@@ -287,6 +297,8 @@ if (!(window as any).Alpine) {
   (window as any).Alpine = Alpine;
 }
 
+// Hyper core prefers Alpine.morph when Alpine is present.
+// Keep morphdom available as the non-Alpine fallback.
 if (!(window as any).morphdom) {
   (window as any).morphdom = morphdom;
 }
@@ -295,7 +307,8 @@ Alpine.start();
 """
 
 
-INDEX_PAGE_PY = """from hyperdjango.actions import Signal, action
+INDEX_PAGE_PY = """from hyperdjango.actions import action
+from hyperdjango.integrations.alpine.actions import Signal
 from hyper.layouts.base import BaseLayout
 
 

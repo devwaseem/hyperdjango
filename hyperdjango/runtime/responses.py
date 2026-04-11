@@ -12,7 +12,7 @@ from hyperdjango.actions import (
     Actions,
     ActionResult,
     Delete,
-    ErrorMessage,
+    Event,
     HTML,
     History,
     LoadJS,
@@ -51,9 +51,16 @@ def to_action_http_response(result: Any) -> HttpResponse:
     return ensure_action_response_headers(response)
 
 
+def _action_error_event(status: int, message: str) -> tuple[str, dict[str, Any]]:
+    return "error", {"status": status, "message": message}
+
+
 def to_action_exception_response(status: int, message: str) -> HttpResponse:
     response = StreamingHttpResponse(
-        stream_action_sse([ErrorMessage(status=status, message=message)]),
+        [
+            _format_sse_event(*_action_error_event(status, message)),
+            _format_sse_event("end", {}),
+        ],
         status=status,
         content_type="text/event-stream",
     )
@@ -83,11 +90,11 @@ def is_action_item(value: Any) -> bool:
             Signals,
             HTML,
             Toast,
+            Event,
             Delete,
             Redirect,
             History,
             LoadJS,
-            ErrorMessage,
         ),
     )
 
@@ -166,6 +173,11 @@ def serialize_action_item(item: ActionItem) -> tuple[str, dict[str, Any]]:
         return "toast", item.payload if isinstance(item.payload, dict) else {
             "value": item.payload
         }
+    if isinstance(item, Event):
+        payload: dict[str, Any] = {"name": item.name, "payload": item.payload}
+        if item.target:
+            payload["target"] = item.target
+        return "dispatch_event", payload
     if isinstance(item, Delete):
         return "patch_html", {
             "target": item.target,
@@ -183,8 +195,6 @@ def serialize_action_item(item: ActionItem) -> tuple[str, dict[str, Any]]:
         return "history", payload
     if isinstance(item, LoadJS):
         return "load_js", {"src": item.src}
-    if isinstance(item, ErrorMessage):
-        return "error", {"status": item.status, "message": item.message}
     raise TypeError(f"Unsupported action item type: {type(item).__name__}")
 
 

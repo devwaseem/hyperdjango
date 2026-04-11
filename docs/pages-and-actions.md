@@ -80,19 +80,24 @@ Input merging lets actions be called consistently from links, forms, and JS help
 
 Preferred action style is to return typed items such as:
 
-- `Signal(name, value)`
-- `Signals({...})`
 - `HTML(content, target=..., swap=...)`
 - `Delete(target=...)`
 - `Toast(payload=...)`
 - `Redirect(url=..., replace=False)`
 - `History(push_url=..., replace_url=...)`
 - `LoadJS(src=...)`
+- `Event(name=..., payload={...}, target=None)`
+
+When Alpine integration is in use, you can also return:
+
+- `Signal(name, value)`
+- `Signals({...})`
 
 Example:
 
 ```python
-from hyperdjango.actions import HTML, Signal, Toast, action
+from hyperdjango.actions import Event, HTML, Toast, action
+from hyperdjango.integrations.alpine.actions import Signal
 
 
 @action
@@ -113,7 +118,7 @@ def save(self, request):
     ]
 ```
 
-These items are streamed to the client as explicit SSE events like `patch_signals`, `patch_html`, `toast`, and `redirect`.
+These items are streamed to the client as explicit SSE events like `patch_html`, `dispatch_event`, `toast`, and `redirect`.
 
 ## `action_response(...)`
 

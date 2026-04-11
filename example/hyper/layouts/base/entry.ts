@@ -10,6 +10,8 @@ if (!(window as any).Alpine) {
   (window as any).Alpine = Alpine;
 }
 
+// Hyper core prefers Alpine.morph when Alpine is present.
+// Keep morphdom available as the non-Alpine fallback.
 if (!(window as any).morphdom) {
   (window as any).morphdom = morphdom;
 }

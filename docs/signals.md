@@ -1,9 +1,9 @@
-# Signals
+# Signals (Alpine Integration)
 
-Signals are structured data patches exchanged during Hyper actions.
+Signals are an Alpine integration feature layered on top of HyperDjango core.
 
-On requests, signals are sent to the server via `X-Hyper-Signals`.
-On responses, signals are merged client-side and emitted as an event.
+On requests, signal-like input data is still sent to the server via `X-Hyper-Signals`.
+On responses, `patch_signals` stream events are interpreted by `hyper-alpine.js`, which patches Alpine state/store and emits `hyper:signals`.
 
 ## What Signals Do
 
@@ -31,12 +31,13 @@ Server-side, action kwargs are merged from:
 
 ## Returning Signals from the Server
 
-Return `signals` through `action_response`:
+Return `Signal(...)` or `Signals(...)` from the Alpine integration module:
 
 ```python
-return self.action_response(
-    signals={"count": int(current) + 1}
-)
+from hyperdjango.integrations.alpine.actions import Signal
+
+
+return [Signal(name="count", value=int(current) + 1)]
 ```
 
 You can return signals with or without HTML swaps.
@@ -44,22 +45,20 @@ You can return signals with or without HTML swaps.
 Global signal keys are prefixed with `$`.
 
 - `count` patches local Alpine component data
-- `$count` patches global store data (`$hyper.count`)
+- `$count` patches global Alpine store data
 
 Example:
 
 ```python
-return self.action_response(
-    signals={
-        "count": 3,
-        "$count": 42,
-    }
-)
+from hyperdjango.integrations.alpine.actions import Signals
+
+
+return [Signals(values={"count": 3, "$count": 42})]
 ```
 
 ## Client Merge Behavior
 
-When response contains `signals`:
+When an action stream contains `patch_signals` and Alpine integration is active:
 
 - keys prefixed with `$` are deep-merged into `Alpine.store("hyper")`
 - non-prefixed keys are merged into the active Alpine component data when runtime can resolve an `x-data` root
@@ -69,16 +68,14 @@ This allows one response to update local component state and shared app-level st
 
 ## Alpine Global Store Access
 
-HyperDjango registers `$hyper` as an Alpine magic helper.
-
-Use it in templates:
+Use Alpine's normal global store access:
 
 ```html
-<span x-text="$hyper.count"></span>
-<span x-text="$hyper.stats?.active"></span>
+<span x-text="$store.hyper.count"></span>
+<span x-text="$store.hyper.stats?.active"></span>
 ```
 
-`$hyper` maps to `Alpine.store("hyper")` and receives `$`-prefixed signal patches automatically.
+`Alpine.store("hyper")` receives `$`-prefixed signal patches automatically when the Alpine bridge is loaded.
 
 ## Related Runtime Events
 
@@ -109,7 +106,7 @@ Signals are also commonly used with request lifecycle events from `docs/events.m
 ### 1) Counter/state patch
 
 ```python
-from hyperdjango.actions import Signal
+from hyperdjango.integrations.alpine.actions import Signal
 
 
 @action
@@ -120,7 +117,8 @@ def increment(self, request, current=0, **params):
 ### 2) Form reset after successful save
 
 ```python
-from hyperdjango.actions import HTML, Signals
+from hyperdjango.actions import HTML
+from hyperdjango.integrations.alpine.actions import Signals
 
 
 return [
@@ -132,7 +130,8 @@ return [
 ### 3) Partial swap + cross-cutting UI patch
 
 ```python
-from hyperdjango.actions import HTML, Signal
+from hyperdjango.actions import HTML
+from hyperdjango.integrations.alpine.actions import Signal
 
 
 return [
@@ -146,3 +145,4 @@ return [
 - Signals are best for small state patches, not large document payloads.
 - Keep signal keys stable; treat them like a UI contract.
 - For multi-region DOM updates, combine signals with multiple targeted `HTML(...)` items.
+- If you are not using Alpine, prefer `Event(...)` or plain HTML patches instead of signals.

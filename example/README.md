@@ -2,7 +2,7 @@
 
 This example is an end-to-end Django app wired to `hyperdjango`.
 
-Action responses in the example now use the typed item style (`Signal`, `HTML`, `Toast`, etc.), which HyperDjango streams to the browser as SSE-framed events.
+Action responses in the example now use the typed item style (`HTML`, `Toast`, `Delete`, `Event`, etc.), which HyperDjango streams to the browser as SSE-framed events. Alpine-only signal items live under `hyperdjango.integrations.alpine.actions`.
 
 ## Feature Coverage
 

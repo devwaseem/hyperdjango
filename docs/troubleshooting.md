@@ -47,7 +47,7 @@ Checks:
 Checks:
 
 - browser must support `document.startViewTransition`
-- action/call must set `transition: true`
+- server response must set `transition: true`
 - `hyper-view-name` only labels transition parts; it does not enable transitions alone
 
 ## Duplicate or stale form fragments after swaps

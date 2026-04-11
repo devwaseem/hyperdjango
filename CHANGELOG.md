@@ -8,7 +8,14 @@ All notable changes to this project will be documented in this file.
 - Removed `oob` from `action_response(...)` and deleted old runtime support for `patch_oob` events.
 - Shifted action UI control fully to the server for normal action calls: targets, swaps, transitions, focus, history, and related patch behavior now come from server-returned items.
 - Narrowed `$action(...)` to request concerns such as `data`, `form`, `method`, `url`, `sync`, `key`, and `onUploadProgress`.
-- Updated examples and docs to reflect the server-owned patch model and the removal of OOB updates.
+- Added `Event(name=..., payload={...}, target=None)` as a first-class typed action item for dispatching browser events, defaulting to `window` when no target selector is provided.
+- Split Alpine support out of core into `hyper-alpine.js`; core `hyper.js` is now Alpine-agnostic while the Alpine bridge auto-detects Alpine and installs `$action` plus signal patching.
+- Moved `Signal` and `Signals` to `hyperdjango.integrations.alpine.actions` while keeping compatibility imports from `hyperdjango.actions`.
+- Changed core signal handling so framework-agnostic integrations should use `hyper:streamEvent`, while `hyper:signals` is emitted by the Alpine bridge only.
+- Removed public `ErrorMessage` from the action API and kept exception-to-error-event conversion as internal runtime behavior.
+- Prefer Alpine Morph for HTML patch morphing when Alpine is present, with `morphdom` retained as the non-Alpine fallback.
+- Fixed frontend autoreload registration by connecting the watcher at module import time instead of `AppConfig.ready()`.
+- Updated scaffold output, examples, and docs to reflect the Alpine integration split, the `title` context pattern, and the renamed multi-patch workflow guide.
 
 ## 0.19.0
 

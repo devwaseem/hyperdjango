@@ -43,7 +43,7 @@ A custom base works as long as it includes the required HyperDjango hooks.
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{{ page.title|default:"My App" }}</title>
+    <title>{{ title|default:"My App" }}</title>
     {% hyper_preloads %}
     {% hyper_stylesheets %}
     {% hyper_head_scripts %}
