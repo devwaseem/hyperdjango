@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from collections.abc import Iterable
 from typing import Any
 
@@ -28,6 +29,7 @@ class DispatchError(Exception):
 
 
 _NO_PAGE_RESULT = object()
+logger = logging.getLogger("django.request")
 
 
 def dispatch_page(page: Any, request: HttpRequest, **params: Any) -> HttpResponse:
@@ -63,11 +65,30 @@ def _dispatch_action(
         result = action_method(request, **action_kwargs)
     except PermissionDenied as exc:
         message = str(exc).strip() or "Forbidden"
+        logger.warning(
+            "Hyper action '%s' denied on %s: %s",
+            action_name,
+            request.path,
+            message,
+            exc_info=True,
+        )
         return to_action_exception_response(status=403, message=message)
     except Http404 as exc:
         message = str(exc).strip() or "Not found"
+        logger.warning(
+            "Hyper action '%s' not found on %s: %s",
+            action_name,
+            request.path,
+            message,
+            exc_info=True,
+        )
         return to_action_exception_response(status=404, message=message)
     except Exception:
+        logger.exception(
+            "Unhandled exception in hyper action '%s' on %s",
+            action_name,
+            request.path,
+        )
         return to_action_exception_response(status=500, message="Internal server error")
 
     if isinstance(result, HttpResponse):
