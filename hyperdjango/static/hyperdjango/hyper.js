@@ -904,7 +904,7 @@ const Hyper = (() => {
       }
       case "patch_html": {
         const resolvedTarget = payload.target || context.target || null;
-        const resolvedSwap = payload.swap || context.swap || "inner";
+        const resolvedSwap = payload.swap || context.swap || "outer";
         const resolvedTransition =
           payload.transition === undefined ? context.transition : Boolean(payload.transition);
         const resolvedFocus = payload.focus || context.focus || "preserve";
@@ -1368,8 +1368,9 @@ const Hyper = (() => {
         );
       }
       applyToasts(result.data.toasts);
-      const resolvedTarget = target || result.data.target || null;
-      const resolvedSwap = result.data.swap || swap || "inner";
+      const inferredTarget = result.data.target ? null : inferTargetFromHTML(result.data.html);
+      const resolvedTarget = target || result.data.target || inferredTarget || null;
+      const resolvedSwap = result.data.swap || swap || "outer";
       const resolvedTransition =
         result.data.transition === undefined ? transition : Boolean(result.data.transition);
       const resolvedFocus = result.data.focus || focus || "preserve";

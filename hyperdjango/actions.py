@@ -23,7 +23,7 @@ SwapMode: TypeAlias = Literal[
 class HTML:
     content: str
     target: str | None = None
-    swap: SwapMode = "inner"
+    swap: SwapMode = "outer"
     transition: bool = False
     focus: str | None = None
     swap_delay: int | None = None

@@ -121,7 +121,7 @@ def compile_action_result(result: ActionResult) -> list[ActionItem]:
             HTML(
                 content=result.html,
                 target=result.target,
-                swap=result.swap or "inner",
+                swap=result.swap or "outer",
                 transition=result.transition,
                 focus=result.focus,
                 swap_delay=result.swap_delay,

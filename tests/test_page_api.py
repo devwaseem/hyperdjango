@@ -148,7 +148,7 @@ def test_action_http_response_serializes_partial_js() -> None:
     assert response.status_code == 200
     assert response["Content-Type"].startswith("text/event-stream")
     assert _read_streaming_response(response) == (
-        b'event: patch_html\ndata: {"content": "<div>Modal</div>", "swap": "inner"}\n\n'
+        b'event: patch_html\ndata: {"content": "<div>Modal</div>", "swap": "outer"}\n\n'
         b'event: load_js\ndata: {"src": "/static/modal.js"}\n\n'
         b"event: end\ndata: {}\n\n"
     )
@@ -164,7 +164,7 @@ def test_action_http_response_serializes_typed_item_lists() -> None:
     assert response["Content-Type"].startswith("text/event-stream")
     assert _read_streaming_response(response) == (
         b'event: patch_signals\ndata: {"count": 1}\n\n'
-        b'event: patch_html\ndata: {"content": "<div>Hi</div>", "swap": "inner", "target": "#panel"}\n\n'
+        b'event: patch_html\ndata: {"content": "<div>Hi</div>", "swap": "outer", "target": "#panel"}\n\n'
         b"event: end\ndata: {}\n\n"
     )
 
@@ -371,7 +371,7 @@ def test_dispatch_page_routes_post_action_from_header() -> None:
 
     assert response.status_code == 200
     assert _read_streaming_response(response) == (
-        b'event: patch_html\ndata: {"content": "ok", "swap": "inner"}\n\n'
+        b'event: patch_html\ndata: {"content": "ok", "swap": "outer"}\n\n'
         b"event: end\ndata: {}\n\n"
     )
 
