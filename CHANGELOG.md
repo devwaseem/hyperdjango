@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.21.0
+
+- Added automatic target inference for `HTML(...)` patches from the root element id in returned HTML when no explicit target is provided.
+- Explicit server `target` still takes priority over inferred ids.
+- Changed the default `HTML(...)` swap mode to `outer` so returned fragments replace their root target by default.
+
 ## 0.20.0
 
 - Removed `OOB` from the action/runtime model and simplified multi-region updates to use multiple targeted `HTML(...)` and `Delete(...)` items.
