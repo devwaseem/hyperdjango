@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.22.0
+
+- Added `hyper-loading-class` and `hyper-loading-remove-class` for htmx-style class toggling during active requests.
+- Reused the existing loading identifiers (`hyper-loading`, `hyper-loading-key`, `hyper-loading-action`) as the scope controls for loading class toggles.
+- Removed the root `<html hyper-loading>` marker so request activity no longer mutates the document element with that attribute.
+- Renamed the preferred transition naming attribute to `hyper-view-transition-name` while keeping `hyper-view-name` as a backward-compatible alias.
+- Updated docs and examples to reflect the new loading class behavior and the preferred view-transition attribute name.
+
 ## 0.21.0
 
 - Added automatic target inference for `HTML(...)` patches from the root element id in returned HTML when no explicit target is provided.
