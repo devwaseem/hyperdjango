@@ -65,11 +65,21 @@ const Hyper = (() => {
   }
 
   function loadingElements() {
-    return Array.from(document.querySelectorAll("[hyper-loading]"));
+    return Array.from(document.querySelectorAll("[hyper-loading]")).filter(
+      (el) => el !== document.documentElement
+    );
   }
 
   function loadingDisableElements() {
     return Array.from(document.querySelectorAll("[hyper-loading-disable]"));
+  }
+
+  function loadingClassElements() {
+    return Array.from(document.querySelectorAll("[hyper-loading-class]"));
+  }
+
+  function loadingRemoveClassElements() {
+    return Array.from(document.querySelectorAll("[hyper-loading-remove-class]"));
   }
 
   function incrementMapCount(map, key) {
@@ -123,8 +133,12 @@ const Hyper = (() => {
   }
 
   function parseLoadingScope(el, baseAttr) {
-    const explicitKey = (el.getAttribute(`${baseAttr}-key`) || "").trim();
-    const explicitAction = (el.getAttribute(`${baseAttr}-action`) || "").trim();
+    const explicitKey = (
+      el.getAttribute(`${baseAttr}-key`) || el.getAttribute("hyper-loading-key") || ""
+    ).trim();
+    const explicitAction = (
+      el.getAttribute(`${baseAttr}-action`) || el.getAttribute("hyper-loading-action") || ""
+    ).trim();
     const raw = (el.getAttribute(baseAttr) || "").trim();
 
     const key = explicitKey || (raw && raw.toLowerCase() !== "global" ? raw : "");
@@ -137,6 +151,25 @@ const Hyper = (() => {
     };
   }
 
+  function parseSharedLoadingScope(el) {
+    const hasBase = el.hasAttribute("hyper-loading");
+    const explicitKey = (el.getAttribute("hyper-loading-key") || "").trim();
+    const explicitAction = (el.getAttribute("hyper-loading-action") || "").trim();
+
+    if (!hasBase && !explicitKey && !explicitAction) {
+      return null;
+    }
+
+    const raw = hasBase ? (el.getAttribute("hyper-loading") || "").trim() : "";
+    const key = explicitKey || (raw && raw.toLowerCase() !== "global" ? raw : "");
+
+    return {
+      key,
+      action: explicitAction,
+      global: !key && !explicitAction,
+    };
+  }
+
   function parseDisableScope(el) {
     const explicitKey = (el.getAttribute("hyper-loading-disable-key") || "").trim();
     const raw = (el.getAttribute("hyper-loading-disable") || "").trim();
@@ -145,6 +178,16 @@ const Hyper = (() => {
       key,
       global: !key,
     };
+  }
+
+  function parseClassList(value) {
+    if (!value) {
+      return [];
+    }
+    return String(value)
+      .split(/\s+/)
+      .map((item) => item.trim())
+      .filter(Boolean);
   }
 
   function attrBool(el, name, fallback = false) {
@@ -307,6 +350,18 @@ const Hyper = (() => {
         el.removeAttribute("aria-disabled");
       }
     }
+
+    for (const el of loadingClassElements()) {
+      for (const className of parseClassList(el.getAttribute("hyper-loading-class"))) {
+        el.classList.remove(className);
+      }
+    }
+
+    for (const el of loadingRemoveClassElements()) {
+      for (const className of parseClassList(el.getAttribute("hyper-loading-remove-class"))) {
+        el.classList.add(className);
+      }
+    }
   }
 
   function setLoadingElementsVisible() {
@@ -362,6 +417,22 @@ const Hyper = (() => {
         el.removeAttribute("aria-disabled");
       }
     }
+
+    for (const el of loadingClassElements()) {
+      const scope = parseSharedLoadingScope(el);
+      const active = scope ? isScopeActive(scope) : false;
+      for (const className of parseClassList(el.getAttribute("hyper-loading-class"))) {
+        el.classList.toggle(className, active);
+      }
+    }
+
+    for (const el of loadingRemoveClassElements()) {
+      const scope = parseSharedLoadingScope(el);
+      const active = scope ? isScopeActive(scope) : false;
+      for (const className of parseClassList(el.getAttribute("hyper-loading-remove-class"))) {
+        el.classList.toggle(className, !active);
+      }
+    }
   }
 
   function setLoading(isLoading, context = {}) {
@@ -380,7 +451,6 @@ const Hyper = (() => {
     }
 
     const busy = pendingRequests > 0;
-    document.documentElement.toggleAttribute("hyper-loading", busy);
     if (busy) {
       document.documentElement.setAttribute("aria-busy", "true");
       if (document.body) {
@@ -1201,9 +1271,13 @@ const Hyper = (() => {
     if (!root || typeof root.querySelectorAll !== "function") {
       return;
     }
-    const nodes = root.querySelectorAll("[hyper-view-name]");
+    const nodes = root.querySelectorAll("[hyper-view-transition-name], [hyper-view-name]");
     for (const node of nodes) {
-      const name = (node.getAttribute("hyper-view-name") || "").trim();
+      const name = (
+        node.getAttribute("hyper-view-transition-name") ||
+        node.getAttribute("hyper-view-name") ||
+        ""
+      ).trim();
       if (!name) {
         node.style.viewTransitionName = "";
         continue;

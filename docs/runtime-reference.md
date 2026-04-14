@@ -88,8 +88,8 @@ For correlation, use `detail.key` when you provide an explicit `key`, or fall ba
 
 ## Swap Modes
 
-- `inner`: morph inner content (default)
-- `outer`: morph element itself
+- `inner`: morph inner content
+- `outer`: morph element itself (default)
 - `before`: insert before target
 - `after`: insert after target
 - `prepend`: insert at beginning
@@ -108,6 +108,24 @@ Enable strict mode globally:
 ```
 
 Or per call/action response with `strictTargets` / `strict_targets`.
+
+## Target Inference
+
+If an `HTML(...)` patch omits `target`, HyperDjango will inspect the returned HTML and infer `target="#root-id"` from the root element id when possible.
+
+Example:
+
+```python
+HTML(content='<div id="profile-panel">...</div>')
+```
+
+This will target `#profile-panel` automatically.
+
+Priority order:
+
+1. explicit `target`
+2. inferred target from returned root element id
+3. legacy request target fallback
 
 ## Multiple Patches
 
@@ -145,9 +163,22 @@ Attributes:
 - `hyper-loading-delay="150"`: delay indicator visibility
 - `hyper-loading-action="search"`: action scoped
 - `hyper-loading="search-key"` or `hyper-loading-key="search-key"`: key scoped
+- `hyper-loading-class="busy opacity-50"`: add classes while requests are active
+- `hyper-loading-remove-class="hidden"`: remove classes while requests are active
 - `hyper-loading-disable`: disable controls during requests
 - `hyper-loading-disable="search-key"` or `hyper-loading-disable-key="search-key"`: key scoped disable
 - `hyper-target-busy="#selector"`: mirrors busy state for target selector
+
+`hyper-loading-class` and `hyper-loading-remove-class` are modifiers of the shared loading scope. They only activate when the element also has one of:
+
+- `hyper-loading`
+- `hyper-loading-key`
+- `hyper-loading-action`
+
+They reuse the same scoping helpers as `hyper-loading`, including:
+
+- `hyper-loading-action="save"`
+- `hyper-loading-key="profile-save"`
 
 The runtime also toggles:
 
@@ -191,7 +222,9 @@ During swap lifecycle on target:
 Set view names declaratively:
 
 ```html
-<section hyper-view-name="profile-panel"></section>
+<section hyper-view-transition-name="profile-panel"></section>
 ```
 
 Runtime maps it to CSS `view-transition-name`.
+
+`hyper-view-name` is still supported as a backward-compatible alias.

@@ -120,6 +120,10 @@ def save(self, request):
 
 These items are streamed to the client as explicit SSE events like `patch_html`, `dispatch_event`, `toast`, and `redirect`.
 
+`HTML(...)` now defaults to `swap="outer"`.
+
+If `target` is omitted, HyperDjango will try to infer it from the root element id in `content`.
+
 ## `action_response(...)`
 
 `action_response(...)` still works as a compatibility helper. It now compiles into the same SSE-framed action event stream used by typed item returns.

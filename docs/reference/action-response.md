@@ -6,7 +6,7 @@
 
 - `content` / `html`: response fragment for target swap
 - `target`: CSS selector for target swap
-- `swap`: swap mode
+- `swap`: swap mode (`outer` default)
 - `status`: HTTP status code
 - `headers`: custom response headers
 
@@ -50,3 +50,5 @@ return self.action_response(
     signals={"profile": {"dirty": False}},
 )
 ```
+
+If `target` is omitted, HyperDjango will attempt to infer it from the root element id in the returned `content`.

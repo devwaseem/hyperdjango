@@ -31,11 +31,13 @@ return self.action_response(..., transition=True)
 
 ## Naming Transition Regions
 
-Use `hyper-view-name` to map elements to `view-transition-name`.
+Use `hyper-view-transition-name` to map elements to `view-transition-name`.
 
 ```html
-<section hyper-view-name="profile-panel"></section>
+<section hyper-view-transition-name="profile-panel"></section>
 ```
+
+`hyper-view-name` is still accepted as a backward-compatible alias.
 
 This controls transition pairing; it does not enable transitions by itself.
 

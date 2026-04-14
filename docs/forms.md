@@ -78,7 +78,6 @@ class PageView(HyperView):
 
         return self.action_response(
             target="#profile-result",
-            swap="inner",
             content=self.render_block(
                 request=request,
                 block_name="profile_success",

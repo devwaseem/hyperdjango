@@ -101,4 +101,5 @@ You can replace it with your own base template. See `docs/guides/custom-base-tem
 
 ### View Transitions
 
-- `hyper-view-name`: mapped to CSS `view-transition-name`
+- `hyper-view-transition-name`: mapped to CSS `view-transition-name`
+- `hyper-view-name`: backward-compatible alias
