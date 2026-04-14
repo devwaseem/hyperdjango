@@ -11,6 +11,7 @@ from django.http import Http404
 
 from hyperdjango.actions import ActionResult
 from hyperdjango.runtime.requests import (
+    DATA_HEADER,
     get_action_name,
     get_target_name,
     is_action_request,
@@ -114,7 +115,7 @@ def _dispatch_action(
 def _extract_action_kwargs(request: HttpRequest) -> dict[str, Any]:
     kwargs: dict[str, Any] = {}
 
-    raw_kwargs = request.META.get("HTTP_X_HYPER_SIGNALS", "")
+    raw_kwargs = request.META.get(DATA_HEADER, "")
     if raw_kwargs:
         try:
             payload = json.loads(raw_kwargs)

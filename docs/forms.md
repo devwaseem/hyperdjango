@@ -43,7 +43,7 @@ Swap target, swap mode, transition, focus, history, and related UI behavior shou
 
 This split keeps GET requests URL-friendly and cacheable while preserving normal `FormData`/CSRF behavior for writes.
 
-- `GET`: sends kwargs through `X-Hyper-Signals`
+- `GET`: sends kwargs through `X-Hyper-Data`
 - non-`GET`: sends `FormData` with CSRF and `_action`
 
 ## Server Pattern (Django `Form`)

@@ -5,6 +5,7 @@ from django.http import HttpRequest
 
 ACTION_HEADER = "HTTP_X_HYPER_ACTION"
 TARGET_HEADER = "HTTP_X_HYPER_TARGET"
+DATA_HEADER = "HTTP_X_HYPER_DATA"
 ACTION_QUERY_KEY = "_action"
 
 

@@ -60,7 +60,7 @@ def save(self, request):
 
 Action kwargs are merged from:
 
-1) `X-Hyper-Signals` JSON header
+1) `X-Hyper-Data` JSON header
 2) query string (`GET`)
 3) form body (`POST`/others)
 

@@ -2,7 +2,7 @@
 
 Signals are an Alpine integration feature layered on top of HyperDjango core.
 
-On requests, signal-like input data is still sent to the server via `X-Hyper-Signals`.
+On requests, signal-like input data is still sent to the server via `X-Hyper-Data`.
 On responses, `patch_signals` stream events are interpreted by `hyper-alpine.js`, which patches Alpine state/store and emits `hyper:signals`.
 
 ## What Signals Do
@@ -21,11 +21,11 @@ Use `$action` data (second argument):
 </button>
 ```
 
-The runtime serializes that data object to `X-Hyper-Signals`.
+The runtime serializes that data object to `X-Hyper-Data`.
 
 Server-side, action kwargs are merged from:
 
-1. `X-Hyper-Signals` JSON
+1. `X-Hyper-Data` JSON
 2. query string (`GET`)
 3. form body (`POST` and others)
 

@@ -3,7 +3,9 @@
 All notable changes to this project will be documented in this file.
 ## 0.23.0
 
-- Added default_app_config
+- Added `default_app_config`.
+- Renamed the request data header from `X-Hyper-Signals` to `X-Hyper-Data` and removed the old fallback.
+- Clarified and updated the docs around request/action data flow, signals, and the current core vs Alpine integration split.
 
 ## 0.22.0
 

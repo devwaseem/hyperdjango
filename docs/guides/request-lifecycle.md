@@ -12,7 +12,7 @@ A request can start from:
 For action requests, the runtime sends:
 
 - `X-Hyper-Action`
-- optional `X-Hyper-Signals`
+- optional `X-Hyper-Data`
 - optional `X-Hyper-Target`
 
 ## 2) Sync Coordination

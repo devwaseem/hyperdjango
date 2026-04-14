@@ -39,6 +39,8 @@ $action(name, data, options)
 - `key`: sync group key
 - `onUploadProgress`: callback for upload progress detail during body uploads
 
+By default, action calls use an element-scoped sync lane when no explicit `key` is provided. That means the same action can run concurrently from different rows/components, while repeated triggers from the same element still coalesce into one lane. This works for Alpine `$action(...)` and for `window.action(...)` when Hyper can infer the active element. Use `key` only when you want broader shared coordination; if multiple calls share the same explicit `key`, they intentionally share one lane.
+
 ## Action Stream Events
 
 The action runtime applies explicit SSE event names from the server, including:

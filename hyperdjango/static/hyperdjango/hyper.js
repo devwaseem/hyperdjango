@@ -8,6 +8,8 @@ const Hyper = (() => {
   const activeByAction = new Map();
   const activeByTarget = new Map();
   const loadedModuleScripts = new Map();
+  const elementRequestKeys = new WeakMap();
+  let nextElementRequestKey = 0;
   const config = {
     strictTargets: false,
   };
@@ -48,11 +50,28 @@ const Hyper = (() => {
     return "replace";
   }
 
+  function elementRequestKey(el) {
+    if (!(el instanceof Element)) {
+      return "";
+    }
+    let existing = elementRequestKeys.get(el);
+    if (existing) {
+      return existing;
+    }
+    nextElementRequestKey += 1;
+    existing = `el:${nextElementRequestKey}`;
+    elementRequestKeys.set(el, existing);
+    return existing;
+  }
+
   function resolveRequestKey({ key = null, hookMeta = {}, url = "" }) {
     if (key) {
       return String(key);
     }
     if (hookMeta.kind === "action" && hookMeta.action) {
+      if (hookMeta.sourceEl) {
+        return `action:${hookMeta.action}:${elementRequestKey(hookMeta.sourceEl)}`;
+      }
       return `action:${hookMeta.action}`;
     }
     if (hookMeta.kind === "visit") {
@@ -252,6 +271,18 @@ const Hyper = (() => {
       return resolved instanceof HTMLFormElement ? resolved : null;
     }
     return null;
+  }
+
+  function resolveSourceEl(sourceEl) {
+    if (sourceEl instanceof Element) {
+      return sourceEl;
+    }
+    if (typeof sourceEl === "string") {
+      const resolved = document.querySelector(sourceEl);
+      return resolved instanceof Element ? resolved : null;
+    }
+    const active = document.activeElement;
+    return active instanceof Element ? active : null;
   }
 
   function appendDataToFormData(formData, data) {
@@ -1377,7 +1408,7 @@ const Hyper = (() => {
       "X-Hyper-Action": action,
     };
     if (kwargs && typeof kwargs === "object") {
-      headers["X-Hyper-Signals"] = JSON.stringify(kwargs);
+      headers["X-Hyper-Data"] = JSON.stringify(kwargs);
     }
     if (target) {
       headers["X-Hyper-Target"] = target;
@@ -1409,6 +1440,7 @@ const Hyper = (() => {
         kind: "action",
         action,
         target: target || null,
+        sourceEl,
       },
       sync,
       key,
@@ -1881,7 +1913,7 @@ const Hyper = (() => {
       (form ? form.getAttribute("action") || window.location.pathname : window.location.pathname);
     const sync = options.sync || (form ? "block" : "replace");
     const key = options.key || null;
-    const sourceEl = options.sourceEl || null;
+    const sourceEl = resolveSourceEl(options.sourceEl || null);
     const onUploadProgress = options.onUploadProgress || null;
     const extraData = data && typeof data === "object" ? data : null;
 

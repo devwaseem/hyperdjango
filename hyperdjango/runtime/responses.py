@@ -26,7 +26,7 @@ from hyperdjango.actions import (
 ACTION_VARY_HEADERS = [
     "X-Hyper-Action",
     "X-Hyper-Target",
-    "X-Hyper-Signals",
+    "X-Hyper-Data",
     "X-Requested-With",
 ]
 
