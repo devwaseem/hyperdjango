@@ -1,64 +1,52 @@
 # HyperDjango Documentation
 
-HyperDjango gives Django a server-first workflow with file routing, page classes, and progressive hypermedia interactions.
+HyperDjango gives Django a server-first workflow with file routing, colocated assets, and hypermedia actions.
 
 Use it when you want interactive UX without splitting your app into separate backend API and SPA frontend codebases.
 
-## Problem -> Approach -> Outcome
+## Core Ideas
 
-- Problem: feature logic drifts across templates, API endpoints, and frontend state code.
-- Approach: keep routes, templates, actions, and assets together under `hyper/`.
-- Outcome: faster feature work, simpler architecture, and SPA-like interactions from server-rendered pages.
+- file-based routing for Django pages
+- automatic asset loading for pages, layouts, and template packages
+- hypermedia actions that return HTML, events, redirects, history updates, and small client patches
 
-## Locality of Behavior
+## Relationship to Alpine
 
-HyperDjango keeps feature code co-located in one `hyper/` tree:
+HyperDjango works without Alpine, but Alpine is the client-side library it integrates with most closely.
 
-```text
-hyper/
-  layouts/
-    base/
-      index.html
-      entry.ts
-  routes/
-    profile/
-      page.py
-      index.html
-      partials/
-        form.html
-        success.html
-  shared/
-```
+- HyperDjango core: works with plain JavaScript through `hyper.js`
+- Alpine integration: recommended layer for `$action(...)` and signal patching
 
-Route behavior lives together:
+## Documentation Map
 
-- `page.py`: request handlers and actions
-- `index.html`: full page rendering
-- `partials/*`: action fragments
-- `entry.ts`: client behavior scoped to layout/route
+The docs are split by concept ownership:
 
-The docs are organized into three sections:
-
-- **Guides**: feature explanations, installation, and production usage
-- **Reference**: precise behavior of settings, events, and runtime attributes
-- **Examples / Cookbook**: practical patterns and copy-paste recipes
+- start with getting a page working
+- then learn routing, rendering, layouts, and actions
+- then learn client-side invocation and declarative HTML APIs
+- use the reference section for exact runtime details
 
 ```{toctree}
-:maxdepth: 2
+:maxdepth: 1
 :caption: Guides
 
-guides/index
+installation
+routing
+pages-and-rendering
+layouts
+actions
+client-side-actions
+declarative-html-apis
+alpine-integration
+assets-and-vite
+cookbook
+troubleshooting
+production-checklist
+faq
 ```
 
 ```{toctree}
-:maxdepth: 2
-:caption: Reference
-
-reference/index
-```
-
-```{toctree}
-:maxdepth: 2
+:maxdepth: 1
 :caption: Examples
 
 examples/index

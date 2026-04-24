@@ -8,7 +8,7 @@ The cookbook shows practical composition of features in real flows, not just iso
 
 ```html
 <section x-data="{ count: 0 }">
-  <button x-on:click="$action('increment', { current: count })">
+  <button @click="$action('increment', { current: count })">
     Increment
   </button>
   <strong x-text="count"></strong>
@@ -16,29 +16,33 @@ The cookbook shows practical composition of features in real flows, not just iso
 ```
 
 ```python
+from __future__ import annotations
+
 from hyperdjango.integrations.alpine.actions import Signal
 
 
 @action
-def increment(self, request, current=0, **params):
+def increment(self, request, current: int = 0, **params):
     return [Signal(name="count", value=int(current) + 1)]
 ```
 
 ### Local + global patch (`count` + `$count`)
 
 ```python
+from __future__ import annotations
+
 from hyperdjango.integrations.alpine.actions import Signals
 
 
 @action
-def increment(self, request, current=0, **params):
+def increment(self, request, current: int = 0, **params):
     value = int(current) + 1
     return [Signals(values={"count": value, "$count": value})]
 ```
 
 ```html
 <section x-data="{ count: 0 }">
-  <button x-on:click="$action('increment', { current: count })">Increment</button>
+  <button @click="$action('increment', { current: count })">Increment</button>
   <p>Local: <span x-text="count"></span></p>
   <p>Global: <span x-text="$store.hyper.count"></span></p>
 </section>
@@ -47,13 +51,20 @@ def increment(self, request, current=0, **params):
 ## 2) Partial swap with server-selected target
 
 ```python
+from __future__ import annotations
+
+from hyperdjango.actions import HTML, action
+
+
 @action
 def show_editor(self, request, **params):
-    return self.action_response(
-        html=self.render(request=request, relative_template_name="partials/editor_form.html"),
-        target="#editor",
-        swap="inner",
-    )
+    return [
+        HTML(
+            content=self.render(request=request, relative_template_name="partials/editor_form.html"),
+            target="#editor",
+            swap="inner",
+        )
+    ]
 ```
 
 Client call can omit `target` and use server contract.
@@ -61,22 +72,32 @@ Client call can omit `target` and use server contract.
 ## 3) Multiple targeted HTML patches to keep side panels in sync
 
 ```python
+from __future__ import annotations
+
+from hyperdjango.actions import HTML, Toast, action
+
+
 @action
 def add_todo(self, request, title="", **params):
-    return Actions(
+    return [
         HTML(content="<li>...</li>", target="#todo-list", swap="append"),
         HTML(content="<div>Updated stats</div>", target="#todo-stats"),
-        HTML(content="<p>Added</p>", target="#flash"),
-    )
+        Toast(payload={"type": "success", "message": "Added"}),
+    ]
 ```
 
 ## 4) Ordered multi-patch updates
 
 ```python
-return Actions(
+from __future__ import annotations
+
+from hyperdjango.actions import HTML
+
+
+return [
     HTML(content="A", target="#one"),
     HTML(content="<div id='two'>B</div>", target="#two", swap="outer"),
-)
+]
 ```
 
 ## 5) Delete row without sending HTML
@@ -93,7 +114,7 @@ return [Delete(target=f"#todo-{id}")]
 ```text
 <input
   x-model="q"
-  x-on:input.debounce.250ms="$action('search', { q }, { sync: 'replace', key: 'live-search' })"
+  @input.debounce.250ms="$action('search', { q }, { sync: 'replace', key: 'live-search' })"
 />
 ```
 
@@ -104,7 +125,7 @@ New requests abort in-flight ones in the same key.
 ```html
 <form id="profile-form"
   x-data="{}"
-  x-on:submit.prevent="$action('save_profile', {}, { form: $el, sync: 'block', key: 'profile-save' })">
+  @submit.prevent="$action('save_profile', {}, { form: $el, sync: 'block', key: 'profile-save' })">
   ...
 </form>
 ```
@@ -121,49 +142,46 @@ New submits while pending are ignored (blocked).
 ## 9) Form validation with focus to first invalid field
 
 ```python
+from __future__ import annotations
+
+from hyperdjango.actions import HTML
+
+
 if not form.is_valid():
-    return self.action_response(
-        html=self.render(request=request, relative_template_name="partials/form.html", context_updates={"form": form}),
-        target="#profile-panel",
-        focus="first-invalid",
-        status=422,
-    )
+    return [
+        HTML(
+            content=self.render(
+                request=request,
+                relative_template_name="partials/form.html",
+                context_updates={"form": form},
+            ),
+            target="#profile-panel",
+            focus="first-invalid",
+        )
+    ]
 ```
 
 ## 10) Push or replace URL from actions
 
 ```python
-return self.action_response(
-    html="...",
-    target="#results",
-    replace_url=f"/search?q={query}",
-)
+from __future__ import annotations
+
+from hyperdjango.actions import History, HTML
+
+
+return [
+    HTML(content="...", target="#results"),
+    History(replace_url=f"/search?q={query}"),
+]
 ```
 
 Use `push_url` when you want a new history entry instead.
 
-## 11) Progressive nav opt-in (links/forms)
-
-```html
-<a href="/todos" hyper-nav hyper-target="body">Todos</a>
-<form method="get" action="/search" hyper-nav hyper-target="body">
-  ...
-</form>
-```
-
-No `hyper-nav` means normal browser navigation.
-
-## 12) Strict target mode in QA
-
-```html
-<body hyper-strict-targets="true">
-```
-
-Missing target selectors throw errors early and surface integration drift.
-
-## 13) Use `HyperPageTemplate` in a custom Django view
+## 11) Use `HyperPageTemplate` in a custom Django view
 
 ```python
+from __future__ import annotations
+
 from hyperdjango.page import HyperPageTemplate
 
 
@@ -172,6 +190,8 @@ class ProfileCardTemplate(HyperPageTemplate):
 ```
 
 ```python
+from __future__ import annotations
+
 from hyperdjango.shortcuts import render_template_page
 
 

@@ -22,7 +22,6 @@ Symptoms:
 Checks:
 
 - confirm target selector exists at swap time
-- enable strict mode (`hyper-strict-targets="true"`) to surface missing selectors
 - ensure returned HTML is non-empty for swap modes that require HTML
 
 ## CSRF failures on POST actions/forms
@@ -33,14 +32,6 @@ Checks:
 - include `{% csrf_token %}` in forms
 - ensure CSRF cookie is present for authenticated pages
 - if using CSP/meta-only flow, expose `meta[name='csrf-token']`
-
-## `hyper-nav` not triggering
-
-Checks:
-
-- `hyper-nav` is opt-in; add it to link/form
-- ensure element does not include `hyper-no-nav`
-- external URLs, downloads, and modified-clicks intentionally bypass enhancement
 
 ## View transition not visible
 
