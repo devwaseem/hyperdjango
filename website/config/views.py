@@ -12,7 +12,7 @@ from hyper.shared.docs_content import (
     iter_doc_paths,
 )
 from hyper.shared.seo import absolute_url, page_json_ld, seo_context
-from hyper.errors import ErrorPage
+from hyper.templates.errors import ErrorPage
 from hyperdjango.shortcuts import render_template_page
 
 
