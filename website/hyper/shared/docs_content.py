@@ -258,6 +258,49 @@ def render_doc(slug: str) -> RenderedDoc:
     )
 
 
+def build_llms_markdown() -> str:
+    parts: list[str] = [
+        "# HyperDjango Documentation",
+        "",
+        "This file aggregates the full documentation set in Markdown.",
+        "",
+        "## Sections",
+    ]
+
+    for page in DOC_PAGES:
+        href = (
+            f"https://hyperdjango.charingcrosscapital.com/docs/{page.slug}"
+            if page.slug
+            else "https://hyperdjango.charingcrosscapital.com/docs"
+        )
+        label = page.nav_title if page.slug else "Overview"
+        parts.append(f"- [{label}]({href})")
+
+    parts.extend(["", "---", ""])
+
+    for page in DOC_PAGES:
+        source_path = DOCS_DIR / page.source
+        if not source_path.exists():
+            raise FileNotFoundError(
+                f"Docs source not found: {source_path}. Run `python scripts/sync-docs.py` from the website directory."
+            )
+
+        raw = source_path.read_text(encoding="utf-8")
+        cleaned = TOCTREE_PATTERN.sub("", raw).strip()
+        parts.extend(
+            [
+                f"## {page.nav_title}",
+                "",
+                cleaned,
+                "",
+                "---",
+                "",
+            ]
+        )
+
+    return "\n".join(parts).rstrip() + "\n"
+
+
 def _split_title(content: str) -> tuple[str, str]:
     lines = content.splitlines()
     for index, line in enumerate(lines):
