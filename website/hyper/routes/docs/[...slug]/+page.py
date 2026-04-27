@@ -3,7 +3,12 @@ from __future__ import annotations
 from django.http import Http404, HttpRequest
 
 from hyper.layouts.docs import DocsLayout
-from hyper.shared.docs_content import get_doc_page, get_docs_navigation, render_doc
+from hyper.shared.docs_content import (
+    get_doc_page,
+    get_docs_navigation,
+    render_doc,
+)
+from hyper.shared.seo import page_json_ld, seo_context
 
 
 class PageView(DocsLayout):
@@ -15,7 +20,16 @@ class PageView(DocsLayout):
 
         doc = render_doc(normalized)
         return {
-            "title": f"{doc.title} | HyperDjango Docs",
+            **seo_context(
+                title=f"{doc.title} | HyperDjango Docs",
+                description=doc.summary,
+                path=f"/docs/{normalized}",
+                json_ld=page_json_ld(
+                    title=f"{doc.title} | HyperDjango Docs",
+                    description=doc.summary,
+                    path=f"/docs/{normalized}",
+                ),
+            ),
             "doc": doc,
             "current_slug": normalized,
             "docs_navigation": get_docs_navigation(),

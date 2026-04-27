@@ -1,6 +1,7 @@
 import time
 
 from hyper.layouts.base import BaseLayout
+from hyper.shared.seo import page_json_ld, seo_context, site_json_ld
 from hyperdjango.actions import Delete, Event, HTML, Signal, Toast, action
 
 # In-memory demo state (restarts with server)
@@ -31,6 +32,23 @@ class PageView(BaseLayout):
     def get(self, request, **params):
         stats = self._todo_stats(STATE["todos"])
         return {
+            **seo_context(
+                title="HyperDjango | Modern Web Apps",
+                description=(
+                    "HyperDjango is a server-driven Django framework for building interactive web apps without a separate SPA frontend."
+                ),
+                path="/",
+                json_ld=[
+                    *site_json_ld(),
+                    page_json_ld(
+                        title="HyperDjango | Modern Web Apps",
+                        description=(
+                            "HyperDjango is a server-driven Django framework for building interactive web apps without a separate SPA frontend."
+                        ),
+                        path="/",
+                    ),
+                ],
+            ),
             "todos": STATE["todos"],
             **stats,
             "search_results": [],
@@ -43,7 +61,11 @@ class PageView(BaseLayout):
     def add_todo(self, request, title=None, **kwargs):
         if not title:
             return []
-        new_todo = {"id": len(STATE["todos"]) + 1, "title": title, "done": False}
+        new_todo = {
+            "id": len(STATE["todos"]) + 1,
+            "title": title,
+            "done": False,
+        }
         STATE["todos"].append(new_todo)
         item_html = self.render(
             request=request,
@@ -52,8 +74,12 @@ class PageView(BaseLayout):
         )
         return [
             HTML(content=item_html, target="#todo-list-demo", swap="append"),
-            HTML(content=self._render_todo_stats(request), target="#todo-stats"),
-            HTML(content=self._render_todo_empty(request), target="#todo-empty"),
+            HTML(
+                content=self._render_todo_stats(request), target="#todo-stats"
+            ),
+            HTML(
+                content=self._render_todo_empty(request), target="#todo-empty"
+            ),
             Toast(
                 payload={
                     "type": "success",
@@ -83,7 +109,9 @@ class PageView(BaseLayout):
         )
         return [
             HTML(content=html, target=f"#todo-{updated_todo['id']}"),
-            HTML(content=self._render_todo_stats(request), target="#todo-stats"),
+            HTML(
+                content=self._render_todo_stats(request), target="#todo-stats"
+            ),
             Toast(
                 payload={
                     "type": "info",
@@ -108,8 +136,12 @@ class PageView(BaseLayout):
                     "message": "Todo removed.",
                 }
             ),
-            HTML(content=self._render_todo_stats(request), target="#todo-stats"),
-            HTML(content=self._render_todo_empty(request), target="#todo-empty"),
+            HTML(
+                content=self._render_todo_stats(request), target="#todo-stats"
+            ),
+            HTML(
+                content=self._render_todo_empty(request), target="#todo-empty"
+            ),
         ]
 
     # -- SEARCH ACTION --
@@ -135,7 +167,10 @@ class PageView(BaseLayout):
         html = self.render(
             request=request,
             relative_template_name="partials/inline_editor.html",
-            context_updates={"editing": True, "inline_text": STATE["inline_text"]},
+            context_updates={
+                "editing": True,
+                "inline_text": STATE["inline_text"],
+            },
         )
         return [HTML(content=html, target="#inline-editor-demo")]
 
@@ -146,7 +181,10 @@ class PageView(BaseLayout):
         html = self.render(
             request=request,
             relative_template_name="partials/inline_editor.html",
-            context_updates={"editing": False, "inline_text": STATE["inline_text"]},
+            context_updates={
+                "editing": False,
+                "inline_text": STATE["inline_text"],
+            },
         )
         return [HTML(content=html, target="#inline-editor-demo")]
 
@@ -174,7 +212,8 @@ class PageView(BaseLayout):
                 "error": "",
                 "uploaded_name": uploaded.name,
                 "uploaded_size_kb": size_kb,
-                "content_type": uploaded.content_type or "application/octet-stream",
+                "content_type": uploaded.content_type
+                or "application/octet-stream",
             },
         )
         return [
@@ -193,7 +232,10 @@ class PageView(BaseLayout):
         next_count = int(count) + 1
         return [
             Signal(name="count", value=next_count),
-            Signal(name="status", value=f"Synced from server at count {next_count}"),
+            Signal(
+                name="status",
+                value=f"Synced from server at count {next_count}",
+            ),
         ]
 
     @action
@@ -223,8 +265,14 @@ class PageView(BaseLayout):
         )
         yield Event(name="agent:scroll", payload={})
         feed = [
-            ("plan", f"Mapping the request into an execution plan for: {user_prompt}"),
-            ("tool", "Scanning route partials, action handlers, and SSE targets"),
+            (
+                "plan",
+                f"Mapping the request into an execution plan for: {user_prompt}",
+            ),
+            (
+                "tool",
+                "Scanning route partials, action handlers, and SSE targets",
+            ),
             (
                 "write",
                 "Preparing the streamed chat patches for tool output and final response",
@@ -316,7 +364,11 @@ class PageView(BaseLayout):
         total = len(todos)
         completed = len([todo for todo in todos if todo["done"]])
         active = total - completed
-        return {"todo_total": total, "todo_completed": completed, "todo_active": active}
+        return {
+            "todo_total": total,
+            "todo_completed": completed,
+            "todo_active": active,
+        }
 
     def _render_todo_stats(self, request):
         return self.render(

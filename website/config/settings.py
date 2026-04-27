@@ -79,6 +79,9 @@ HYPER_FRONTEND_DIR = BASE_DIR / "hyper"
 HYPER_VITE_OUTPUT_DIR = BASE_DIR / "dist"
 HYPER_VITE_DEV_SERVER_URL = "http://localhost:5173/"
 HYPER_DEV = os.getenv("HYPER_DEV", "True") == "True"
+SITE_URL = os.getenv(
+    "SITE_URL", "https://hyperdjango.charingcrosscapital.com"
+).rstrip("/")
 
 LOGGING = {
     "version": 1,

@@ -301,6 +301,12 @@ def build_llms_markdown() -> str:
     return "\n".join(parts).rstrip() + "\n"
 
 
+def iter_doc_paths() -> list[str]:
+    return [
+        f"/docs/{page.slug}" if page.slug else "/docs" for page in DOC_PAGES
+    ]
+
+
 def _split_title(content: str) -> tuple[str, str]:
     lines = content.splitlines()
     for index, line in enumerate(lines):
