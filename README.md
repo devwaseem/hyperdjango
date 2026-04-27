@@ -10,9 +10,9 @@ Build interactive Django apps without splitting your product into "backend API +
 
 HyperDjango keeps rendering and business logic on the server, then layers in partial swaps, signals, and transitions for SPA-like UX.
 
-## Documentation
+## Documentation & Examples
 
-For full API reference and guides, please visit our **[official documentation](docs/reference/index.md)**.
+For full API reference, guides, and interactive examples, please visit [hyperdjango.charingcrosscapital.com](https://hyperdjango.charingcrosscapital.com).
 
 ## Why This Works
 
