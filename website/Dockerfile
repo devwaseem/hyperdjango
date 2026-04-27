@@ -79,10 +79,6 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 
-# Copy the core library and docs from the build context
-COPY ../hyperdjango ../hyperdjango
-COPY ../docs ../docs
-
 COPY . .
 
 COPY --from=production-deps ${VIRTUAL_ENV_PATH} ${VIRTUAL_ENV_PATH}
