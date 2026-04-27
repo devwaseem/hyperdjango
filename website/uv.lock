@@ -201,16 +201,25 @@ wheels = [
 ]
 
 [[package]]
+name = "h11"
+version = "0.16.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/01/ee/02a2c011bdab74c6fb3c75474d40b3052059d95df7e73351460c8588d963/h11-0.16.0.tar.gz", hash = "sha256:4e35b956cf45792e4caa5885e69fba00bdbc6ffafbfa020300e549b208ee5ff1", size = 101250, upload-time = "2025-04-24T03:35:25.427Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/04/4b/29cac41a4d98d144bf5f6d33995617b185d14b22401f75ca86f384e87ff1/h11-0.16.0-py3-none-any.whl", hash = "sha256:63cf8bbe7522de3bf65932fda1d9c2772064ffb3dae62d55932da54b31cb6c86", size = 37515, upload-time = "2025-04-24T03:35:24.344Z" },
+]
+
+[[package]]
 name = "hyperdjango"
-version = "0.24.0"
+version = "0.25.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "django" },
     { name = "django-render-block" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/6d/ac/5ec51ac14ac3356e42adc65085a6a552928c602ccbe06ee405b46fe720df/hyperdjango-0.24.0.tar.gz", hash = "sha256:40b871f8d72a9af56806249a020497690a31e540cdd53e4a46fb4e6504c5ca37", size = 44736, upload-time = "2026-04-14T05:51:21.35Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/02/a6/629eae7b6efd812144fe77868992012fb329a95229fefd4f586729051db2/hyperdjango-0.25.0.tar.gz", hash = "sha256:58f9d8be890ffd2e30bdf3b36caf85c98765058995ef2a1473dce0082c62172b", size = 39810, upload-time = "2026-04-27T16:24:49.183Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b4/81/96026e3c06451059f7b39036f9f0f0cb9e9dbc1e6d5b3a33cf36a6149d6d/hyperdjango-0.24.0-py3-none-any.whl", hash = "sha256:ee3d6e36e0720e21df88eb9af8bc273dfa184a68ff1270e03621c65ae3d4613f", size = 44491, upload-time = "2026-04-14T05:51:22.672Z" },
+    { url = "https://files.pythonhosted.org/packages/de/0a/5af772641bb8acc93503f96c270642623a157d09a5a217b779facb9bfff1/hyperdjango-0.25.0-py3-none-any.whl", hash = "sha256:5d18b035a5cb2a548cf23a98c5b5e1f03c80993bf36508ba75116090afc931a1", size = 42044, upload-time = "2026-04-27T16:24:47.15Z" },
 ]
 
 [[package]]
@@ -221,6 +230,7 @@ dependencies = [
     { name = "django" },
     { name = "hyperdjango" },
     { name = "markdown" },
+    { name = "uvicorn" },
 ]
 
 [package.dev-dependencies]
@@ -271,7 +281,8 @@ types = [
 requires-dist = [
     { name = "django", specifier = ">=4.2" },
     { name = "hyperdjango" },
-    { name = "markdown" },
+    { name = "markdown", specifier = ">=3.8" },
+    { name = "uvicorn", specifier = ">=0.46.0" },
 ]
 
 [package.metadata.requires-dev]
@@ -712,4 +723,17 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/ba/19/1b9b0e29f30c6d35cb345486df41110984ea67ae69dddbc0e8a100999493/tzdata-2026.2.tar.gz", hash = "sha256:9173fde7d80d9018e02a662e168e5a2d04f87c41ea174b139fbef642eda62d10", size = 198254, upload-time = "2026-04-24T15:22:08.651Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ce/e4/dccd7f47c4b64213ac01ef921a1337ee6e30e8c6466046018326977efd95/tzdata-2026.2-py2.py3-none-any.whl", hash = "sha256:bbe9af844f658da81a5f95019480da3a89415801f6cc966806612cc7169bffe7", size = 349321, upload-time = "2026-04-24T15:22:05.876Z" },
+]
+
+[[package]]
+name = "uvicorn"
+version = "0.46.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "click" },
+    { name = "h11" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/1f/93/041fca8274050e40e6791f267d82e0e2e27dd165627bd640d3e0e378d877/uvicorn-0.46.0.tar.gz", hash = "sha256:fb9da0926999cc6cb22dc7cd71a94a632f078e6ae47ff683c5c420750fb7413d", size = 88758, upload-time = "2026-04-23T07:16:00.151Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/31/a3/5b1562db76a5a488274b2332a97199b32d0442aca0ed193697fd47786316/uvicorn-0.46.0-py3-none-any.whl", hash = "sha256:bbebbcbed972d162afca128605223022bedd345b7bc7855ce66deb31487a9048", size = 70926, upload-time = "2026-04-23T07:15:58.355Z" },
 ]

@@ -86,8 +86,7 @@ COPY --from=production-deps ${VIRTUAL_ENV_PATH} ${VIRTUAL_ENV_PATH}
 
 COPY --from=frontend_builder ${APP_HOME}/dist ${APP_HOME}/dist
 
-RUN chmod +x "${APP_HOME}/uvicorn.sh" \
- && python -m compileall -q "${APP_HOME}"
+RUN python -m compileall -q "${APP_HOME}"
 
 # ── Production build ────────────────────────────────────────────────────
 FROM gcr.io/distroless/cc-debian13:nonroot AS production
