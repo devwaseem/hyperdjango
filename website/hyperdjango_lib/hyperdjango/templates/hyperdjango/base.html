@@ -1,0 +1,22 @@
+{% load static hyper_tags %}
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        {% block head %}
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <title>{{ title|default:"HyperDjango" }}</title>
+        {% endblock head %}
+        {% hyper_preloads %}
+        {% hyper_stylesheets %}
+        {% hyper_head_scripts %}
+    </head>
+    <body hyper-pop-target="body">
+        <div id="hyper-csrf-token" hidden>{% csrf_token %}</div>
+        {% block body %}
+        {% endblock body %}
+        <script src="{% static 'hyperdjango/hyper.js' %}"></script>
+        <script src="{% static 'hyperdjango/hyper-alpine.js' %}"></script>
+        {% hyper_body_scripts %}
+    </body>
+</html>
