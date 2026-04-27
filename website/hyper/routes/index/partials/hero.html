@@ -3,40 +3,42 @@
          x-init=" setTimeout(() => { step = 1 }, 200); setTimeout(() => { step = 2; let interval = setInterval(() => { $data.count1++; if ($data.count1 >= $data.fullText1.length) clearInterval(interval); }, 50); }, 600); setTimeout(() => { step = 3; let interval = setInterval(() => { $data.count2++; if ($data.count2 >= $data.fullText2.length) clearInterval(interval); }, 50); }, 1800); setTimeout(() => { step = 4 }, 3000); ">
     <canvas id="ascii-bg"
             class="absolute top-0 left-0 w-full h-screen z-0 pointer-events-none opacity-0 transition-opacity duration-1000"></canvas>
-    <div class="relative z-10 min-h-screen flex flex-col text-black">
-        <div class="m-auto flex flex-col justify-center items-center gap-8">
-            <div class="inline-block p-2 transition-all duration-300 opacity-0 translate-y-4"
+    <div class="relative z-10 flex min-h-screen flex-col text-black">
+        <div class="mx-auto flex min-h-screen w-full max-w-7xl flex-col justify-center px-4 pt-20 pb-16 text-center sm:px-6 sm:pt-32 sm:pb-20">
+            <div class="mx-auto flex w-full max-w-5xl flex-col items-center gap-6 sm:gap-8">
+                <div class="inline-block p-2 text-sm transition-all duration-300 opacity-0 translate-y-4 sm:text-base"
                  :class="step >= 1 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'"
-                  x-cloak>v0.25.0 - Alpha</div>
-            <h1 class="flex flex-col justify-center items-center text-6xl font-extrabold font-doto tracking-tight">
-                <span class="flex items-center min-h-[1.2em]">
+                  x-cloak>v0.27.0 - Alpha</div>
+                <h1 class="flex flex-col items-center justify-center text-[clamp(2.5rem,12vw,5rem)] leading-[0.9] font-extrabold font-doto tracking-tight sm:text-6xl">
+                    <span class="flex min-h-[1.1em] items-center justify-center sm:min-h-[1.2em]">
                     <span x-text="fullText1.slice(0, count1)"></span>
-                    <span class="w-8 h-12 bg-black ml-2 animate-blink"
+                    <span class="ml-1 h-6 w-4 bg-black animate-blink sm:h-12 sm:w-8"
                           x-show="step == 2"
                           x-cloak></span>
-                </span>
-                <span class="flex items-center min-h-[1.2em]">
+                    </span>
+                    <span class="mt-4 flex min-h-[1.1em] items-center justify-center sm:mt-0 sm:min-h-[1.2em]">
                     <span x-text="fullText2.slice(0, count2)"></span>
-                    <span class="w-8 h-12 bg-black ml-2 animate-blink"
+                    <span class="ml-1 h-6 w-4 bg-black animate-blink sm:h-12 sm:w-8"
                           x-show="step == 3"
                           x-cloak></span>
-                </span>
-            </h1>
-            <h2 class="max-w-xl text-center font-mono text-lg leading-relaxed transition-all duration-700 delay-300 opacity-0 translate-y-2"
+                    </span>
+                </h1>
+                <h2 class="max-w-3xl text-center font-mono text-base leading-8 transition-all duration-700 delay-300 opacity-0 translate-y-2 sm:text-lg sm:leading-relaxed"
                 :class="step >= 4 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'"
                 x-cloak>
                 HyperDjango brings high-performance, hypermedia-driven interactivity to your Django templates without the JavaScript fatigue.
-            </h2>
-            <div class="transition-all duration-700 delay-400 opacity-0 translate-y-4 w-full max-w-xl"
+                </h2>
+                <div class="w-full max-w-xl transition-all duration-700 delay-400 opacity-0 translate-y-4"
                  :class="step >= 4 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'"
-                 x-cloak>
-                <div class="border border-black/10 px-4 py-3 flex items-center justify-between gap-4 font-mono text-sm text-black">
-                    <code class="overflow-x-auto whitespace-nowrap">pip install hyperdjango</code>
-                    <button type="button"
+                  x-cloak>
+                    <div class="flex flex-col gap-3 border border-black/10 px-4 py-3 font-mono text-sm text-black sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                        <code class="overflow-x-auto whitespace-nowrap text-center sm:text-left">pip install hyperdjango</code>
+                        <button type="button"
                             onclick="navigator.clipboard.writeText('pip install hyperdjango'); toast.success('Copied', { description: 'pip install hyperdjango' }); const el=this; const original=el.textContent; el.textContent='Copied!'; setTimeout(() => el.textContent = original, 1200)"
-                            class="shrink-0 border border-black/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] hover:border-black transition-colors">
-                        Copy
-                    </button>
+                            class="min-h-10 w-full border border-black px-3 py-2 text-[11px] font-bold uppercase tracking-[0.12em] hover:bg-black hover:text-white transition-colors sm:min-h-0 sm:w-auto sm:border-black/10 sm:px-3 sm:py-1 sm:hover:border-black sm:hover:bg-transparent sm:hover:text-black">
+                            Copy
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

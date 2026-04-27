@@ -211,15 +211,15 @@ wheels = [
 
 [[package]]
 name = "hyperdjango"
-version = "0.25.0"
+version = "0.27.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "django" },
     { name = "django-render-block" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/02/a6/629eae7b6efd812144fe77868992012fb329a95229fefd4f586729051db2/hyperdjango-0.25.0.tar.gz", hash = "sha256:58f9d8be890ffd2e30bdf3b36caf85c98765058995ef2a1473dce0082c62172b", size = 39810, upload-time = "2026-04-27T16:24:49.183Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/8f/4f/f4fa5a5a9e0d830797158fa4c1322f89e32a0f923698920a18167203fa70/hyperdjango-0.27.0.tar.gz", hash = "sha256:0a182d2dfc1370aa62f40ec1637d16b4a36307712194f0cd7b1136a2f2bc339a", size = 41269, upload-time = "2026-04-27T19:52:51.397Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/de/0a/5af772641bb8acc93503f96c270642623a157d09a5a217b779facb9bfff1/hyperdjango-0.25.0-py3-none-any.whl", hash = "sha256:5d18b035a5cb2a548cf23a98c5b5e1f03c80993bf36508ba75116090afc931a1", size = 42044, upload-time = "2026-04-27T16:24:47.15Z" },
+    { url = "https://files.pythonhosted.org/packages/f8/6e/6a0bad4c30eae6bb5e30f51e602ec845047fecf9fea108bb25cfbac53b54/hyperdjango-0.27.0-py3-none-any.whl", hash = "sha256:653cfa09c108bda25cbb130ace237011b74e49e245aba0224e70bfb42ac8c0f4", size = 43660, upload-time = "2026-04-27T19:52:47.856Z" },
 ]
 
 [[package]]

@@ -111,7 +111,13 @@
 .docs-card-grid {
     display: grid;
     gap: 1rem;
-    grid-template-columns: repeat(2, minmax(15rem, 1fr));
+    grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+    .docs-card-grid {
+        grid-template-columns: repeat(2, minmax(15rem, 1fr));
+    }
 }
 
 .docs-card {

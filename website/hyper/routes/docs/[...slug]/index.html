@@ -26,19 +26,6 @@
             {% endif %}
         </div>
     </section>
-    {% if related_docs %}
-        <section class="space-y-4">
-            <div class="text-[10px] font-black uppercase tracking-[0.25em] text-gray-400">Related docs</div>
-            <div class="docs-card-grid">
-                {% for page in related_docs %}
-                    <a href="{{ page.href }}" class="docs-card block">
-                        <h2 class="docs-card-title">{{ page.nav_title }}</h2>
-                        <p class="mt-4 leading-7">{{ page.summary }}</p>
-                    </a>
-                {% endfor %}
-            </div>
-        </section>
-    {% endif %}
     {% if show_group_cards %}
         {% for section in docs_navigation %}
             {% if section.title == docs_page.group %}

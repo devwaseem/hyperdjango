@@ -1,10 +1,11 @@
+from django.conf import settings
+from django.contrib.staticfiles.urls import staticfiles_urlpatterns
+from django.http import HttpResponse
 from django.urls import path
-
-from hyperdjango.urls import include_routes
 
 from config.views import page_not_found, robots_txt, server_error, sitemap_xml
 from hyper.shared.docs_content import build_llms_markdown
-from django.http import HttpResponse
+from hyperdjango.urls import include_routes
 
 
 def llms_txt_view(_request):
@@ -19,6 +20,9 @@ urlpatterns = [
     path("llms.txt", llms_txt_view),
     *include_routes(),
 ]
+
+if settings.DEBUG:
+    urlpatterns += staticfiles_urlpatterns()
 
 handler404 = page_not_found
 handler500 = server_error
