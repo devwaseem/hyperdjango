@@ -2,7 +2,7 @@
 
 [![PyPI version](https://img.shields.io/pypi/v/hyperdjango.svg)](https://pypi.org/project/hyperdjango/)
 [![Downloads](https://img.shields.io/pypi/dm/hyperdjango.svg)](https://pypi.org/project/hyperdjango/)
-[![License](https://img.shields.io/pypi/l/hyperdjango.svg)](https://pypi.org/project/hyperdjango/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 *Built by [Charing Cross Capital](https://charingcrosscapital.com)*
 
