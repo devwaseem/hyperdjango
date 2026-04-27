@@ -27,19 +27,3 @@ def scan_route_files(routes_dir: Path) -> list[RouteFile]:
             RouteFile(page_file=page_file, directory=directory, segments=segments)
         )
     return route_files
-
-
-def discover_layout_files(route_dir: Path, routes_dir: Path) -> list[Path]:
-    layouts: list[Path] = []
-    current = route_dir
-    while current != routes_dir and routes_dir in current.parents:
-        layout_file = current / "layout.py"
-        if layout_file.exists():
-            layouts.append(layout_file)
-        current = current.parent
-
-    root_layout = routes_dir / "layout.py"
-    if root_layout.exists():
-        layouts.append(root_layout)
-    layouts.reverse()
-    return layouts

@@ -1,14 +1,12 @@
 # Layouts
 
-HyperDjango has two layout patterns.
+HyperDjango layouts live in `hyper/layouts/...`.
 
-Use `hyper/layouts/...` for explicit reusable layouts.
+Pages use them by importing the layout class and inheriting from it explicitly.
 
-Use route-local `layout.py` when a whole route subtree should inherit shared behavior automatically.
+## Layout Packages
 
-## Reusable Layout Packages
-
-This is the clearest pattern for most projects.
+This is the layout pattern HyperDjango supports.
 
 Example structure:
 
@@ -99,30 +97,3 @@ Use them for:
 - shared `get_context()` data
 - shared `entry.ts` / `entry.head.ts`
 - shared CSS imported by those entries
-
-## Route-Local `layout.py`
-
-Use route-local layouts when a whole route subtree should share behavior automatically.
-
-Example structure:
-
-```text
-hyper/routes/
-  dashboard/
-    layout.py
-    reports/
-      +page.py
-      index.html
-```
-
-`dashboard/layout.py` must:
-
-- be named exactly `layout.py`
-- define a `HyperView` subclass
-- not use any special class name
-
-The router walks upward from the page directory and composes any matching route-local layout classes it finds.
-
-The nearest route-local layout takes precedence over parent route-local layouts.
-
-Use this pattern for section-wide defaults. Use `hyper/layouts/...` when you want a reusable layout package that can be imported explicitly.

@@ -5,7 +5,7 @@ The repository includes a complete example project under `example/`.
 What it demonstrates:
 
 - file routing (`index`, static, dynamic, catch-all, route groups)
-- nested layouts (`/dashboard`, `/dashboard/settings`)
+- nested reusable layouts (`/dashboard`, `/dashboard/settings`)
 - action-driven swaps and multi-target HTML updates (`/todos`)
 - local and global signals (`/signals`)
 - composite segment matching (`/account/reset/<uidb36>-<key>`)
@@ -17,4 +17,4 @@ What it demonstrates:
 - sync behavior for live interactions (`/search`)
 - Django form enhancement with `$action(..., {}, { form })` (`/profile`)
 
-Run steps are documented in `example/README.md`.
+Run steps are documented in the example project's README under `example/`.

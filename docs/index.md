@@ -34,6 +34,7 @@ installation
 routing
 pages-and-rendering
 layouts
+base-template
 actions
 client-side-actions
 declarative-html-apis
@@ -43,6 +44,13 @@ cookbook
 troubleshooting
 production-checklist
 faq
+```
+
+```{toctree}
+:maxdepth: 1
+:caption: Reference
+
+reference/index
 ```
 
 ```{toctree}

@@ -4,29 +4,6 @@ Most client-side behavior should go through `$action(...)` or `window.action(...
 
 These HTML APIs are still especially useful when you want less inline JavaScript.
 
-## `hyper-form`
-
-Use `hyper-form` when you want a form submit to be handled declaratively.
-
-`hyper-form` expects:
-
-- a normal HTML form
-- an action name from either `hyper-action` or a hidden `_action` field
-- target/swap options on the form when you want direct HTML updates
-
-```html
-<form method="post" action="/preview" hyper-form hyper-target="#preview" hyper-swap="inner">
-  {% csrf_token %}
-  <input type="hidden" name="_action" value="preview_markdown" />
-  <textarea name="body"></textarea>
-  <button type="submit">Preview</button>
-</form>
-
-<div id="preview"></div>
-```
-
-Use this when the form itself already carries the important behavior and a declarative submit is clearer than a custom event expression.
-
 ## `hyper-form-disable`
 
 Use `hyper-form-disable` on a form to disable submit buttons and button-like controls while the request is active.

@@ -54,7 +54,7 @@ This keeps the code you change for a feature close together.
 ## What You Get
 
 - file-based routing from `hyper/routes/**/+page.py`
-- nested `layout.py` composition
+- reusable layouts in `hyper/layouts`
 - class-based pages with native `get/post/...` handlers
 - `@action` methods for hypermedia interactions
 - Alpine-friendly `$action(name, data, options)` client helper

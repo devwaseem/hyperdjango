@@ -12,11 +12,9 @@ Start with `HyperView` unless you only want file-based routing.
 
 Use plain `View` when routing is the only HyperDjango feature you need for that page.
 
-## Should I use `hyper/layouts/...` or route-local `layout.py`?
+## Where should layouts live?
 
-Use `hyper/layouts/...` for reusable named layouts.
-
-Use route-local `layout.py` when a whole route subtree should inherit shared behavior automatically.
+Put layouts in `hyper/layouts/...` and inherit them explicitly from `PageView` classes.
 
 ## When should I use `render()` vs `render_template()`?
 

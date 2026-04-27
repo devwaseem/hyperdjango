@@ -1,6 +1,12 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+
+## 0.25.0
+- Restructured documentation into a comprehensive reference guide with exhaustive parameter and functionality details.
+- Added explicit reference pages for Actions, Client Runtime, HTML Loading APIs, Asset Resolver, SSE Payloads, and Exceptions.
+- Refined runtime events and shortcuts (`render_template_page`, `render_template_block`) documentation.
+
 ## 0.24.0
 - Renamed the request data header from `X-Hyper-Signals` to `X-Hyper-Data` and removed the old fallback.
 - Clarified and updated the docs around request/action data flow, signals, and the current core vs Alpine integration split.

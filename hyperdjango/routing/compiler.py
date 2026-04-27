@@ -18,12 +18,11 @@ from hyperdjango.routing.parser import (
     parse_segment,
 )
 from hyperdjango.routing.loader import (
-    find_layout_class,
     find_page_class,
     load_module_from_path,
 )
 from hyperdjango.routing.parser import build_django_route, route_specificity
-from hyperdjango.routing.scanner import discover_layout_files, scan_route_files
+from hyperdjango.routing.scanner import scan_route_files
 
 
 @dataclass(frozen=True)
@@ -88,13 +87,7 @@ def compile_routes(routes_dir: Path, *, url_prefix: str = "") -> list[CompiledRo
         page_module = load_module_from_path(route_file.page_file, page_module_name)
         page_class = find_page_class(page_module)
 
-        layout_classes: list[type[Any]] = []
-        for layout_file in discover_layout_files(route_file.directory, routes_dir):
-            module_name = _module_name(layout_file)
-            module = load_module_from_path(layout_file, module_name)
-            layout_classes.append(find_layout_class(module))
-
-        effective_page_class = compose_page_class(page_class, layout_classes)
+        effective_page_class = compose_page_class(page_class, [])
         route_path = build_django_route(all_segments, append_slash=append_slash)
         regex_path = (
             build_regex_route(all_segments, append_slash=append_slash)

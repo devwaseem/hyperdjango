@@ -9,7 +9,7 @@ HyperDjango spans template rendering, runtime JS, and caching layers. Small conf
 - Set `HYPER_DEV = False` in production.
 - Ensure collectstatic includes Vite output and `hyperdjango/static`.
 
-See `docs/assets-and-vite.md` for the main asset build and manifest flow.
+See the Assets and Vite page for the main asset build and manifest flow.
 
 ## Caching and Action Responses
 
