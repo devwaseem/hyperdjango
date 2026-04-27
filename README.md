@@ -4,6 +4,8 @@
 [![Downloads](https://img.shields.io/pypi/dm/hyperdjango.svg)](https://pypi.org/project/hyperdjango/)
 [![License](https://img.shields.io/pypi/l/hyperdjango.svg)](https://pypi.org/project/hyperdjango/)
 
+*Built by [Charing Cross Capital](https://charingcrosscapital.com)*
+
 Build interactive Django apps without splitting your product into "backend API + SPA frontend".
 
 HyperDjango keeps rendering and business logic on the server, then layers in partial swaps, signals, and transitions for SPA-like UX.
