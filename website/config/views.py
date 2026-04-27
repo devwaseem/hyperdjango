@@ -5,7 +5,6 @@ from pathlib import Path
 from xml.sax.saxutils import escape
 
 from django.http import HttpRequest, HttpResponse
-from django.shortcuts import render
 
 from hyper.shared.docs_content import (
     get_doc_last_modified,
@@ -13,6 +12,8 @@ from hyper.shared.docs_content import (
     iter_doc_paths,
 )
 from hyper.shared.seo import absolute_url, page_json_ld, seo_context
+from hyper.errors import ErrorPage
+from hyperdjango.shortcuts import render_template_page
 
 
 WEBSITE_DIR = Path(__file__).resolve().parents[1]
@@ -90,9 +91,13 @@ def page_not_found(request: HttpRequest, exception: Exception) -> HttpResponse:
         "error_title": "Page Not Found",
         "error_message": "The page you requested does not exist or has moved.",
     }
-    response = render(request, "404.html", context=context, status=404)
-    response["X-Robots-Tag"] = "noindex, nofollow"
-    return response
+    return render_template_page(
+        request,
+        ErrorPage,
+        context=context,
+        status=404,
+        headers={"X-Robots-Tag": "noindex, nofollow"},
+    )
 
 
 def server_error(request: HttpRequest) -> HttpResponse:
@@ -111,6 +116,10 @@ def server_error(request: HttpRequest) -> HttpResponse:
         "error_title": "Server Error",
         "error_message": "Something went wrong on the server. Please try again.",
     }
-    response = render(request, "500.html", context=context, status=500)
-    response["X-Robots-Tag"] = "noindex, nofollow"
-    return response
+    return render_template_page(
+        request,
+        ErrorPage,
+        context=context,
+        status=500,
+        headers={"X-Robots-Tag": "noindex, nofollow"},
+    )
