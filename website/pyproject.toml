@@ -1,0 +1,16 @@
+[project]
+name = "hyperdjango-website"
+version = "0.1.0"
+description = "HyperDjango Documentation Website"
+requires-python = ">=3.13"
+dependencies = [
+    "django>=4.2",
+    "hyperdjango",
+]
+
+[tool.uv]
+sources = { hyperdjango = { path = ".." } }
+
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
