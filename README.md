@@ -31,3 +31,12 @@ See the **[Installation guide](docs/reference/django-integration.md)** for detai
 
 A full runnable demo lives in `example/`. See [example/README.md](example/README.md) for instructions.
 
+## Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details on how to set up the development environment, run tests, and submit pull requests.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
+
+
