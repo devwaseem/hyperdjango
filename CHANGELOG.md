@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.26.0
+- Added async page handler support so `async def get(...)`, `async def post(...)`, and other async HTTP method handlers work through the normal `dispatch` path.
+- Added async action support so `async def` `@action` methods are awaited correctly.
+- Fixed SSE streaming under ASGI by using async streaming responses where appropriate, preventing production buffering behavior with Uvicorn.
+- Added async iterable support for streamed action responses.
+- Updated examples and the website to exercise async handlers and async streaming actions directly.
+
 ## 0.25.0
 - Restructured documentation into a comprehensive reference guide with exhaustive parameter and functionality details.
 - Added explicit reference pages for Actions, Client Runtime, HTML Loading APIs, Asset Resolver, SSE Payloads, and Exceptions.
