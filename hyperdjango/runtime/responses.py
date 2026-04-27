@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Iterable, Iterator
+from collections.abc import AsyncIterable, AsyncIterator, Iterable, Iterator
 from typing import Any
 
-from django.http import HttpResponse, StreamingHttpResponse
+from asgiref.sync import async_to_sync, sync_to_async
+from django.http import HttpRequest, HttpResponse, StreamingHttpResponse
 from django.utils.cache import patch_vary_headers
 
 from hyperdjango.actions import (
@@ -30,6 +31,8 @@ ACTION_VARY_HEADERS = [
     "X-Requested-With",
 ]
 
+_ITERATION_DONE = object()
+
 
 def ensure_action_response_headers(response: HttpResponse) -> HttpResponse:
     patch_vary_headers(response, ACTION_VARY_HEADERS)
@@ -38,10 +41,17 @@ def ensure_action_response_headers(response: HttpResponse) -> HttpResponse:
     return response
 
 
-def to_action_http_response(result: Any) -> HttpResponse:
+def to_action_http_response(
+    result: Any, *, request: HttpRequest | None = None
+) -> HttpResponse:
     items, status, headers = normalize_action_result(result)
+    streaming_content: Iterable[str] | AsyncIterator[str]
+    if _is_asgi_request(request):
+        streaming_content = stream_action_sse_async(items)
+    else:
+        streaming_content = stream_action_sse_sync(items)
     response = StreamingHttpResponse(
-        stream_action_sse(items),
+        streaming_content,
         status=status,
         content_type="text/event-stream",
     )
@@ -55,9 +65,13 @@ def _action_error_event(status: int, message: str) -> tuple[str, dict[str, Any]]
     return "error", {"status": status, "message": message}
 
 
-def to_action_exception_response(status: int, message: str) -> HttpResponse:
+def to_action_exception_response(
+    status: int, message: str, *, request: HttpRequest | None = None
+) -> HttpResponse:
     response = StreamingHttpResponse(
-        [
+        stream_action_exception_sse_async(status, message)
+        if _is_asgi_request(request)
+        else [
             _format_sse_event(*_action_error_event(status, message)),
             _format_sse_event("end", {}),
         ],
@@ -70,7 +84,7 @@ def to_action_exception_response(status: int, message: str) -> HttpResponse:
 
 def normalize_action_result(
     result: Any,
-) -> tuple[Iterable[ActionItem], int, dict[str, str]]:
+) -> tuple[Iterable[ActionItem] | AsyncIterable[ActionItem], int, dict[str, str]]:
     if isinstance(result, ActionResult):
         return compile_action_result(result), result.status, result.headers
     if isinstance(result, Actions):
@@ -78,6 +92,8 @@ def normalize_action_result(
     if is_action_item(result):
         return [result], 200, {}
     if is_action_item_iterable(result):
+        return result, 200, {}
+    if is_action_item_async_iterable(result):
         return result, 200, {}
     raise TypeError(f"Unsupported action result type: {type(result).__name__}")
 
@@ -103,6 +119,10 @@ def is_action_item_iterable(value: Any) -> bool:
     if isinstance(value, (str, bytes, bytearray, dict, ActionResult)):
         return False
     return isinstance(value, Iterable)
+
+
+def is_action_item_async_iterable(value: Any) -> bool:
+    return isinstance(value, AsyncIterable)
 
 
 def compile_action_result(result: ActionResult) -> list[ActionItem]:
@@ -144,6 +164,73 @@ def stream_action_sse(items: Iterable[ActionItem]) -> Iterator[str]:
             break
     if not redirect_seen:
         yield _format_sse_event("end", {})
+
+
+def stream_action_sse_sync(
+    items: Iterable[ActionItem] | AsyncIterable[ActionItem],
+) -> Iterator[str]:
+    if isinstance(items, AsyncIterable):
+        return _stream_action_sse_sync_from_async(items)
+    return stream_action_sse(items)
+
+
+async def stream_action_sse_async(
+    items: Iterable[ActionItem] | AsyncIterable[ActionItem],
+) -> AsyncIterator[str]:
+    redirect_seen = False
+    if isinstance(items, AsyncIterable):
+        async_iterator = items.__aiter__()
+        while True:
+            item = await _next_async_action_item(async_iterator)
+            if item is _ITERATION_DONE:
+                break
+            event_name, payload = serialize_action_item(item)
+            yield _format_sse_event(event_name, payload)
+            if isinstance(item, Redirect):
+                redirect_seen = True
+                break
+    else:
+        iterator = iter(items)
+        while True:
+            item = await sync_to_async(_next_action_item, thread_sensitive=True)(
+                iterator
+            )
+            if item is _ITERATION_DONE:
+                break
+            event_name, payload = serialize_action_item(item)
+            yield _format_sse_event(event_name, payload)
+            if isinstance(item, Redirect):
+                redirect_seen = True
+                break
+
+    if not redirect_seen:
+        yield _format_sse_event("end", {})
+
+
+def _stream_action_sse_sync_from_async(
+    items: AsyncIterable[ActionItem],
+) -> Iterator[str]:
+    redirect_seen = False
+    async_iterator = items.__aiter__()
+    while True:
+        item = async_to_sync(_next_async_action_item)(async_iterator)
+        if item is _ITERATION_DONE:
+            break
+        event_name, payload = serialize_action_item(item)
+        yield _format_sse_event(event_name, payload)
+        if isinstance(item, Redirect):
+            redirect_seen = True
+            break
+
+    if not redirect_seen:
+        yield _format_sse_event("end", {})
+
+
+async def stream_action_exception_sse_async(
+    status: int, message: str
+) -> AsyncIterator[str]:
+    yield _format_sse_event(*_action_error_event(status, message))
+    yield _format_sse_event("end", {})
 
 
 def serialize_action_item(item: ActionItem) -> tuple[str, dict[str, Any]]:
@@ -201,3 +288,20 @@ def serialize_action_item(item: ActionItem) -> tuple[str, dict[str, Any]]:
 def _format_sse_event(event_name: str, payload: dict[str, Any]) -> str:
     body = json.dumps(payload)
     return f"event: {event_name}\ndata: {body}\n\n"
+
+
+def _is_asgi_request(request: HttpRequest | None) -> bool:
+    return bool(request is not None and hasattr(request, "scope"))
+
+
+def _next_action_item(iterator: Iterator[ActionItem]) -> ActionItem | object:
+    return next(iterator, _ITERATION_DONE)
+
+
+async def _next_async_action_item(
+    iterator: AsyncIterator[ActionItem],
+) -> ActionItem | object:
+    try:
+        return await iterator.__anext__()
+    except StopAsyncIteration:
+        return _ITERATION_DONE

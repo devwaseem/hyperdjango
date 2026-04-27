@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import inspect
 import json
 import logging
 from collections.abc import Iterable
 from typing import Any
 
+from asgiref.sync import async_to_sync
 from django.core.exceptions import PermissionDenied
 from django.http import HttpRequest, HttpResponse
 from django.http import Http404
@@ -49,6 +51,7 @@ def dispatch_page(page: Any, request: HttpRequest, **params: Any) -> HttpRespons
         )
     handler = getattr(page, handler_name)
     result = handler(request, **params)
+    result = _resolve_awaitable_result(result)
     return _to_full_response(page, request, result)
 
 
@@ -64,6 +67,7 @@ def _dispatch_action(
     action_kwargs = {**_extract_action_kwargs(request), **params}
     try:
         result = action_method(request, **action_kwargs)
+        result = _resolve_awaitable_result(result)
     except PermissionDenied as exc:
         message = str(exc).strip() or "Forbidden"
         logger.warning(
@@ -73,7 +77,9 @@ def _dispatch_action(
             message,
             exc_info=True,
         )
-        return to_action_exception_response(status=403, message=message)
+        return to_action_exception_response(
+            status=403, message=message, request=request
+        )
     except Http404 as exc:
         message = str(exc).strip() or "Not found"
         logger.warning(
@@ -83,21 +89,25 @@ def _dispatch_action(
             message,
             exc_info=True,
         )
-        return to_action_exception_response(status=404, message=message)
+        return to_action_exception_response(
+            status=404, message=message, request=request
+        )
     except Exception:
         logger.exception(
             "Unhandled exception in hyper action '%s' on %s",
             action_name,
             request.path,
         )
-        return to_action_exception_response(status=500, message="Internal server error")
+        return to_action_exception_response(
+            status=500, message="Internal server error", request=request
+        )
 
     if isinstance(result, HttpResponse):
         return ensure_action_response_headers(result)
     if isinstance(result, ActionResult):
-        return to_action_http_response(result)
+        return to_action_http_response(result, request=request)
     if isinstance(result, str):
-        return to_action_http_response(ActionResult(html=result))
+        return to_action_http_response(ActionResult(html=result), request=request)
     if isinstance(result, dict):
         block_name = get_target_name(request) or action_name
         html = page.render_block(
@@ -105,9 +115,9 @@ def _dispatch_action(
             block_name=block_name,
             context_updates=result,
         )
-        return to_action_http_response(ActionResult(html=html))
+        return to_action_http_response(ActionResult(html=html), request=request)
     if is_action_item(result) or is_action_item_iterable(result):
-        return to_action_http_response(result)
+        return to_action_http_response(result, request=request)
 
     raise DispatchError(f"Unsupported action return type: {type(result).__name__}")
 
@@ -162,3 +172,13 @@ def _to_full_response(page: Any, request: HttpRequest, result: Any) -> HttpRespo
     raise DispatchError(
         f"Unsupported page handler return type: {type(result).__name__}"
     )
+
+
+def _resolve_awaitable_result(result: Any) -> Any:
+    if inspect.isawaitable(result):
+        return async_to_sync(_await_result)(result)
+    return result
+
+
+async def _await_result(result: Any) -> Any:
+    return await result
