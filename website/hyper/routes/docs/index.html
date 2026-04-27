@@ -4,8 +4,22 @@
         <div class="text-[10px] font-black uppercase tracking-[0.25em] text-gray-400">Documentation</div>
         <h1 class="font-doto text-6xl font-black uppercase tracking-tight text-black">{{ doc.title }}</h1>
         <p class="max-w-3xl text-lg leading-8">{{ doc.summary }}</p>
+        <p class="max-w-3xl text-sm leading-7 text-gray-500">{{ page_lede }}</p>
     </header>
     <div class="space-y-8">{{ doc.html }}</div>
+    {% if related_docs %}
+        <section class="space-y-4">
+            <div class="text-[10px] font-black uppercase tracking-[0.25em] text-gray-400">Related guides</div>
+            <div class="docs-card-grid">
+                {% for page in related_docs %}
+                    <a href="{{ page.href }}" class="docs-card block">
+                        <h2 class="docs-card-title">{{ page.nav_title }}</h2>
+                        <p class="mt-4 leading-7">{{ page.summary }}</p>
+                    </a>
+                {% endfor %}
+            </div>
+        </section>
+    {% endif %}
     <section class="space-y-8">
         {% for section in docs_navigation %}
             <div class="space-y-4">

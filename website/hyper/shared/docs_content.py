@@ -22,6 +22,10 @@ class DocPage:
     group: str
     summary: str
 
+    @property
+    def href(self) -> str:
+        return f"/docs/{self.slug}" if self.slug else "/docs"
+
 
 @dataclass(frozen=True, slots=True)
 class RenderedDoc:
@@ -226,6 +230,42 @@ def get_docs_navigation() -> list[dict[str, object]]:
     ]
 
 
+def get_adjacent_doc_pages(slug: str) -> tuple[DocPage | None, DocPage | None]:
+    normalized = slug.strip("/")
+    pages = list(DOC_PAGES)
+    for index, page in enumerate(pages):
+        if page.slug == normalized:
+            previous_page = pages[index - 1] if index > 0 else None
+            next_page = pages[index + 1] if index + 1 < len(pages) else None
+            return previous_page, next_page
+    return None, None
+
+
+def get_related_doc_pages(slug: str) -> list[DocPage]:
+    current = get_doc_page(slug)
+    if current is None:
+        return []
+    return [
+        page
+        for page in DOC_PAGES
+        if page.group == current.group and page.slug != current.slug
+    ]
+
+
+def get_doc_last_modified(slug: str) -> str:
+    page = get_doc_page(slug)
+    if page is None:
+        raise FileNotFoundError(slug)
+    source_path = DOCS_DIR / page.source
+    if not source_path.exists():
+        raise FileNotFoundError(source_path)
+    return _format_mtime(source_path)
+
+
+def get_latest_docs_mtime() -> str:
+    return max(_format_mtime(DOCS_DIR / page.source) for page in DOC_PAGES)
+
+
 @lru_cache(maxsize=None)
 def render_doc(slug: str) -> RenderedDoc:
     page = get_doc_page(slug)
@@ -302,9 +342,17 @@ def build_llms_markdown() -> str:
 
 
 def iter_doc_paths() -> list[str]:
-    return [
-        f"/docs/{page.slug}" if page.slug else "/docs" for page in DOC_PAGES
-    ]
+    return [page.href for page in DOC_PAGES]
+
+
+def _format_mtime(path: Path) -> str:
+    from datetime import datetime, timezone
+
+    return (
+        datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc)
+        .date()
+        .isoformat()
+    )
 
 
 def _split_title(content: str) -> tuple[str, str]:

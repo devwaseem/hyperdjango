@@ -17,6 +17,10 @@ def site_url() -> str:
     ).rstrip("/")
 
 
+def site_version() -> str:
+    return str(getattr(settings, "SITE_VERSION", "0.25.0"))
+
+
 def absolute_url(path: str = "/") -> str:
     normalized = path if path.startswith("/") else f"/{path}"
     return f"{site_url()}{normalized}"
@@ -51,6 +55,13 @@ def site_json_ld() -> list[dict[str, Any]]:
             "@type": "Organization",
             "name": SITE_NAME,
             "url": base,
+            "sameAs": [
+                getattr(
+                    settings,
+                    "GITHUB_URL",
+                    "https://github.com/devwaseem/hyperdjango",
+                )
+            ],
         },
         {
             "@context": "https://schema.org",
@@ -66,6 +77,9 @@ def site_json_ld() -> list[dict[str, Any]]:
             "applicationCategory": "DeveloperApplication",
             "operatingSystem": "Web",
             "url": base,
+            "softwareVersion": site_version(),
+            "author": {"@type": "Organization", "name": SITE_NAME},
+            "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
         },
     ]
 
@@ -78,4 +92,20 @@ def page_json_ld(*, title: str, description: str, path: str) -> dict[str, Any]:
         "description": description,
         "url": absolute_url(path),
         "isPartOf": {"@type": "WebSite", "name": SITE_NAME, "url": site_url()},
+    }
+
+
+def breadcrumb_json_ld(items: list[tuple[str, str]]) -> dict[str, Any]:
+    return {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": index + 1,
+                "name": label,
+                "item": absolute_url(path),
+            }
+            for index, (label, path) in enumerate(items)
+        ],
     }

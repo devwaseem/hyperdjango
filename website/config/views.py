@@ -1,12 +1,37 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+from pathlib import Path
 from xml.sax.saxutils import escape
 
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 
-from hyper.shared.docs_content import iter_doc_paths
+from hyper.shared.docs_content import (
+    get_doc_last_modified,
+    get_latest_docs_mtime,
+    iter_doc_paths,
+)
 from hyper.shared.seo import absolute_url, page_json_ld, seo_context
+
+
+WEBSITE_DIR = Path(__file__).resolve().parents[1]
+
+
+HOME_SOURCE_FILES = [
+    WEBSITE_DIR / "hyper" / "routes" / "index" / "+page.py",
+    WEBSITE_DIR / "hyper" / "routes" / "index" / "index.html",
+    WEBSITE_DIR / "hyper" / "routes" / "index" / "partials" / "hero.html",
+    WEBSITE_DIR / "hyper" / "routes" / "index" / "partials" / "footer.html",
+]
+
+
+def _format_mtime(path: Path) -> str:
+    return (
+        datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc)
+        .date()
+        .isoformat()
+    )
 
 
 def robots_txt(_request: HttpRequest) -> HttpResponse:
@@ -22,13 +47,27 @@ def robots_txt(_request: HttpRequest) -> HttpResponse:
 
 
 def sitemap_xml(_request: HttpRequest) -> HttpResponse:
-    urls = ["/", "/docs", *iter_doc_paths(), "/llms.txt"]
+    urls = [
+        ("/", max(_format_mtime(path) for path in HOME_SOURCE_FILES)),
+        ("/docs", get_doc_last_modified("")),
+        *[
+            (path, get_doc_last_modified(path.removeprefix("/docs/")))
+            for path in iter_doc_paths()
+            if path != "/docs"
+        ],
+        ("/llms.txt", get_latest_docs_mtime()),
+    ]
     entries = [
         '<?xml version="1.0" encoding="UTF-8"?>',
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
     ]
-    for path in dict.fromkeys(urls):
-        entries.append(f"  <url><loc>{escape(absolute_url(path))}</loc></url>")
+    for path, lastmod in dict.fromkeys(urls):
+        entries.append(
+            "  <url>"
+            f"<loc>{escape(absolute_url(path))}</loc>"
+            f"<lastmod>{escape(lastmod)}</lastmod>"
+            "</url>"
+        )
     entries.append("</urlset>")
     return HttpResponse(
         "\n".join(entries), content_type="application/xml; charset=utf-8"

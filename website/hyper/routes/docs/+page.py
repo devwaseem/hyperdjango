@@ -6,9 +6,10 @@ from hyper.layouts.docs import DocsLayout
 from hyper.shared.docs_content import (
     get_doc_page,
     get_docs_navigation,
+    get_related_doc_pages,
     render_doc,
 )
-from hyper.shared.seo import page_json_ld, seo_context
+from hyper.shared.seo import breadcrumb_json_ld, page_json_ld, seo_context
 
 
 class PageView(DocsLayout):
@@ -19,11 +20,11 @@ class PageView(DocsLayout):
         doc = render_doc("")
         return {
             **seo_context(
-                title=f"{doc.title} | HyperDjango Docs",
+                title="Docs | HyperDjango",
                 description=doc.summary,
                 path="/docs",
                 json_ld=page_json_ld(
-                    title=f"{doc.title} | HyperDjango Docs",
+                    title="Docs | HyperDjango",
                     description=doc.summary,
                     path="/docs",
                 ),
@@ -33,4 +34,13 @@ class PageView(DocsLayout):
             "docs_navigation": get_docs_navigation(),
             "docs_page": page,
             "is_overview": True,
+            "page_lede": "Start with Getting Started, then move through routing, rendering, and the reference pages once the core concepts are clear.",
+            "previous_doc": None,
+            "next_doc": None,
+            "related_docs": get_related_doc_pages(""),
+            "previous_url": None,
+            "next_url": None,
+            "breadcrumb_json_ld": breadcrumb_json_ld(
+                [("Home", "/"), ("Docs", "/docs")]
+            ),
         }

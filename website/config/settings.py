@@ -82,6 +82,10 @@ HYPER_DEV = os.getenv("HYPER_DEV", "True") == "True"
 SITE_URL = os.getenv(
     "SITE_URL", "https://hyperdjango.charingcrosscapital.com"
 ).rstrip("/")
+SITE_VERSION = os.getenv("SITE_VERSION", "0.25.0")
+GITHUB_URL = os.getenv(
+    "GITHUB_URL", "https://github.com/devwaseem/hyperdjango"
+).rstrip("/")
 
 LOGGING = {
     "version": 1,
