@@ -1,0 +1,32 @@
+<footer class="border-t border-black/10 bg-white px-6 py-16">
+    <div class="mx-auto max-w-6xl grid gap-10 md:grid-cols-[1.5fr_0.7fr] font-mono text-sm text-gray-500">
+        <div>
+            <div class="font-doto text-2xl font-black uppercase tracking-tight text-black">HyperDjango</div>
+            <p class="mt-4 max-w-md leading-7">
+                Server-driven interactivity for Django developers who want modern UI behavior without handing the whole app to a client framework.
+            </p>
+            <div class="mt-6 border border-black/10 px-4 py-3 flex items-center justify-between gap-4 text-black">
+                <code class="overflow-x-auto whitespace-nowrap">pip install hyperdjango</code>
+                <button type="button"
+                        onclick="navigator.clipboard.writeText('pip install hyperdjango'); toast.success('Copied', { description: 'pip install hyperdjango' }); const el=this; const original=el.textContent; el.textContent='Copied!'; setTimeout(() => el.textContent = original, 1200)"
+                        class="shrink-0 border border-black/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] hover:border-black transition-colors">
+                    Copy
+                </button>
+            </div>
+        </div>
+
+        <div>
+            <div class="text-[10px] font-black uppercase tracking-[0.25em] text-gray-400">Explore</div>
+            <div class="mt-4 flex flex-col gap-3 uppercase tracking-[0.08em]">
+                <a href="#examples-section" class="hover:text-black transition-colors">Examples</a>
+                <a href="/docs" class="hover:text-black transition-colors">Docs</a>
+                <a href="#" class="hover:text-black transition-colors">GitHub</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="mx-auto mt-12 max-w-6xl border-t border-black/10 pt-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between font-mono text-[11px] uppercase tracking-[0.15em] text-gray-400">
+        <span>&copy; 2026 HyperDjango Project</span>
+        <span>Built for developers by developers at <a href="https://charingcrosscapital.com" class="hover:text-black transition-colors">CharingCross</a></span>
+    </div>
+</footer>
