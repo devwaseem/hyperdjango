@@ -80,8 +80,8 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
   && rm -rf /var/lib/apt/lists/*
 
 # Copy the core library and docs from the build context
-COPY hyperdjango_lib/hyperdjango ../hyperdjango
-COPY docs_content/docs ../docs
+COPY ../hyperdjango ../hyperdjango
+COPY ../docs ../docs
 
 COPY . .
 

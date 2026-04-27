@@ -18,6 +18,7 @@ node_modules/
 
 # Docs build artifacts
 docs/_build/
+website/docs/
 
 # OS/editor
 .DS_Store

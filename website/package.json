@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "sync:docs": "python scripts/sync-docs.py",
     "dev": "vite",
     "build": "vite build"
   },

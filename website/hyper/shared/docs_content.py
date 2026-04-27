@@ -10,8 +10,8 @@ from django.utils.safestring import SafeString, mark_safe
 import markdown
 
 
-REPO_DIR: Final[Path] = Path(__file__).resolve().parents[3]
-DOCS_DIR: Final[Path] = REPO_DIR / "docs"
+WEBSITE_DIR: Final[Path] = Path(__file__).resolve().parents[2]
+DOCS_DIR: Final[Path] = WEBSITE_DIR / "docs"
 
 
 @dataclass(frozen=True, slots=True)
@@ -197,7 +197,9 @@ DOC_PAGES: Final[tuple[DocPage, ...]] = (
 )
 
 
-TOCTREE_PATTERN: Final[re.Pattern[str]] = re.compile(r"```\{toctree\}.*?```", re.DOTALL)
+TOCTREE_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"```\{toctree\}.*?```", re.DOTALL
+)
 
 
 def get_doc_page(slug: str) -> DocPage | None:
@@ -219,7 +221,9 @@ def get_docs_navigation() -> list[dict[str, object]]:
                 "summary": page.summary,
             }
         )
-    return [{"title": title, "pages": pages} for title, pages in grouped.items()]
+    return [
+        {"title": title, "pages": pages} for title, pages in grouped.items()
+    ]
 
 
 @lru_cache(maxsize=None)
@@ -228,6 +232,10 @@ def render_doc(slug: str) -> RenderedDoc:
     if page is None:
         raise FileNotFoundError(slug)
     source_path = DOCS_DIR / page.source
+    if not source_path.exists():
+        raise FileNotFoundError(
+            f"Docs source not found: {source_path}. Run `python scripts/sync-docs.py` from the website directory."
+        )
     raw = source_path.read_text(encoding="utf-8")
     cleaned = TOCTREE_PATTERN.sub("", raw).strip()
     title, body = _split_title(cleaned)
