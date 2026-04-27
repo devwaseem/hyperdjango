@@ -3,7 +3,6 @@ from pathlib import Path
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-REPO_DIR = BASE_DIR.parent
 
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-only-secret-key")
 DEBUG = os.getenv("DEBUG", "True") == "True"
@@ -71,11 +70,11 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = "static/"
-STATICFILES_DIRS = [REPO_DIR / "dist"]
+STATICFILES_DIRS = [BASE_DIR / "dist"]
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 HYPER_FRONTEND_DIR = BASE_DIR / "hyper"
-HYPER_VITE_OUTPUT_DIR = REPO_DIR / "dist"
+HYPER_VITE_OUTPUT_DIR = BASE_DIR / "dist"
 HYPER_VITE_DEV_SERVER_URL = "http://localhost:5173/"
-HYPER_DEV = True
+HYPER_DEV = os.getenv("HYPER_DEV", "True") == "True"
