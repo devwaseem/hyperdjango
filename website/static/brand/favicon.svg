@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-label="HyperDjango favicon">
+  <rect width="64" height="64" fill="white"/>
+  <rect x="6" y="6" width="52" height="52" rx="0" fill="white" stroke="black" stroke-width="4"/>
+  <path d="M18 16V48M18 31H46M46 16V48" stroke="black" stroke-width="6" stroke-linecap="square"/>
+  <path d="M24 24L32 31L24 38" stroke="black" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter"/>
+</svg>
