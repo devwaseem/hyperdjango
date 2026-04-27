@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 - Restructured documentation into a comprehensive reference guide with exhaustive parameter and functionality details.
 - Added explicit reference pages for Actions, Client Runtime, HTML Loading APIs, Asset Resolver, SSE Payloads, and Exceptions.
 - Refined runtime events and shortcuts (`render_template_page`, `render_template_block`) documentation.
+- Completed removal of route-local `layout.py` support by cleaning up unused internal routing helper functions.
 
 ## 0.24.0
 - Renamed the request data header from `X-Hyper-Signals` to `X-Hyper-Data` and removed the old fallback.
