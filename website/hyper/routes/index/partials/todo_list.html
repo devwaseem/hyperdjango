@@ -1,0 +1,5 @@
+<ul id="todo-list-demo" class="space-y-2">
+    {% for todo in todos %}
+    {% include "routes/index/partials/todo_item.html" with todo=todo %}
+    {% endfor %}
+</ul>

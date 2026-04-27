@@ -1,0 +1,173 @@
+<section class="max-w-6xl mx-auto px-6 py-24">
+    <div class="flex flex-col mb-12">
+        <h2 class="font-doto text-4xl font-black mb-2 uppercase">Todo Management</h2>
+        <p class="font-mono text-gray-500">Full CRUD cycles with server-side state and instant partial updates.</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 border-2 border-black divide-y-2 lg:divide-y-0 lg:divide-x-2 divide-black font-mono">
+        <div class="bg-gray-50 min-h-0 overflow-hidden">
+            <div class="flex flex-col gap-6 p-6 pb-10 box-border overflow-y-auto overflow-x-hidden lg:h-[80vh]">
+            <div>
+                <div class="flex items-center gap-2 mb-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                    <span class="w-1.5 h-1.5 bg-black/20"></span>
+                    template.html
+                </div>
+                <pre class="text-[12px] leading-relaxed overflow-x-auto"><code class="language-html">{% verbatim %}{% include "partials/todo_stats.html" %}
+{% include "partials/todo_empty.html" %}
+&lt;ul id="todo-list"&gt;
+  {% for todo in todos %}
+    {% include "partials/item.html" with todo=todo %}
+  {% endfor %}
+&lt;/ul&gt;{% endverbatim %}</code></pre>
+            </div>
+            <div class="border-t border-black/5 pt-6">
+                <div class="flex items-center gap-2 mb-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                    <span class="w-1.5 h-1.5 bg-black/20"></span>
+                    partials/item.html
+                </div>
+                <pre class="text-[12px] leading-relaxed overflow-x-auto"><code class="language-html">{% verbatim %}&lt;li id="todo-{{ todo.id }}"&gt;
+  &lt;input
+    type="checkbox"
+    @change="$action('toggle_todo', { id: '{{ todo.id }}' })"
+  /&gt;
+  &lt;span&gt;{{ todo.title }}&lt;/span&gt;
+  &lt;button @click="$action('delete_todo', { id: '{{ todo.id }}' })"&gt;
+    Delete
+  &lt;/button&gt;
+&lt;/li&gt;{% endverbatim %}</code></pre>
+            </div>
+            <div class="border-t border-black/5 pt-6">
+                <div class="flex items-center gap-2 mb-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                    <span class="w-1.5 h-1.5 bg-black/20"></span>
+                    +page.py
+                </div>
+                <pre class="text-[12px] leading-relaxed overflow-x-auto"><code class="language-python">from hyperdjango import HyperView
+from hyperdjango.actions import Delete, HTML, Toast, action
+
+
+class PageView(HyperView):
+    def todo_stats(self):
+        todos = Todo.objects.order_by("id")
+        completed = todos.filter(done=True).count()
+        return {
+            "todo_total": todos.count(),
+            "todo_completed": completed,
+            "todo_active": todos.count() - completed,
+        }
+
+    def get(self, request, **params):
+        todos = Todo.objects.order_by("id")
+        return {"todos": todos, **self.todo_stats()}
+
+    @action
+    def add_todo(self, request, title=""):
+        todo = Todo.objects.create(title=title, done=False)
+        return [
+            HTML(
+                content=self.render(
+                    request=request,
+                    relative_template_name="partials/item.html",
+                    context_updates={"todo": todo},
+                ),
+                target="#todo-list",
+                swap="append",
+            ),
+            HTML(
+                content=self.render(
+                    request=request,
+                    relative_template_name="partials/todo_stats.html",
+                    context_updates=self.todo_stats(),
+                ),
+            ),
+            HTML(
+                content=self.render(
+                    request=request,
+                    relative_template_name="partials/todo_empty.html",
+                    context_updates={"has_todos": True},
+                ),
+            ),
+        ]
+
+    @action
+    def toggle_todo(self, request, id=None):
+        todo = Todo.objects.get(id=id)
+        todo.done = not todo.done
+        todo.save()
+        return [
+            HTML(
+                content=self.render(
+                    request=request,
+                    relative_template_name="partials/item.html",
+                    context_updates={"todo": todo},
+                ),
+            ),
+            HTML(
+                content=self.render(
+                    request=request,
+                    relative_template_name="partials/todo_stats.html",
+                    context_updates=self.todo_stats(),
+                ),
+            ),
+            Toast(payload={
+                "type": "info",
+                "title": "Updated",
+                "message": "Todo state changed.",
+            }),
+        ]
+
+    @action
+    def delete_todo(self, request, id=None):
+        todo = Todo.objects.get(id=id)
+        todo.delete()
+        return [
+            Delete(target=f"#todo-{id}"),
+            HTML(
+                content=self.render(
+                    request=request,
+                    relative_template_name="partials/todo_stats.html",
+                    context_updates=self.todo_stats(),
+                ),
+            ),
+            HTML(
+                content=self.render(
+                    request=request,
+                    relative_template_name="partials/todo_empty.html",
+                    context_updates={"has_todos": Todo.objects.exists()},
+                ),
+            ),
+            Toast(payload={
+                "type": "warning",
+                "title": "Deleted",
+                "message": "Todo removed.",
+            }),
+        ]</code></pre>
+            </div>
+            </div>
+        </div>
+        <div class="bg-white min-h-0 overflow-hidden">
+            <div class="p-8 pb-10 flex flex-col box-border overflow-y-auto overflow-x-hidden lg:h-[80vh]">
+            <div class="flex items-center gap-2 mb-6 text-[10px] font-black text-black uppercase tracking-[0.2em]">
+                <span class="w-1.5 h-1.5 bg-black"></span>
+                Live Interactive Demo
+            </div>
+            <div x-data="{ newTitle: '' }" class="space-y-6">
+                <form @submit.prevent="$action('add_todo', { title: newTitle }, { method: 'POST' }); newTitle = ''"
+                      class="flex gap-2">
+                    <input type="text" x-model="newTitle" placeholder="Task description..."
+                           class="flex-1 p-3 border-2 border-black focus:outline-none placeholder:text-gray-300">
+                    <button type="submit" class="bg-black text-white px-6 font-bold uppercase hover:bg-white hover:text-black hover:ring-2 hover:ring-black transition-all">Add</button>
+                </form>
+                <div>
+                    {% include "routes/index/partials/todo_stats.html" %}
+                </div>
+                <div>
+                    {% include "routes/index/partials/todo_empty.html" with has_todos=todos %}
+                </div>
+                <div>
+                    {% include "routes/index/partials/todo_list.html" %}
+                </div>
+            </div>
+            </div>
+        </div>
+    </div>
+</section>

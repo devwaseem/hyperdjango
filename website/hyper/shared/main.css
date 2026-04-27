@@ -1,0 +1,50 @@
+@import 'tailwindcss';
+@plugin "@iconify/tailwind4";
+
+@theme {
+    --font-doto: 'Doto';
+    --font-sans:
+        'IBM Plex Mono', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+        'Noto Color Emoji';
+    --font-mono:
+        'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+    --color-base-100: oklch(1 0 0);
+    --color-base-200: oklch(0.97 0 0);
+    --color-base-300: oklch(0.91 0 0);
+    --color-base-content: oklch(0.18 0 0);
+
+    --color-primary: oklch(0.51 0.18 260);
+    --color-primary-content: oklch(1 0 0);
+
+    --color-secondary: oklch(0.32 0 0);
+    --color-secondary-content: oklch(1 0 0);
+
+    --color-accent: oklch(0.51 0.18 260);
+    --color-accent-content: oklch(1 0 0);
+
+    --color-neutral: oklch(0.18 0 0);
+    --color-neutral-content: oklch(1 0 0);
+
+    --color-info: oklch(0.41 0.19 265);
+    --color-info-content: oklch(1 0 0);
+
+    --color-success: oklch(0.64 0.17 145);
+    --color-success-content: oklch(1 0 0);
+
+    --color-error: oklch(0.48 0.22 25);
+    --color-error-content: oklch(1 0 0);
+
+    --color-warning: oklch(0.81 0.15 85);
+    --color-warning-content: oklch(0.18 0 0);
+
+    --color-destructive: oklch(0.48 0.22 25);
+    --color-destructive-content: oklch(1 0 0);
+
+    --color-muted: oklch(0.97 0 0);
+    --color-muted-content: oklch(0.45 0 0);
+
+    --color-ring: oklch(0.51 0.18 260);
+
+    --radius: 0px;
+}

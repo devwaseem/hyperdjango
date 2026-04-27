@@ -1,0 +1,234 @@
+<section class="max-w-6xl mx-auto px-6 py-24 border-t border-black/10">
+    <div class="flex flex-col mb-12">
+        <h2 class="font-doto text-4xl font-black mb-2 uppercase">Agent Streaming</h2>
+        <p class="font-mono text-gray-500">A real chat flow: user prompt, streamed tool work, then an assistant answer that types into the thread.</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 border-2 border-black divide-y-2 lg:divide-y-0 lg:divide-x-2 divide-black font-mono">
+        <div class="bg-gray-50 min-h-0 overflow-hidden">
+            <div class="flex flex-col gap-6 p-6 pb-10 box-border overflow-y-auto overflow-x-hidden lg:h-[80vh]">
+                <div>
+                    <div class="flex items-center gap-2 mb-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                        <span class="w-1.5 h-1.5 bg-black/20"></span>
+                        template.html
+                    </div>
+                    <pre class="text-[12px] leading-relaxed overflow-x-auto"><code class="language-html">{% verbatim %}&lt;section x-data="{ prompt: '' }"&gt;
+  &lt;div id="agent-thread-demo" class="agent-chat-thread"&gt;
+    {% include "partials/agent_log_empty.html" %}
+  &lt;/div&gt;
+
+  &lt;label class="block mb-2"&gt;Prompt&lt;/label&gt;
+  &lt;form
+    class="agent-chat-composer"
+    @submit.prevent="if (!prompt.trim()) return; $action('run_agent_stream', { prompt }, { method: 'POST', key: 'agent-stream' }); prompt = ''"
+  &gt;
+    &lt;div class="agent-chat-composer-field"&gt;
+      &lt;input x-model="prompt" /&gt;
+    &lt;/div&gt;
+    &lt;button class="agent-chat-send"&gt;Send&lt;/button&gt;
+  &lt;/form&gt;
+&lt;/section&gt;{% endverbatim %}</code></pre>
+                </div>
+                <div class="border-t border-black/5 pt-6">
+                    <div class="flex items-center gap-2 mb-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                        <span class="w-1.5 h-1.5 bg-black/20"></span>
+                        partials/agent_user_message.html
+                    </div>
+                    <pre class="text-[12px] leading-relaxed overflow-x-auto"><code class="language-html">{% verbatim %}&lt;div class="agent-chat-row agent-chat-row-user"&gt;
+  &lt;div class="agent-chat-bubble agent-chat-bubble-user"&gt;
+    &lt;div class="agent-chat-label"&gt;you&lt;/div&gt;
+    &lt;div class="agent-chat-text"&gt;{{ prompt }}&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;{% endverbatim %}</code></pre>
+                </div>
+                <div class="border-t border-black/5 pt-6">
+                    <div class="flex items-center gap-2 mb-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                        <span class="w-1.5 h-1.5 bg-black/20"></span>
+                        partials/agent_log_shell.html
+                    </div>
+                    <pre class="text-[12px] leading-relaxed overflow-x-auto"><code class="language-html">{% verbatim %}&lt;div id="agent-tool-message" class="agent-chat-bubble agent-chat-bubble-tool agent-chat-bubble-tool-live"&gt;
+  &lt;div id="agent-log-text" class="agent-chat-tool-text"&gt;&lt;/div&gt;
+&lt;/div&gt;{% endverbatim %}</code></pre>
+                </div>
+                <div class="border-t border-black/5 pt-6">
+                    <div class="flex items-center gap-2 mb-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                        <span class="w-1.5 h-1.5 bg-black/20"></span>
+                        partials/agent_log_chunk.html
+                    </div>
+                    <pre class="text-[12px] leading-relaxed overflow-x-auto"><code class="language-html">{% verbatim %}&lt;span class="agent-log-chip"&gt;[{{ kind }}] {{ message }}&lt;/span&gt;{% endverbatim %}</code></pre>
+                </div>
+                <div class="border-t border-black/5 pt-6">
+                    <div class="flex items-center gap-2 mb-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                        <span class="w-1.5 h-1.5 bg-black/20"></span>
+                        partials/agent_assistant_shell.html
+                    </div>
+                    <pre class="text-[12px] leading-relaxed overflow-x-auto"><code class="language-html">{% verbatim %}&lt;div class="agent-chat-row agent-chat-row-agent"&gt;
+  &lt;div class="agent-chat-bubble agent-chat-bubble-agent"&gt;
+    &lt;div class="agent-chat-label"&gt;assistant&lt;/div&gt;
+    &lt;div id="agent-response-demo" class="agent-chat-text"&gt;&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;{% endverbatim %}</code></pre>
+                </div>
+                <div class="border-t border-black/5 pt-6">
+                    <div class="flex items-center gap-2 mb-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                        <span class="w-1.5 h-1.5 bg-black/20"></span>
+                        entry.ts
+                    </div>
+                    <pre class="text-[12px] leading-relaxed overflow-x-auto"><code class="language-typescript">window.addEventListener("agent:scroll", () => {
+    queueMicrotask(() => {
+        const thread = document.getElementById("agent-thread-demo");
+        if (!(thread instanceof HTMLElement)) return;
+
+        thread.scrollTop = thread.scrollHeight;
+    });
+});</code></pre>
+                </div>
+                <div class="border-t border-black/5 pt-6">
+                    <div class="flex items-center gap-2 mb-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                        <span class="w-1.5 h-1.5 bg-black/20"></span>
+                        +page.py
+                    </div>
+                    <pre class="text-[12px] leading-relaxed overflow-x-auto"><code class="language-python">from hyperdjango import HyperView
+from hyperdjango.actions import Event, HTML, Toast, action
+
+
+class PageView(HyperView):
+    @action
+    def run_agent_stream(self, request, prompt=""):
+        prompt = (
+            prompt.strip()
+            or "Explain how HyperDjango streams server events to the UI."
+        )
+
+        yield HTML(content="", target="#agent-thread-demo", swap="inner")
+        yield HTML(
+            content=self.render(
+                request,
+                "partials/agent_user_message.html",
+                {"prompt": prompt},
+            ),
+            target="#agent-thread-demo",
+            swap="append",
+        )
+        yield Event(name="agent:scroll", payload={})
+        yield HTML(
+            content=self.render(
+                request,
+                "partials/agent_log_shell.html",
+            ),
+            target="#agent-thread-demo",
+            swap="append",
+        )
+        yield Event(name="agent:scroll", payload={})
+
+        for kind, message in [
+            ("plan", f"Mapping request: {prompt}"),
+            ("tool", "Scanning partials and action handlers"),
+            ("write", "Preparing streamed UI patches"),
+            ("test", "Running checks before answering"),
+        ]:
+            yield HTML(
+                content=self.render(
+                    request,
+                    "partials/agent_log_chunk.html",
+                    {"kind": kind, "message": message},
+                ),
+                target="#agent-tool-text",
+                swap="inner",
+            )
+            yield Event(name="agent:scroll", payload={})
+
+        yield HTML(
+            content=self.render(
+                request,
+                "partials/agent_log_shell_done.html",
+            ),
+            target="#agent-tool-message",
+        )
+        yield HTML(
+            content=self.render(
+                request,
+                "partials/agent_log_chunk.html",
+                {
+                    "kind": "test",
+                    "message": "Checks passed. Starting final response stream",
+                },
+            ),
+            target="#agent-log-text",
+            swap="inner",
+        )
+        yield Event(name="agent:scroll", payload={})
+
+        yield HTML(
+            content=self.render(
+                request,
+                "partials/agent_assistant_shell.html",
+            ),
+            target="#agent-thread-demo",
+            swap="append",
+        )
+        yield Event(name="agent:scroll", payload={})
+
+        response = (
+            "I parsed your prompt and built a plan. "
+            "Then the tool phase streamed into a single evolving status bubble. "
+            "After the checks passed, the final answer streamed into the assistant bubble."
+        )
+        chunks = [segment + " " for segment in response.split()]
+
+        if chunks:
+            chunks[-1] = chunks[-1].rstrip()
+
+        for chunk in chunks:
+            yield HTML(
+                content=self.render(
+                    request,
+                    "partials/agent_response_chunk.html",
+                    {"chunk": chunk},
+                ),
+                target="#agent-response-demo",
+                swap="append",
+            )
+            yield Event(name="agent:scroll", payload={})
+
+        yield Toast(
+            payload={
+                "type": "success",
+                "title": "Agent finished",
+                "message": "Stream complete.",
+            }
+        )</code></pre>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white min-h-0 overflow-hidden">
+            <div class="p-8 pb-10 flex flex-col box-border overflow-y-auto overflow-x-hidden lg:h-[80vh]">
+                <div class="flex items-center gap-2 mb-6 text-[10px] font-black text-black uppercase tracking-[0.2em]">
+                    <span class="w-1.5 h-1.5 bg-black"></span>
+                    Live Interactive Demo
+                </div>
+                <section x-data="{ prompt: '' }" class="space-y-4">
+                    <div id="agent-thread-demo" class="agent-chat-thread">
+                        {% include "routes/index/partials/agent_log_empty.html" %}
+                    </div>
+
+                    <label class="block text-[10px] uppercase tracking-[0.2em] text-gray-400">Prompt</label>
+                    <form @submit.prevent="if (!prompt.trim()) return; $action('run_agent_stream', { prompt }, { method: 'POST', key: 'agent-stream' }); prompt = ''"
+                          class="agent-chat-composer">
+                        <div class="agent-chat-composer-field">
+                            <input x-model="prompt"
+                                   type="text"
+                                   placeholder="Explain how HyperDjango streams server events to the UI..."
+                                   class="w-full border-2 border-black bg-white px-3 py-2 focus:outline-none" />
+                        </div>
+                        <button type="submit"
+                                hyper-loading-disable="agent-stream"
+                                class="agent-chat-send bg-black text-white px-5 text-sm font-bold uppercase hover:bg-white hover:text-black hover:ring-2 hover:ring-black transition-all">
+                            Send
+                        </button>
+                    </form>
+                </section>
+            </div>
+        </div>
+    </div>
+</section>

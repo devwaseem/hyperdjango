@@ -1,0 +1,15 @@
+<nav class="z-50 p-6 flex flex-row justify-between fixed top-0 inset-x-0 bg-white/80 backdrop-blur-sm border-b border-black/5">
+    <a href="/" class="font-black font-doto text-xl cursor-pointer">HyperDjango</a>
+    <div class="flex flex-row justify-between gap-0 font-medium font-mono text-sm">
+        <a href="/#examples-section" class="px-3 py-1 tui-hover transition-none">EXAMPLES</a>
+        <a href="/docs"
+           class="px-3 py-1 {% if request.path|slice:':6' == '/docs/' or request.path == '/docs' %}bg-black text-white{% else %}tui-hover transition-none{% endif %}">DOCS</a>
+        <a href="{{ github_repo_url }}"
+           target="_blank"
+           rel="noreferrer"
+           class="px-3 py-1 tui-hover transition-none group flex items-center gap-2">
+            STAR ON GITHUB
+            <span class="text-xs border border-current px-1 group-hover:border-white">{{ github_stars_label }}</span>
+        </a>
+    </div>
+</nav>

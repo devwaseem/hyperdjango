@@ -1,0 +1,25 @@
+{% extends "layouts/base/index.html" %}
+{% block main %}
+    {% include "layouts/base/partials/topnav.html" %}
+    <section class="bg-white px-6 pt-32 pb-24">
+        <div class="mx-auto max-w-6xl grid gap-12 lg:grid-cols-[16rem_minmax(0,1fr)]">
+            <aside class="docs-sidebar hidden lg:block font-mono">
+                {% for section in docs_navigation %}
+                    <div class="{% if not forloop.first %}mt-8{% endif %}">
+                        <div class="text-[10px] font-black uppercase tracking-[0.25em] text-gray-400">{{ section.title }}</div>
+                        <nav class="mt-4 space-y-1">
+                            {% for page in section.pages %}
+                                <a href="{{ page.href }}"
+                                   class="docs-nav-link{% if current_slug == page.slug %} docs-nav-link-active{% endif %}"
+                                   aria-current="{% if current_slug == page.slug %}page{% else %}false{% endif %}">{{ page.title }}</a>
+                            {% endfor %}
+                        </nav>
+                    </div>
+                {% endfor %}
+            </aside>
+            <article class="docs-prose min-w-0 space-y-16 font-mono text-sm text-gray-500">
+                {% block docs_content %}{% endblock docs_content %}
+            </article>
+        </div>
+    </section>
+{% endblock main %}

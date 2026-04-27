@@ -1,0 +1,154 @@
+<section class="max-w-6xl mx-auto px-6 py-24 border-t border-black/10">
+    <div class="flex flex-col mb-12">
+        <h2 class="font-doto text-4xl font-black mb-2 uppercase">File Upload</h2>
+        <p class="font-mono text-gray-500">Upload progress can stream from the browser while the server returns a normal HyperDjango action response.</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 border-2 border-black divide-y-2 lg:divide-y-0 lg:divide-x-2 divide-black font-mono">
+        <div class="bg-gray-50 min-h-0 overflow-hidden">
+            <div class="flex flex-col gap-6 p-6 pb-10 box-border overflow-y-auto overflow-x-hidden lg:h-[80vh]">
+                <div>
+                    <div class="flex items-center gap-2 mb-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                        <span class="w-1.5 h-1.5 bg-black/20"></span>
+                        template.html
+                    </div>
+                    <pre class="text-[12px] leading-relaxed overflow-x-auto"><code class="language-html">{% verbatim %}&lt;form id="upload-form-demo" x-data="uploadDemo()" method="POST" enctype="multipart/form-data"&gt;
+  &lt;label class="upload-picker"&gt;
+    &lt;span&gt;Choose file&lt;/span&gt;
+    &lt;span x-text="filename"&gt;&lt;/span&gt;
+    &lt;input type="file" name="upload" class="sr-only" @change="reset('#upload-form-demo')" /&gt;
+  &lt;/label&gt;
+  &lt;button
+    type="button"
+    @click="reset('#upload-form-demo'); $action('upload_demo', {}, { form: '#upload-form-demo', key: 'upload-demo', onUploadProgress() {} })"
+  &gt;
+    Upload
+  &lt;/button&gt;
+
+  &lt;div class="relative border border-black/10 h-3"&gt;
+    &lt;div :style="`width:${progress}%`"&gt;&lt;/div&gt;
+  &lt;/div&gt;
+
+  {% include "partials/upload_result.html" %}
+&lt;/form&gt;{% endverbatim %}</code></pre>
+                </div>
+                <div class="border-t border-black/5 pt-6">
+                    <div class="flex items-center gap-2 mb-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                        <span class="w-1.5 h-1.5 bg-black/20"></span>
+                        entry.ts
+                    </div>
+                    <pre class="text-[12px] leading-relaxed overflow-x-auto"><code class="language-typescript">Alpine.data("uploadDemo", () => ({
+    progress: 0,
+    status: "idle | 0%",
+    filename: "No file chosen",
+
+    init() {
+        window.addEventListener("hyper:uploadProgress", (event) => {
+            if (event.detail.key !== "upload-demo") return;
+
+            const percent = Math.round((event.detail.progress ?? 0) * 100);
+            this.progress = percent;
+            this.status = `uploading | ${percent}%`;
+        });
+
+        window.addEventListener("hyper:afterRequest", (event) => {
+            if (event.detail.key !== "upload-demo") return;
+
+            this.progress = event.detail.ok ? 100 : 0;
+            this.status = event.detail.ok ? "done | 100%" : "error | 0%";
+        });
+    },
+
+    reset(formSelector) {
+        const form = document.querySelector(formSelector);
+        const input = form?.querySelector('input[type="file"][name="upload"]');
+        const hasFile = !!input?.files?.length;
+
+        this.filename = input?.files?.[0]?.name || "No file chosen";
+        this._expectUpload = hasFile;
+        this.progress = 0;
+        this.status = hasFile ? "starting | 0%" : "error | 0%";
+    },
+}));</code></pre>
+                </div>
+                <div class="border-t border-black/5 pt-6">
+                    <div class="flex items-center gap-2 mb-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                        <span class="w-1.5 h-1.5 bg-black/20"></span>
+                        +page.py
+                    </div>
+                    <pre class="text-[12px] leading-relaxed overflow-x-auto"><code class="language-python">from hyperdjango import HyperView
+from hyperdjango.actions import HTML, Toast, action
+
+
+class PageView(HyperView):
+    @action
+    def upload_demo(self, request, **kwargs):
+        upload = request.FILES.get("upload")
+
+        if upload is None:
+            html = self.render(
+                request=request,
+                relative_template_name="partials/upload_result.html",
+                context_updates={
+                    "error": "Choose a file before uploading.",
+                    "uploaded_name": "",
+                    "uploaded_size_kb": "",
+                    "content_type": "",
+                },
+            )
+            return [HTML(content=html, target="#upload-result-demo")]
+
+        html = self.render(
+            request=request,
+            relative_template_name="partials/upload_result.html",
+            context_updates={
+                "uploaded_name": upload.name,
+                "uploaded_size_kb": round(upload.size / 1024),
+                "content_type": upload.content_type,
+                "error": "",
+            },
+        )
+        return [
+            HTML(content=html, target="#upload-result-demo"),
+            Toast(payload={"type": "success", "title": "Upload complete", "message": f"Received {upload.name}."}),
+        ]</code></pre>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white min-h-0 overflow-hidden">
+            <div class="p-8 pb-10 flex flex-col box-border overflow-y-auto overflow-x-hidden lg:h-[80vh]">
+                <div class="flex items-center gap-2 mb-6 text-[10px] font-black text-black uppercase tracking-[0.2em]">
+                    <span class="w-1.5 h-1.5 bg-black"></span>
+                    Live Interactive Demo
+                </div>
+                <form id="upload-form-demo"
+                      x-data="uploadDemo()"
+                      x-init="init()"
+                      method="POST"
+                      enctype="multipart/form-data"
+                      class="space-y-4">
+                    <label class="upload-picker">
+                        <span class="upload-picker-button">Choose file</span>
+                        <span class="upload-picker-name" x-text="filename"></span>
+                        <input type="file"
+                               name="upload"
+                               class="sr-only"
+                               @change="reset('#upload-form-demo')">
+                    </label>
+                    <button type="button"
+                            class="bg-black text-white px-5 py-3 text-sm font-bold uppercase hover:bg-white hover:text-black hover:ring-2 hover:ring-black transition-all"
+                            @click="reset('#upload-form-demo'); $action('upload_demo', {}, { form: '#upload-form-demo', key: 'upload-demo', onUploadProgress() {} })">
+                        Upload
+                    </button>
+                    <div class="space-y-2">
+                        <div class="text-[11px] uppercase tracking-[0.15em] text-gray-500" x-text="status"></div>
+                        <div class="relative h-3 border border-black/10 bg-white overflow-hidden">
+                            <div class="absolute inset-y-0 left-0 bg-black transition-[width] duration-150" :style="`width: ${progress}%`"></div>
+                        </div>
+                    </div>
+                    {% include "routes/index/partials/upload_result.html" with error='' uploaded_name='' uploaded_size_kb='' content_type='' %}
+                </form>
+            </div>
+        </div>
+    </div>
+</section>

@@ -1,0 +1,44 @@
+<section class="relative overflow-hidden bg-white"
+         x-data="{ step: 0, count1: 0, fullText1: 'Modern Web Apps', count2: 0, fullText2: 'Django Simplicity.' }"
+         x-init=" setTimeout(() => { step = 1 }, 200); setTimeout(() => { step = 2; let interval = setInterval(() => { $data.count1++; if ($data.count1 >= $data.fullText1.length) clearInterval(interval); }, 50); }, 600); setTimeout(() => { step = 3; let interval = setInterval(() => { $data.count2++; if ($data.count2 >= $data.fullText2.length) clearInterval(interval); }, 50); }, 1800); setTimeout(() => { step = 4 }, 3000); ">
+    <canvas id="ascii-bg"
+            class="absolute top-0 left-0 w-full h-screen z-0 pointer-events-none opacity-0 transition-opacity duration-1000"></canvas>
+    <div class="relative z-10 min-h-screen flex flex-col text-black">
+        <div class="m-auto flex flex-col justify-center items-center gap-8">
+            <div class="inline-block p-2 transition-all duration-300 opacity-0 translate-y-4"
+                 :class="step >= 1 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'"
+                 x-cloak>v0.21.0 - Alpha</div>
+            <h1 class="flex flex-col justify-center items-center text-6xl font-extrabold font-doto tracking-tight">
+                <span class="flex items-center min-h-[1.2em]">
+                    <span x-text="fullText1.slice(0, count1)"></span>
+                    <span class="w-8 h-12 bg-black ml-2 animate-blink"
+                          x-show="step == 2"
+                          x-cloak></span>
+                </span>
+                <span class="flex items-center min-h-[1.2em]">
+                    <span x-text="fullText2.slice(0, count2)"></span>
+                    <span class="w-8 h-12 bg-black ml-2 animate-blink"
+                          x-show="step == 3"
+                          x-cloak></span>
+                </span>
+            </h1>
+            <h2 class="max-w-xl text-center font-mono text-lg leading-relaxed transition-all duration-700 delay-300 opacity-0 translate-y-2"
+                :class="step >= 4 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'"
+                x-cloak>
+                HyperDjango brings high-performance, hypermedia-driven interactivity to your Django templates without the JavaScript fatigue.
+            </h2>
+            <div class="transition-all duration-700 delay-400 opacity-0 translate-y-4 w-full max-w-xl"
+                 :class="step >= 4 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'"
+                 x-cloak>
+                <div class="border border-black/10 px-4 py-3 flex items-center justify-between gap-4 font-mono text-sm text-black">
+                    <code class="overflow-x-auto whitespace-nowrap">pip install hyperdjango</code>
+                    <button type="button"
+                            onclick="navigator.clipboard.writeText('pip install hyperdjango'); toast.success('Copied', { description: 'pip install hyperdjango' }); const el=this; const original=el.textContent; el.textContent='Copied!'; setTimeout(() => el.textContent = original, 1200)"
+                            class="shrink-0 border border-black/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] hover:border-black transition-colors">
+                        Copy
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

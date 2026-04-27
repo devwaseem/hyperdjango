@@ -2,7 +2,7 @@
 name = "hyperdjango-website"
 version = "0.1.0"
 description = "HyperDjango Documentation Website"
-requires-python = ">=3.13"
+authors = [{ name = "Waseem akram", email = "waseem07799@gmail.com" }]
 dependencies = [
     "django>=4.2",
     "hyperdjango",
@@ -11,6 +11,283 @@ dependencies = [
 [tool.uv]
 sources = { hyperdjango = { path = ".." } }
 
-[build-system]
-requires = ["setuptools>=69", "wheel"]
-build-backend = "setuptools.build_meta"
+requires-python = ">=3.14,<3.15"
+readme = "README.md"
+
+[dependency-groups]
+dev = [
+    { include-group = "test" },
+    { include-group = "types" },
+    { include-group = "code-checks" },
+]
+
+types = [
+    "basedpyright>=1.38.2,<2",
+]
+
+code-checks = [
+    "djlint>=1.19.13,<2",
+    "flake8>=6.0.0,<7",
+    "ruff>=0.12.3",
+]
+
+test = [
+    "coverage>=7.4.0,<8",
+    "django-coverage-plugin>=3.0.0,<4",
+    "faker>=5.4.0,<12.1",
+    "mixer>=7.2.2,<8",
+    "pytest-cov>=4.0.0,<5",
+    "pytest-describe>=2.1.0,<3",
+    "pytest-django>=4.5.2,<5",
+    "pytest-env>=1.1.5,<2",
+    "pytest-mock>=3.10.0,<4",
+    "pytest-randomly>=3.16.0,<4",
+    "pytest-sugar>=0.9.6,<0.10",
+    "pytest-xdist>=3.1.0,<4",
+    "pytest>=8.3.4,<9",
+]
+
+
+[tool.basedpyright]
+pythonVersion = "3.14"
+pythonPlatform = "Linux"
+typeCheckingMode = "strict"
+
+reportMissingTypeStubs = false
+reportIncompatibleVariableOverride = false
+reportUnusedParameter = false
+reportExplicitAny = false
+reportUnannotatedClassAttribute = false
+reportAny = false
+reportUnusedCallResult = false
+
+include = ["app", "hyper", "manage.py"]
+exclude = [
+    "**/node_modules",
+    "**/__pycache__",
+    "env",
+    ".venv",
+    "**/tests",
+    "**/migrations",
+]
+
+[tool.djlint]
+custom_html = "mjml,mj-head,mj-\\w+"
+
+
+[tool.bandit]
+exclude_dirs = ['**/*_test.py', '**/test_*.py', '.venv', 'venv']
+
+[tool.ruff]
+
+exclude = [
+    "*.egg",
+    "*/migrations/*.py",
+    ".bzr",
+    ".cache",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".ipynb_checkpoints",
+    ".local",
+    ".mypy_cache",
+    ".nox",
+    ".npm",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "__pycache__",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "manage.py",
+    "node_modules",
+    "site-packages",
+    "venv",
+]
+
+
+line-length = 79
+indent-width = 4
+
+[tool.ruff.lint]
+# Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
+# select = ["E4", "E7", "E9", "F"]
+# ignore = []
+
+extend-select = [
+    "A", # flake8-builtins
+    # flake8-annotations - https://docs.astral.sh/ruff/rules/#flake8-annotations-ann
+    "ANN001",
+    "ANN002",
+    "ANN003",
+    "ANN201",
+    "ANN202",
+    "ANN204",
+    "ANN205",
+    "ANN206",
+    "ARG",    # flake8-unused-arguments (ARG)
+    "ASYNC",  # flake8-async (ASYNC)
+    "B",      # flake8-bugbear
+    "BLE",    # flake8-blind-except
+    "C4",     # flake8-comprehensions (C4)
+    "C90",    # mccabe (C90)
+    "DJ",     # flake8-django
+    "DTZ",    # flake8-datetimez (DTZ)
+    "E",      # pycodestyle Error
+    "ERA",    # eradicate (ERA)
+    "F",      # Pyflakes
+    "FBT",    # flake8-boolean-trap (FBT)
+    "FIX",    # flake8-fixme (FIX)
+    "FURB",   # refurb (FURB)
+    "G",      # flake8-logging-format
+    "I",      # isort
+    "ICN",    # flake8-import-conventions
+    "LOG",    # flake8-logging (LOG)
+    "N",      # pep8-naming
+    "PERF",   # Perflint (PERF)
+    "PIE",    # flake8-pie
+    "PTH",    # flake8-use-pathlib (PTH)
+    "PYI",    # flake8-pyi
+    "Q",      # flake8-quotes
+    "RET",    # flake8-return (RET)
+    "RSE",    # flake8-raise (RSE)
+    "RUF",    # Ruff-specific rules (RUF)
+    "SIM",    # flake8-simplify
+    "SLF",    # flake8-self (SLF)
+    "T10",    # flake8-debugger (T10)
+    "T20",    # flake8-print
+    # "TD",    # flake8-todos (TD)
+    "TID", # flake8-tidy-imports (TID)
+    "TRY", # tryceratops (TRY)
+    "W",   # pycodestyle Warning
+    # "D",     # pydocstyle (D)
+    "FLY",  # flynt (FLY)
+    "SLOT", #flake8-slots
+]
+ignore = [
+    "D100", # undocumented-public-module
+    "D104", # undocumented-public-package
+    # "D203",   # one-blank-line-before-class
+    "D212",   # multi-line-summary-first-line
+    "RUF012", # mutable-class-default
+    "TRY003", # raise-vanilla-args
+    'A003',   # builtin-attribute-shadowing
+]
+
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.format]
+# Like Black, use double quotes for strings.
+quote-style = "double"
+
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+
+# Like Black, respect magic trailing commas.
+skip-magic-trailing-comma = false
+
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+known-third-party = []
+
+[tool.ruff.lint.per-file-ignores]
+"**/admin/*" = [
+    "RUF012", # mutable-class-default
+    "D101",   # undocumented-public-class
+]
+"**/__init__.py" = [
+    "F403", # undefined-local-with-import-star
+    "F401", # unused-import
+]
+"**/{tests,docs,tools}/*" = ["E402", "E501"]
+
+"**/management/commands/*" = [
+    'A003', # builtin-attribute-shadowing
+]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "app.settings.test"
+filterwarnings = ["ignore::DeprecationWarning"]
+
+
+addopts = [
+    '--create-db',
+    # '--reuse-db',
+    # '--no-migrations',
+    '--tb=native',
+    '--color=yes',
+    '--strict-markers',
+    '--strict-config',
+    # '--durations=0',
+    # '--durations-min=0.5',
+    '--cov=app/',
+    '--cov-report=html',
+    '--cov-config=pyproject.toml',
+    '--cov-report=xml',
+    # '--doctest-modules',
+    '--cov-report=term',
+]
+
+markers = [
+    "unit: mark as Unit Tests",
+    "integration: mark as Integration",
+    "e2e: mark as End to End",
+    "slow: mark test as slow.",
+]
+
+[tool.pytest_env]
+TEST = true
+LOG_DB = false
+DEBUG = false
+
+[tool.coverage.run]
+branch = true
+disable_warnings = ["no-data-collected"]
+omit = [
+    './config/*',
+]
+
+[tool.coverage.report]
+exclude_also = [
+    # Don't complain about missing debug-only code:
+    "def __repr__",
+    "if self\\.debug",
+    "if TYPE_CHECKING",
+    "if DEBUG",
+
+    # Don't complain if tests don't hit defensive assertion code:
+    "raise AssertionError",
+    "raise NotImplementedError",
+
+    # Don't complain if non-runnable code isn't run:
+    "if 0:",
+    "if __name__ == .__main__.:",
+
+    # Don't complain about abstract methods, they aren't run:
+    "@(abc\\.)?abstractmethod",
+
+    # Skip any pass lines such as may be used for @abstractmethod
+    "pass",
+
+    # Have to re-enable the standard pragma
+    "pragma: no cover",
+]

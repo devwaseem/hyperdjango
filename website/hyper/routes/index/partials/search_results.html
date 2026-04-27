@@ -1,0 +1,14 @@
+<ul id="search-results-demo" class="mt-4 space-y-1">
+    {% for item in search_results %}
+    <li class="p-2 border-b border-black/5 hover:bg-gray-50 cursor-default">
+        <span class="text-xs text-gray-400 mr-2">></span>
+        {{ item }}
+    </li>
+    {% empty %}
+    {% if q %}
+    <li class="p-8 text-center text-gray-400 italic border border-dashed border-black/10">
+        No matches found for "{{ q }}"
+    </li>
+    {% endif %}
+    {% endfor %}
+</ul>

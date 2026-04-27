@@ -1,0 +1,22 @@
+{
+  "name": "hyperdjango-example",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "devDependencies": {
+    "vite": "^7.0.0"
+  },
+  "dependencies": {
+    "@alpinejs/morph": "^3.14.9",
+    "@iconify/tailwind4": "^1.2.3",
+    "@tailwindcss/vite": "^4.2.2",
+    "alpinejs": "^3.14.9",
+    "highlight.js": "^11.11.1",
+    "morphdom": "^2.7.4",
+    "tailwindcss": "^4.2.2",
+    "vanilla-sonner": "^0.5.2"
+  }
+}

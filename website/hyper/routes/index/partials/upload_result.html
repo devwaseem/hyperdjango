@@ -1,0 +1,11 @@
+<div id="upload-result-demo" class="border border-black/10 bg-white p-4 space-y-2">
+    {% if error %}
+    <div class="text-sm text-red-600">{{ error }}</div>
+    {% elif uploaded_name %}
+    <div class="text-[10px] uppercase tracking-[0.2em] text-gray-400">Received file</div>
+    <div class="text-sm text-black">{{ uploaded_name }}</div>
+    <div class="text-xs text-gray-500">{{ uploaded_size_kb }} KB · {{ content_type }}</div>
+    {% else %}
+    <div class="text-sm text-gray-400 italic">Uploaded file details will appear here.</div>
+    {% endif %}
+</div>

@@ -1,0 +1,221 @@
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
+
+@keyframes rainbow-shift {
+    0% { filter: hue-rotate(0deg); }
+    100% { filter: hue-rotate(360deg); }
+}
+
+@keyframes text-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.animate-blink {
+    animation: blink 1s step-end infinite;
+}
+
+.tui-hover {
+    transition: none;
+}
+
+.tui-hover:hover {
+    background: #000;
+    color: #fff;
+    cursor: pointer;
+}
+
+.hljs {
+    background: transparent !important;
+    padding: 0;
+}
+
+.search-loading-frame {
+    position: absolute;
+    inset: -2px;
+    padding: 2px;
+    pointer-events: none;
+    background: conic-gradient(
+        from 0deg,
+        #ff003c,
+        #ff8a00,
+        #ffd200,
+        #00c853,
+        #00b0ff,
+        #7c4dff,
+        #ff003c
+    );
+    animation: rainbow-shift 1.2s linear infinite;
+    -webkit-mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+}
+
+.agent-log-chip {
+    font-size: 0.875rem;
+    line-height: 1.7;
+}
+
+.agent-log-separator {
+    color: #9ca3af;
+}
+
+.agent-chat-thread {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+    min-height: 20rem;
+    border: 1px solid rgb(0 0 0 / 0.1);
+    background: rgb(249 250 251);
+    padding: 1rem;
+}
+
+.agent-chat-row {
+    display: flex;
+}
+
+.agent-chat-row-user {
+    justify-content: flex-end;
+}
+
+.agent-chat-row-agent {
+    justify-content: flex-start;
+}
+
+.agent-chat-bubble {
+    max-width: 82%;
+    border: 1px solid rgb(0 0 0);
+    padding: 0.9rem 1rem;
+    line-height: 1.7;
+}
+
+.agent-chat-bubble-user {
+    background: rgb(0 0 0);
+    color: rgb(255 255 255);
+}
+
+.agent-chat-bubble-tool {
+    background: transparent;
+    border-color: transparent;
+    color: rgb(17 24 39);
+    padding: 0.15rem 0;
+    max-width: 100%;
+}
+
+.agent-chat-bubble-tool-live .agent-chat-tool-text {
+    color: transparent;
+    background-image: linear-gradient(
+        90deg,
+        rgb(107 114 128) 0%,
+        rgb(17 24 39) 20%,
+        rgb(156 163 175) 40%,
+        rgb(17 24 39) 60%,
+        rgb(107 114 128) 80%,
+        rgb(17 24 39) 100%
+    );
+    background-size: 220% 100%;
+    background-clip: text;
+    -webkit-background-clip: text;
+    animation: text-shimmer 1.3s linear infinite;
+}
+
+.agent-chat-bubble-agent {
+    background: rgb(255 255 255);
+    color: rgb(17 24 39);
+    box-shadow: 6px 6px 0 0 rgb(0 0 0);
+}
+
+.agent-chat-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: rgb(156 163 175);
+    margin-bottom: 0.55rem;
+}
+
+.agent-chat-bubble-user .agent-chat-label {
+    color: rgb(209 213 219);
+}
+
+.agent-chat-text,
+.agent-chat-tool-text {
+    font-size: 0.95rem;
+    line-height: 1.75;
+}
+
+.agent-chat-empty {
+    max-width: 82%;
+    border: 1px dashed rgb(0 0 0 / 0.15);
+    background: rgb(255 255 255);
+    padding: 0.9rem 1rem;
+    color: rgb(107 114 128);
+    font-style: italic;
+}
+
+.agent-chat-empty-centered {
+    align-self: center;
+    text-align: center;
+    min-width: min(28rem, 100%);
+}
+
+.agent-chat-composer {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.5rem;
+    align-items: stretch;
+}
+
+.agent-chat-composer-field {
+    min-width: 0;
+    display: flex;
+}
+
+.agent-chat-composer-field input,
+.agent-chat-composer-field textarea {
+    flex: 1 1 auto;
+}
+
+.agent-chat-send {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    align-self: stretch;
+    min-width: 7rem;
+    min-height: 2.75rem;
+}
+
+.upload-picker {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    border: 2px solid rgb(0 0 0);
+    background: rgb(255 255 255);
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+}
+
+.upload-picker-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgb(0 0 0);
+    color: rgb(255 255 255);
+    padding: 0.6rem 0.9rem;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+}
+
+.upload-picker-name {
+    min-width: 0;
+    color: rgb(107 114 128);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

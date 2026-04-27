@@ -1,0 +1,12 @@
+<li id="todo-{{ todo.id }}" class="flex items-center gap-3 p-3 border border-black/10 hover:border-black/30 transition-colors bg-white">
+    <input type="checkbox" {% if todo.done %}checked{% endif %}
+           @change="$action('toggle_todo', { id: '{{ todo.id }}' }, { method: 'POST' })"
+           class="w-4 h-4 border-2 border-black rounded-none cursor-pointer">
+    <span class="flex-1 {% if todo.done %}line-through text-gray-400{% endif %}">
+        {{ todo.title }}
+    </span>
+    <button type="button" @click="$action('delete_todo', { id: '{{ todo.id }}' }, { method: 'POST' })"
+            class="text-xs uppercase font-bold text-red-500 hover:underline">
+        Delete
+    </button>
+</li>

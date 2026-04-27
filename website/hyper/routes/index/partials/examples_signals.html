@@ -1,0 +1,69 @@
+<section class="max-w-6xl mx-auto px-6 py-24 border-t border-black/10">
+    <div class="flex flex-col mb-12">
+        <h2 class="font-doto text-4xl font-black mb-2 uppercase">Alpine Signals</h2>
+        <p class="font-mono text-gray-500">Update Alpine state directly from the server without swapping any HTML.</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 border-2 border-black divide-y-2 lg:divide-y-0 lg:divide-x-2 divide-black font-mono">
+        <div class="bg-gray-50 min-h-0 overflow-hidden">
+            <div class="flex flex-col gap-6 p-6 pb-10 box-border overflow-y-auto overflow-x-hidden lg:h-[80vh]">
+                <div>
+                    <div class="flex items-center gap-2 mb-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                        <span class="w-1.5 h-1.5 bg-black/20"></span>
+                        template.html
+                    </div>
+                    <pre class="text-[12px] leading-relaxed overflow-x-auto"><code class="language-html">{% verbatim %}&lt;section x-data="{ count: 0, status: 'Idle' }"&gt;
+  &lt;p&gt;Count: &lt;span x-text="count"&gt;&lt;/span&gt;&lt;/p&gt;
+  &lt;p x-text="status"&gt;&lt;/p&gt;
+  &lt;button @click="$action('increment_signal_demo', { count })"&gt;
+    Increment Signal
+  &lt;/button&gt;
+&lt;/section&gt;{% endverbatim %}</code></pre>
+                </div>
+                <div class="border-t border-black/5 pt-6">
+                    <div class="flex items-center gap-2 mb-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                        <span class="w-1.5 h-1.5 bg-black/20"></span>
+                        +page.py
+                    </div>
+                    <pre class="text-[12px] leading-relaxed overflow-x-auto"><code class="language-python">from hyperdjango import HyperView
+from hyperdjango.actions import Signal, action
+
+
+class PageView(HyperView):
+    @action
+    def increment_signal_demo(self, request, count=0):
+        next_count = int(count) + 1
+        return [
+            Signal(name="count", value=next_count),
+            Signal(name="status", value=f"Synced from server at count {next_count}"),
+        ]</code></pre>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white min-h-0 overflow-hidden">
+            <div class="p-8 pb-10 flex flex-col box-border overflow-y-auto overflow-x-hidden lg:h-[80vh]">
+                <div class="flex items-center gap-2 mb-6 text-[10px] font-black text-black uppercase tracking-[0.2em]">
+                    <span class="w-1.5 h-1.5 bg-black"></span>
+                    Live Interactive Demo
+                </div>
+                <section x-data="{ count: 0, status: 'Idle' }" class="space-y-4">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="border border-black/10 bg-white px-4 py-3">
+                            <div class="text-[10px] uppercase tracking-[0.2em] text-gray-400">Count</div>
+                            <div class="mt-2 text-3xl font-doto text-black" x-text="count"></div>
+                        </div>
+                        <div class="border border-black/10 bg-white px-4 py-3">
+                            <div class="text-[10px] uppercase tracking-[0.2em] text-gray-400">Status</div>
+                            <div class="mt-2 text-sm text-black" x-text="status"></div>
+                        </div>
+                    </div>
+                    <button type="button"
+                            class="bg-black text-white px-5 py-3 text-sm font-bold uppercase hover:bg-white hover:text-black hover:ring-2 hover:ring-black transition-all"
+                            @click="$action('increment_signal_demo', { count }, { method: 'POST' })">
+                        Increment Signal
+                    </button>
+                </section>
+            </div>
+        </div>
+    </div>
+</section>

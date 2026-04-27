@@ -1,0 +1,98 @@
+<section class="max-w-6xl mx-auto px-6 py-24 border-t border-black/10">
+    <div class="flex flex-col mb-12">
+        <h2 class="font-doto text-4xl font-black mb-2 uppercase">Type-ahead Search</h2>
+        <p class="font-mono text-gray-500">Debounced input events triggering live server-side filtering.</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 border-2 border-black divide-y-2 lg:divide-y-0 lg:divide-x-2 divide-black font-mono">
+        <div class="bg-gray-50 min-h-0 overflow-hidden">
+            <div class="flex flex-col gap-6 p-6 pb-10 box-border overflow-y-auto overflow-x-hidden lg:h-[80vh]">
+                <div>
+                    <div class="flex items-center gap-2 mb-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                        <span class="w-1.5 h-1.5 bg-black/20"></span>
+                        template.html
+                    </div>
+                    <pre class="text-[12px] leading-relaxed overflow-x-auto"><code class="language-html">{% verbatim %}&lt;div x-data="{ q: '' }"&gt;
+  &lt;p hyper-loading="live-search"&gt;
+    Searching...
+  &lt;/p&gt;
+
+  &lt;div class="relative"&gt;
+    &lt;input
+      x-model="q"
+      @input.debounce.300ms="$action('search', { q }, { key: 'live-search' })"
+    /&gt;
+    &lt;div class="search-loading-frame" hyper-loading="live-search"&gt;&lt;/div&gt;
+  &lt;/div&gt;
+
+  {% include "partials/search_results.html" %}
+&lt;/div&gt;{% endverbatim %}</code></pre>
+                </div>
+                <div class="border-t border-black/5 pt-6">
+                    <div class="flex items-center gap-2 mb-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                        <span class="w-1.5 h-1.5 bg-black/20"></span>
+                        partials/search_results.html
+                    </div>
+                    <pre class="text-[12px] leading-relaxed overflow-x-auto"><code class="language-html">{% verbatim %}&lt;ul id="search-results-demo"&gt;
+  {% for result in search_results %}
+    &lt;li&gt;{{ result }}&lt;/li&gt;
+  {% empty %}
+    {% if q %}
+      &lt;li&gt;No matches found for "{{ q }}"&lt;/li&gt;
+    {% endif %}
+  {% endfor %}
+&lt;/ul&gt;{% endverbatim %}</code></pre>
+                </div>
+                <div class="border-t border-black/5 pt-6">
+                    <div class="flex items-center gap-2 mb-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                        <span class="w-1.5 h-1.5 bg-black/20"></span>
+                        +page.py
+                    </div>
+                    <pre class="text-[12px] leading-relaxed overflow-x-auto"><code class="language-python">from hyperdjango import HyperView
+from hyperdjango.actions import HTML, action
+
+
+class PageView(HyperView):
+    def get(self, request, **params):
+        return {"search_results": []}
+
+    @action
+    def search(self, request, q=""):
+        results = SearchDocument.objects.filter(title__icontains=q)[:8]
+        html = self.render(
+            request=request,
+            relative_template_name="partials/search_results.html",
+            context_updates={
+                "search_results": results,
+                "q": q,
+            },
+        )
+        return [HTML(content=html)]</code></pre>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white min-h-0 overflow-hidden">
+            <div class="p-8 pb-10 flex flex-col box-border overflow-y-auto overflow-x-hidden lg:h-[80vh]">
+                <div class="flex items-center gap-2 mb-6 text-[10px] font-black text-black uppercase tracking-[0.2em]">
+                    <span class="w-1.5 h-1.5 bg-black"></span>
+                    Live Interactive Demo
+                </div>
+                <div x-data="{ q: '' }" class="space-y-4">
+                    <div class="relative">
+                        <input type="text" x-model="q" placeholder="Start typing to search docs..."
+                               @input.debounce.300ms="$action('search', { q }, { method: 'POST', key: 'live-search' })"
+                               class="w-full p-3 border-2 border-black focus:outline-none placeholder:text-gray-300">
+                        <div class="search-loading-frame" hyper-loading="live-search"></div>
+                    </div>
+                    <p hyper-loading="live-search"
+                       class="text-[11px] uppercase tracking-[0.2em] text-gray-400 min-h-[1lh]">
+                        Searching...
+                    </p>
+                    <div>
+                        {% include "routes/index/partials/search_results.html" %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

@@ -1,0 +1,21 @@
+<div id="inline-editor-demo" class="group" x-data="{ text: '{{ inline_text|escapejs }}' }">
+    {% if editing %}
+    <form @submit.prevent="$action('save_inline', { text }, { method: 'POST' })"
+          class="flex flex-col gap-2">
+        <input type="text" name="inline_text" x-model="text"
+               class="w-full p-3 border-2 border-black bg-white focus:outline-none"
+               @keydown.escape="$action('save_inline', {}, { method: 'POST' })">
+        <div class="flex gap-2">
+            <button type="submit" class="bg-black text-white px-3 py-1 text-xs font-bold uppercase">Save [Enter]</button>
+            <button type="button" @click="$action('save_inline', {}, { method: 'POST' })"
+                    class="border border-black px-3 py-1 text-xs font-bold uppercase">Cancel [Esc]</button>
+        </div>
+    </form>
+    {% else %}
+    <button type="button" @click="$action('edit_inline', {}, { method: 'POST' })"
+         class="w-full text-left p-4 border border-dashed border-black/20 hover:border-black cursor-pointer bg-gray-50/50 transition-colors block">
+        <p class="font-mono text-black">{{ inline_text }}</p>
+        <span class="text-[10px] text-gray-400 uppercase mt-2 block tracking-widest">Click to edit</span>
+    </button>
+    {% endif %}
+</div>

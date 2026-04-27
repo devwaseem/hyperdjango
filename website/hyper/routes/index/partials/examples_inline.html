@@ -1,0 +1,83 @@
+<section class="max-w-6xl mx-auto px-6 py-24 border-t border-black/10">
+    <div class="flex flex-col mb-12">
+        <h2 class="font-doto text-4xl font-black mb-2 uppercase">Inline Editing</h2>
+        <p class="font-mono text-gray-500">Transform static content into interactive forms with a single action.</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 border-2 border-black divide-y-2 lg:divide-y-0 lg:divide-x-2 divide-black font-mono">
+        <div class="bg-gray-50 min-h-0 overflow-hidden">
+            <div class="flex flex-col gap-6 p-6 pb-10 box-border overflow-y-auto overflow-x-hidden lg:h-[80vh]">
+                <div>
+                    <div class="flex items-center gap-2 mb-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                        <span class="w-1.5 h-1.5 bg-black/20"></span>
+                        template.html
+                    </div>
+                    <pre class="text-[12px] leading-relaxed overflow-x-auto"><code class="language-html">{% verbatim %}&lt;div id="inline-editor-demo" x-data="{ text: '{{ inline_text }}' }"&gt;
+  {% if editing %}
+    &lt;form @submit.prevent="$action('save_inline', { text })"&gt;
+      &lt;input x-model="text" @keydown.escape="$action('save_inline', {})" /&gt;
+    &lt;/form&gt;
+  {% else %}
+    &lt;button @click="$action('edit_inline')"&gt;{{ inline_text }}&lt;/button&gt;
+  {% endif %}
+&lt;/div&gt;{% endverbatim %}</code></pre>
+                </div>
+                <div class="border-t border-black/5 pt-6">
+                    <div class="flex items-center gap-2 mb-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                        <span class="w-1.5 h-1.5 bg-black/20"></span>
+                        +page.py
+                    </div>
+                    <pre class="text-[12px] leading-relaxed overflow-x-auto"><code class="language-python">from hyperdjango import HyperView
+from hyperdjango.actions import HTML, action
+
+
+class PageView(HyperView):
+    def get(self, request, **params):
+        profile = Profile.objects.get(pk=1)
+        return {"inline_text": profile.bio, "editing": False}
+
+    @action
+    def edit_inline(self, request):
+        profile = Profile.objects.get(pk=1)
+        html = self.render(
+            request=request,
+            relative_template_name="partials/inline_editor.html",
+            context_updates={
+                "inline_text": profile.bio,
+                "editing": True,
+            },
+        )
+        return [HTML(content=html)]
+
+    @action
+    def save_inline(self, request, text=""):
+        profile = Profile.objects.get(pk=1)
+        profile.bio = text or profile.bio
+        profile.save()
+        html = self.render(
+            request=request,
+            relative_template_name="partials/inline_editor.html",
+            context_updates={
+                "inline_text": profile.bio,
+                "editing": False,
+            },
+        )
+        return [HTML(content=html)]</code></pre>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white min-h-0 overflow-hidden">
+            <div class="p-8 pb-10 flex flex-col box-border overflow-y-auto overflow-x-hidden lg:h-[80vh]">
+                <div class="flex items-center gap-2 mb-6 text-[10px] font-black text-black uppercase tracking-[0.2em]">
+                    <span class="w-1.5 h-1.5 bg-black"></span>
+                    Live Interactive Demo
+                </div>
+                <div x-data="{}" class="mt-4">
+                    <div>
+                        {% include "routes/index/partials/inline_editor.html" %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
