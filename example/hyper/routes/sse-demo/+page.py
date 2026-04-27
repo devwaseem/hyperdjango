@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import time
+import asyncio
 
 from hyper.layouts.base import BaseLayout
 
@@ -8,7 +8,7 @@ from hyperdjango.actions import HTML, Signal, Toast, action
 
 
 class PageView(BaseLayout):
-    def get(self, request, **params):
+    async def get(self, request, **params):
         return {
             "stream": {
                 "phase": "Idle",
@@ -18,7 +18,7 @@ class PageView(BaseLayout):
         }
 
     @action
-    def run_demo(self, request, **params):
+    async def run_demo(self, request, **params):
         yield HTML(
             content="<div style='padding: 0.75rem 0.9rem; border: 1px dashed #cbd5e1; border-radius: 10px; color: #475569;'>Stream started...</div>",
             target="#stream-log",
@@ -34,7 +34,7 @@ class PageView(BaseLayout):
         )
 
         for step in range(1, 6):
-            time.sleep(1)
+            await asyncio.sleep(1)
             percent = step * 20
             yield Signal(
                 name="stream",

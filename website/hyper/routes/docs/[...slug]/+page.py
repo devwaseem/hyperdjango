@@ -14,7 +14,7 @@ from hyper.shared.seo import breadcrumb_json_ld, page_json_ld, seo_context
 
 
 class PageView(DocsLayout):
-    def get(self, request: HttpRequest, slug: str) -> dict[str, object]:
+    async def get(self, request: HttpRequest, slug: str) -> dict[str, object]:
         normalized = slug.strip("/")
         page = get_doc_page(normalized)
         if page is None or page.slug == "":

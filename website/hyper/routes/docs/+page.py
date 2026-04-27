@@ -13,7 +13,7 @@ from hyper.shared.seo import breadcrumb_json_ld, page_json_ld, seo_context
 
 
 class PageView(DocsLayout):
-    def get(self, request: HttpRequest) -> dict[str, object]:
+    async def get(self, request: HttpRequest) -> dict[str, object]:
         page = get_doc_page("")
         if page is None:
             raise RuntimeError("Docs overview page is not configured")

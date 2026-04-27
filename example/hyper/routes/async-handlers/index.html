@@ -1,0 +1,19 @@
+{% extends "layouts/base/index.html" %}
+{% block page %}
+    <section>
+        <h1>{{ headline }}</h1>
+        <p>This route uses async page handlers through the normal dispatch path.</p>
+        <p>Last handler method: <strong>{{ request_method }}</strong></p>
+        <form method="post" style="display: grid; gap: 0.75rem; max-width: 24rem;">
+            {% csrf_token %}
+            <label>
+                Name
+                <input type="text" name="name" value="{{ saved_name }}" />
+            </label>
+            <button type="submit">Save with async post()</button>
+        </form>
+        {% if saved_name %}
+            <p>Saved value: <strong>{{ saved_name }}</strong></p>
+        {% endif %}
+    </section>
+{% endblock page %}

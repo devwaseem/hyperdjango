@@ -1,4 +1,4 @@
-import time
+import asyncio
 
 from hyper.layouts.base import BaseLayout
 from hyper.shared.seo import page_json_ld, seo_context, site_json_ld
@@ -29,7 +29,7 @@ class PageView(BaseLayout):
     def __init__(self) -> None:
         super().__init__(title="HyperDjango | Modern Web Apps")
 
-    def get(self, request, **params):
+    async def get(self, request, **params):
         stats = self._todo_stats(STATE["todos"])
         return {
             **seo_context(
@@ -146,8 +146,8 @@ class PageView(BaseLayout):
 
     # -- SEARCH ACTION --
     @action
-    def search(self, request, q="", **kwargs):
-        time.sleep(0.5)
+    async def search(self, request, q="", **kwargs):
+        await asyncio.sleep(0.5)
         q_str = str(q).lower()
         results = (
             [item for item in STATE["search_data"] if q_str in item.lower()]
@@ -239,7 +239,7 @@ class PageView(BaseLayout):
         ]
 
     @action
-    def run_agent_stream(self, request, prompt="", **kwargs):
+    async def run_agent_stream(self, request, prompt="", **kwargs):
         user_prompt = (
             str(prompt).strip()
             or "Explain how HyperDjango streams server events to the UI."
@@ -282,7 +282,7 @@ class PageView(BaseLayout):
         ]
 
         for kind, message in feed:
-            time.sleep(1.15)
+            await asyncio.sleep(1.15)
             yield HTML(
                 content=self.render(
                     request=request,
@@ -341,7 +341,7 @@ class PageView(BaseLayout):
             chunks[-1] = chunks[-1].rstrip()
 
         for chunk in chunks:
-            time.sleep(0.055)
+            await asyncio.sleep(0.055)
             yield HTML(
                 content=self.render(
                     request=request,

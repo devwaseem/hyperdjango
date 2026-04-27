@@ -62,6 +62,10 @@ class PageView(BaseLayout):
                     "label": "Long-running SSE action with live updates",
                 },
                 {
+                    "url": "/async-handlers",
+                    "label": "Async get()/post() page handlers through dispatch",
+                },
+                {
                     "url": "/error-demo",
                     "label": "Catch requestError and still render server errors",
                 },
