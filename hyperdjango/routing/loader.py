@@ -36,16 +36,3 @@ def find_page_class(module: ModuleType) -> type[Any]:
         f"No PageView class found in {module_file}. "
         "Route modules must define `class PageView(...)`"
     )
-
-
-def find_layout_class(module: ModuleType) -> type[HyperView]:
-    for value in vars(module).values():
-        if (
-            isinstance(value, type)
-            and issubclass(value, HyperView)
-            and value is not HyperView
-            and value.__module__ == module.__name__
-        ):
-            return value
-    module_file = getattr(module, "__file__", None) or "<unknown file>"
-    raise RouteLoadError(f"No HyperView subclass found in {module_file}")
