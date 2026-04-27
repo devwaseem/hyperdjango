@@ -79,3 +79,24 @@ HYPER_FRONTEND_DIR = BASE_DIR / "hyper"
 HYPER_VITE_OUTPUT_DIR = BASE_DIR / "dist"
 HYPER_VITE_DEV_SERVER_URL = "http://localhost:5173/"
 HYPER_DEV = os.getenv("HYPER_DEV", "True") == "True"
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO" if DEBUG else "ERROR",
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": "INFO" if DEBUG else "ERROR",
+            "propagate": True,
+        },
+    },
+}
