@@ -6,6 +6,7 @@ authors = [{ name = "Waseem akram", email = "waseem07799@gmail.com" }]
 dependencies = [
     "django>=4.2",
     "hyperdjango",
+    "markdown>=3.8",
 ]
 
 [tool.uv]
