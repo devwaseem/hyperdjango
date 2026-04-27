@@ -1,6 +1,6 @@
 [project]
 name = "hyperdjango"
-version = "0.24.0"
+version = "0.25.0"
 description = "SvelteKit-like file routing and hypermedia runtime for Django"
 readme = "README.md"
 requires-python = ">=3.13"
