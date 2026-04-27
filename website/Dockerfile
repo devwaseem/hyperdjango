@@ -82,9 +82,14 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
 
 COPY . .
 
-COPY --from=production-deps ${VIRTUAL_ENV_PATH} ${VIRTUAL_ENV_PATH}
+COPY --from=production-base ${VIRTUAL_ENV_PATH} ${VIRTUAL_ENV_PATH}
 
 COPY --from=frontend_builder ${APP_HOME}/dist ${APP_HOME}/dist
+
+# Copy the core library and docs to the root directory
+COPY --from=production-base ${APP_HOME}/../hyperdjango ${APP_HOME}/../hyperdjango
+COPY --from=production-base ${APP_HOME}/../docs ${APP_HOME}/../docs
+
 
 RUN python -m compileall -q "${APP_HOME}"
 
