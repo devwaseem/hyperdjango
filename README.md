@@ -35,7 +35,13 @@ A full runnable demo lives in `example/`. See [example/README.md](example/README
 
 ## Contributing
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details on how to set up the development environment, run tests, and submit pull requests.
+We welcome contributions! To get started:
+
+1.  **Clone the repository**: `git clone https://github.com/charingcrosscapital/hyperdjango.git`
+2.  **Install dependencies**: `pip install -e .[dev]` (or equivalent)
+3.  **Run tests**: `pytest`
+4.  **Submit Pull Request**: Open a PR with your changes, ensuring new tests cover your modifications.
+
 
 ## License
 
