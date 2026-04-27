@@ -21,6 +21,7 @@ from hyperdjango.runtime.requests import (
 from hyperdjango.runtime.responses import (
     ensure_action_response_headers,
     is_action_item,
+    is_action_item_async_iterable,
     is_action_item_iterable,
     to_action_exception_response,
     to_action_http_response,
@@ -116,7 +117,11 @@ def _dispatch_action(
             context_updates=result,
         )
         return to_action_http_response(ActionResult(html=html), request=request)
-    if is_action_item(result) or is_action_item_iterable(result):
+    if (
+        is_action_item(result)
+        or is_action_item_iterable(result)
+        or is_action_item_async_iterable(result)
+    ):
         return to_action_http_response(result, request=request)
 
     raise DispatchError(f"Unsupported action return type: {type(result).__name__}")

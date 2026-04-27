@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.27.0
+- Fixed async `HyperView` routing so `async def get(...)` and `async def post(...)` work without Django trying to await a plain `HttpResponse`.
+- Fixed async `@action` support for both awaited return values and async generators that stream SSE updates.
+- Fixed SSE behavior under ASGI/Uvicorn by streaming through async iterators when available.
+- Updated the example app and website routes to exercise async handlers and async streaming directly.
+
 ## 0.26.0
 - Added async page handler support so `async def get(...)`, `async def post(...)`, and other async HTTP method handlers work through the normal `dispatch` path.
 - Added async action support so `async def` `@action` methods are awaited correctly.
