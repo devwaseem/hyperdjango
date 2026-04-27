@@ -1,0 +1,34 @@
+name: Publish Website to GHCR
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'website/**'
+      - '.github/workflows/publish-website.yml'
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./website
+          push: true
+          tags: ghcr.io/${{ github.repository }}/hyperdjango-website:latest
