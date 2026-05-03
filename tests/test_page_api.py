@@ -428,3 +428,23 @@ def test_route_view_uses_django_view_as_view_setup() -> None:
 
     assert response.status_code == 200
     assert response.content == b"True"
+
+
+def test_route_view_supports_django_auth_mixins() -> None:
+    _ensure_settings()
+
+    class RequestCheckingMixin:
+        def dispatch(self, request, *args, **kwargs):
+            assert self.request is request
+            return super().dispatch(request, *args, **kwargs)
+
+    class PageView(RequestCheckingMixin, HyperView):
+        def get(self, request):
+            return HttpResponse(b"ok")
+
+    request = RequestFactory().get("/")
+    view = build_route_view(PageView)
+    response = view(request)
+
+    assert response.status_code == 200
+    assert response.content == b"ok"
