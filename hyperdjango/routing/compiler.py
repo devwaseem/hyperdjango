@@ -11,6 +11,7 @@ from django.urls import path, re_path
 from django.views import View
 
 from hyperdjango.conf import get_append_slash
+from hyperdjango.runtime.dispatcher import dispatch_page_async, dispatch_page_sync
 from hyperdjango.routing.graph import make_route_key
 from hyperdjango.routing.parser import (
     RouteSegment,
@@ -50,11 +51,25 @@ def compose_page_class(page_class: type[Any], layouts: list[type[Any]]) -> type[
 
 def build_route_view(page_class: type[Any]) -> Callable[..., HttpResponse]:
     if issubclass(page_class, View):
-        return page_class.as_view()
+        if page_class.view_is_async:
+
+            async def view(request: HttpRequest, **kwargs: str) -> HttpResponse:
+                page = page_class()
+                page.setup(request, **kwargs)
+                return await dispatch_page_async(page, request, **kwargs)
+
+            return view
+
+        def view(request: HttpRequest, **kwargs: str) -> HttpResponse:
+            page = page_class()
+            page.setup(request, **kwargs)
+            return dispatch_page_sync(page, request, **kwargs)
+
+        return view
 
     def view(request: HttpRequest, **kwargs: str) -> HttpResponse:
         page = page_class()
-        return page.dispatch(request, **kwargs)
+        return dispatch_page_sync(page, request, **kwargs)
 
     return view
 

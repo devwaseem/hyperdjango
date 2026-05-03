@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 
 import django
@@ -448,3 +449,19 @@ def test_route_view_supports_django_auth_mixins() -> None:
 
     assert response.status_code == 200
     assert response.content == b"ok"
+
+
+def test_route_view_supports_async_hyperview() -> None:
+    _ensure_settings()
+
+    class PageView(HyperView):
+        async def get(self, request):
+            assert self.request is request
+            return HttpResponse(b"async ok")
+
+    request = RequestFactory().get("/")
+    view = build_route_view(PageView)
+    response = asyncio.run(view(request))
+
+    assert response.status_code == 200
+    assert response.content == b"async ok"

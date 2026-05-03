@@ -2,8 +2,8 @@
 
 All notable changes to this project will be documented in this file.
 
-## 0.28.0
-- Fixed HyperView route compilation so Django class-based view setup runs correctly, which restores `self.request` for mixins like `LoginRequiredMixin`.
+## 0.29.0
+- Fixed HyperView dispatch so Django class-based view setup runs correctly for sync and async handlers, restoring `self.request` for mixins and keeping async `get(...)` / `post(...)` support working.
 
 ## 0.27.0
 - Fixed async `HyperView` routing so `async def get(...)` and `async def post(...)` work without Django trying to await a plain `HttpResponse`.

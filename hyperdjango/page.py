@@ -21,7 +21,7 @@ from hyperdjango.assets import (
     ViteAssetResolver,
 )
 from hyperdjango.conf import get_frontend_dir, get_vite_dev_server_url, is_dev_env
-from hyperdjango.runtime.dispatcher import dispatch_page
+from hyperdjango.runtime.dispatcher import dispatch_page_sync
 
 
 class FileNotLoadedFromViteError(Exception):
@@ -415,7 +415,7 @@ class HyperView(HyperPageTemplate, HyperActionMixin, View):
     def dispatch(
         self, request: HttpRequest, *args: Any, **params: Any
     ) -> HttpResponseBase:
-        return dispatch_page(self, request, **params)
+        return dispatch_page_sync(self, request, **params)
 
 
 class Page(HyperView):

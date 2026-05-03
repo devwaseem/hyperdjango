@@ -37,9 +37,13 @@ logger = logging.getLogger("django.request")
 
 
 def dispatch_page(page: Any, request: HttpRequest, **params: Any) -> HttpResponse:
+    return dispatch_page_sync(page, request, **params)
+
+
+def dispatch_page_sync(page: Any, request: HttpRequest, **params: Any) -> HttpResponse:
     if is_action_request(request):
         action_name = get_action_name(request)
-        return _dispatch_action(page, request, action_name=action_name, **params)
+        return _dispatch_action_sync(page, request, action_name=action_name, **params)
 
     request_method = request.method
     method = request_method if isinstance(request_method, str) else "GET"
@@ -52,11 +56,37 @@ def dispatch_page(page: Any, request: HttpRequest, **params: Any) -> HttpRespons
         )
     handler = getattr(page, handler_name)
     result = handler(request, **params)
-    result = _resolve_awaitable_result(result)
+    if inspect.isawaitable(result):
+        result = async_to_sync(_await_result)(result)
     return _to_full_response(page, request, result)
 
 
-def _dispatch_action(
+async def dispatch_page_async(
+    page: Any, request: HttpRequest, **params: Any
+) -> HttpResponse:
+    if is_action_request(request):
+        action_name = get_action_name(request)
+        return await _dispatch_action_async(
+            page, request, action_name=action_name, **params
+        )
+
+    request_method = request.method
+    method = request_method if isinstance(request_method, str) else "GET"
+    handler_name = method.lower()
+    if not hasattr(page, handler_name):
+        if handler_name == "get" and hasattr(page, "get_context"):
+            return _to_full_response(page, request, _NO_PAGE_RESULT)
+        raise DispatchError(
+            f"Method {method} not allowed for page {page.__class__.__name__}"
+        )
+    handler = getattr(page, handler_name)
+    result = handler(request, **params)
+    if inspect.isawaitable(result):
+        result = await result
+    return _to_full_response(page, request, result)
+
+
+def _dispatch_action_sync(
     page: Any, request: HttpRequest, action_name: str, **params: Any
 ) -> HttpResponse:
     action_method = page.get_action(action_name)
@@ -68,7 +98,8 @@ def _dispatch_action(
     action_kwargs = {**_extract_action_kwargs(request), **params}
     try:
         result = action_method(request, **action_kwargs)
-        result = _resolve_awaitable_result(result)
+        if inspect.isawaitable(result):
+            result = async_to_sync(_await_result)(result)
     except PermissionDenied as exc:
         message = str(exc).strip() or "Forbidden"
         logger.warning(
@@ -103,6 +134,63 @@ def _dispatch_action(
             status=500, message="Internal server error", request=request
         )
 
+    return _dispatch_action_result(page, request, action_name, result)
+
+
+async def _dispatch_action_async(
+    page: Any, request: HttpRequest, action_name: str, **params: Any
+) -> HttpResponse:
+    action_method = page.get_action(action_name)
+    if action_method is None:
+        raise DispatchError(
+            f"Action '{action_name}' not found on page {page.__class__.__name__}"
+        )
+
+    action_kwargs = {**_extract_action_kwargs(request), **params}
+    try:
+        result = action_method(request, **action_kwargs)
+        if inspect.isawaitable(result):
+            result = await result
+    except PermissionDenied as exc:
+        message = str(exc).strip() or "Forbidden"
+        logger.warning(
+            "Hyper action '%s' denied on %s: %s",
+            action_name,
+            request.path,
+            message,
+            exc_info=True,
+        )
+        return to_action_exception_response(
+            status=403, message=message, request=request
+        )
+    except Http404 as exc:
+        message = str(exc).strip() or "Not found"
+        logger.warning(
+            "Hyper action '%s' not found on %s: %s",
+            action_name,
+            request.path,
+            message,
+            exc_info=True,
+        )
+        return to_action_exception_response(
+            status=404, message=message, request=request
+        )
+    except Exception:
+        logger.exception(
+            "Unhandled exception in hyper action '%s' on %s",
+            action_name,
+            request.path,
+        )
+        return to_action_exception_response(
+            status=500, message="Internal server error", request=request
+        )
+
+    return _dispatch_action_result(page, request, action_name, result)
+
+
+def _dispatch_action_result(
+    page: Any, request: HttpRequest, action_name: str, result: Any
+) -> HttpResponse:
     if isinstance(result, HttpResponse):
         return ensure_action_response_headers(result)
     if isinstance(result, ActionResult):
@@ -177,13 +265,3 @@ def _to_full_response(page: Any, request: HttpRequest, result: Any) -> HttpRespo
     raise DispatchError(
         f"Unsupported page handler return type: {type(result).__name__}"
     )
-
-
-def _resolve_awaitable_result(result: Any) -> Any:
-    if inspect.isawaitable(result):
-        return async_to_sync(_await_result)(result)
-    return result
-
-
-async def _await_result(result: Any) -> Any:
-    return await result
