@@ -51,7 +51,6 @@ class Delete:
 @dataclass(slots=True)
 class Redirect:
     url: str
-    replace: bool = False
 
 
 @dataclass(slots=True)

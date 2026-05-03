@@ -128,7 +128,7 @@ def is_action_item_async_iterable(value: Any) -> bool:
 def compile_action_result(result: ActionResult) -> list[ActionItem]:
     items: list[ActionItem] = []
     if result.redirect_to:
-        items.append(Redirect(url=result.redirect_to, replace=bool(result.replace_url)))
+        items.append(Redirect(url=result.redirect_to))
         return items
     if result.signals:
         items.append(Signals(values=result.signals))
@@ -272,7 +272,7 @@ def serialize_action_item(item: ActionItem) -> tuple[str, dict[str, Any]]:
             "swap": "delete",
         }
     if isinstance(item, Redirect):
-        return "redirect", {"url": item.url, "replace": item.replace}
+        return "redirect", {"url": item.url}
     if isinstance(item, History):
         payload: dict[str, Any] = {}
         if item.push_url:

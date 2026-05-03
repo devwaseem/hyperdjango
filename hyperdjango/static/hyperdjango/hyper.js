@@ -511,12 +511,8 @@ const Hyper = (() => {
     }
   }
 
-  function redirectTo(url, { replace = false } = {}) {
+  function redirectTo(url) {
     if (!url) {
-      return;
-    }
-    if (replace) {
-      window.location.replace(url);
       return;
     }
     window.location.assign(url);
@@ -1064,7 +1060,7 @@ const Hyper = (() => {
         return;
       }
       case "redirect": {
-        redirectTo(payload.url, { replace: Boolean(payload.replace) });
+        redirectTo(payload.url);
         return;
       }
       case "end":
@@ -1461,9 +1457,7 @@ const Hyper = (() => {
 
     if (result.kind === "json") {
       if (result.data.redirect_to) {
-        redirectTo(result.data.redirect_to, {
-          replace: Boolean(result.data.replace_url) && result.data.replace_url === result.data.redirect_to,
-        });
+        redirectTo(result.data.redirect_to);
         return result.data;
       }
 

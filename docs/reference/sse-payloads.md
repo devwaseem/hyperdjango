@@ -22,7 +22,7 @@ data: <json_payload>
 | `patch_html` | `Delete` | `{"target": "#id", "content": "", "swap": "delete"}` |
 | `toast` | `Toast` | `{"value": "Saved!"}` |
 | `dispatch_event`| `Event` | `{"name": "my-event", "payload": {...}, "target": "#id"}` |
-| `redirect` | `Redirect` | `{"url": "/new", "replace": false}` |
+| `redirect` | `Redirect` | `{"url": "/new"}` |
 | `history` | `History` | `{"push_url": "/new", "replace_url": null}` |
 | `load_js` | `LoadJS` | `{"src": "/script.js"}` |
 

@@ -158,12 +158,11 @@ Event emitted to the client runtime:
 
 - `toast`
 
-## `Redirect(url, replace=False)`
+## `Redirect(url)`
 
 Arguments:
 
 - `url: str`
-- `replace: bool = False`
 
 Behavior:
 

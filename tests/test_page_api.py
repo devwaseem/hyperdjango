@@ -31,7 +31,7 @@ from hyperdjango.page import (
 )
 from hyperdjango.routing.compiler import build_route_view
 from hyperdjango.runtime.dispatcher import dispatch_page
-from hyperdjango.runtime.responses import to_action_http_response
+from hyperdjango.runtime.responses import compile_action_result, to_action_http_response
 
 
 def _read_streaming_response(response) -> bytes:
@@ -120,8 +120,16 @@ def test_action_http_response_serializes_redirects() -> None:
     assert response.status_code == 200
     assert response["Content-Type"].startswith("text/event-stream")
     assert _read_streaming_response(response) == (
-        b'event: redirect\ndata: {"url": "/dashboard/", "replace": false}\n\n'
+        b'event: redirect\ndata: {"url": "/dashboard/"}\n\n'
     )
+
+
+def test_action_http_response_redirect_never_replaces() -> None:
+    items = compile_action_result(ActionResult(redirect_to="/dashboard/"))
+
+    assert len(items) == 1
+    assert isinstance(items[0], Redirect)
+    assert items[0].url == "/dashboard/"
 
 
 def test_action_response_accepts_partial_content() -> None:
@@ -180,7 +188,7 @@ def test_action_http_response_serializes_actions_wrapper() -> None:
     assert response["Content-Type"].startswith("text/event-stream")
     assert _read_streaming_response(response) == (
         b'event: patch_signals\ndata: {"count": 1}\n\n'
-        b'event: redirect\ndata: {"url": "/done/", "replace": false}\n\n'
+        b'event: redirect\ndata: {"url": "/done/"}\n\n'
     )
 
 
@@ -390,7 +398,7 @@ def test_dispatch_page_supports_generator_actions() -> None:
     assert response.status_code == 200
     assert _read_streaming_response(response) == (
         b'event: patch_signals\ndata: {"phase": "starting"}\n\n'
-        b'event: redirect\ndata: {"url": "/done/", "replace": false}\n\n'
+        b'event: redirect\ndata: {"url": "/done/"}\n\n'
     )
 
 

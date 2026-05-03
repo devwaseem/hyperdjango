@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.30.0
+- Removed the `replace` flag from `Redirect` so redirect actions always perform a normal browser navigation and use a single SSE payload shape.
+
 ## 0.29.0
 - Fixed HyperView dispatch so Django class-based view setup runs correctly for sync and async handlers, restoring `self.request` for mixins and keeping async `get(...)` / `post(...)` support working.
 
