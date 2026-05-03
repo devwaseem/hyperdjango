@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import time
 from pathlib import Path
 
 import django
@@ -386,6 +387,8 @@ def test_dispatch_page_routes_post_action_from_header() -> None:
 
 
 def test_dispatch_page_supports_generator_actions() -> None:
+    _ensure_settings()
+
     class DemoPage(HyperView):
         @action
         def save(self, request, **params):
@@ -400,6 +403,55 @@ def test_dispatch_page_supports_generator_actions() -> None:
         b'event: patch_signals\ndata: {"phase": "starting"}\n\n'
         b'event: redirect\ndata: {"url": "/done/"}\n\n'
     )
+
+
+def test_dispatch_page_supports_async_generator_actions() -> None:
+    _ensure_settings()
+
+    class DemoPage(HyperView):
+        @action
+        async def save(self, request, **params):
+            yield Signal(name="phase", value="starting")
+            await asyncio.sleep(0)
+            yield Signal(name="phase", value="done")
+
+    request = RequestFactory().get("/demo", HTTP_X_HYPER_ACTION="save")
+    response = dispatch_page(DemoPage(), request)
+
+    assert response.status_code == 200
+    assert _read_streaming_response(response) == (
+        b'event: patch_signals\ndata: {"phase": "starting"}\n\n'
+        b'event: patch_signals\ndata: {"phase": "done"}\n\n'
+        b"event: end\ndata: {}\n\n"
+    )
+
+
+def test_sync_response_streams_async_generator_with_pause() -> None:
+    _ensure_settings()
+
+    class DemoPage(HyperView):
+        @action
+        async def save(self, request, **params):
+            yield Signal(name="phase", value="start")
+            await asyncio.sleep(0.2)
+            yield Signal(name="phase", value="done")
+
+    request = RequestFactory().get("/demo", HTTP_X_HYPER_ACTION="save")
+    started = time.perf_counter()
+    response = dispatch_page(DemoPage(), request)
+    iterator = iter(response.streaming_content)
+
+    first = next(iterator)
+    first_at = time.perf_counter() - started
+    second = next(iterator)
+    second_at = time.perf_counter() - started
+    third = next(iterator)
+
+    assert first == b'event: patch_signals\ndata: {"phase": "start"}\n\n'
+    assert second == b'event: patch_signals\ndata: {"phase": "done"}\n\n'
+    assert third == b"event: end\ndata: {}\n\n"
+    assert first_at < 0.15
+    assert second_at >= 0.2
 
 
 def test_dispatch_page_converts_permission_denied_to_error_event() -> None:

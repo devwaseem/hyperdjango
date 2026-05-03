@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.31.0
+- Fixed SSE streaming for async action generators so yielded events flush incrementally with pauses preserved on both sync and async request paths.
+
 ## 0.30.0
 - Removed the `replace` flag from `Redirect` so redirect actions always perform a normal browser navigation and use a single SSE payload shape.
 

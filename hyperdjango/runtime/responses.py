@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import asyncio
 import json
 from collections.abc import AsyncIterable, AsyncIterator, Iterable, Iterator
+from queue import Queue
+from threading import Thread
 from typing import Any
 
-from asgiref.sync import async_to_sync, sync_to_async
+from asgiref.sync import sync_to_async
 from django.http import HttpRequest, HttpResponse, StreamingHttpResponse
 from django.utils.cache import patch_vary_headers
 
@@ -210,20 +213,49 @@ async def stream_action_sse_async(
 def _stream_action_sse_sync_from_async(
     items: AsyncIterable[ActionItem],
 ) -> Iterator[str]:
+    queue: Queue[tuple[str, str | BaseException | None]] = Queue()
+
+    def producer() -> None:
+        try:
+            asyncio.run(_produce_action_sse(items, queue))
+        except BaseException as exc:  # pragma: no cover - defensive bridge
+            queue.put(("error", exc))
+        finally:
+            queue.put(("done", None))
+
+    thread = Thread(target=producer, daemon=True)
+    thread.start()
+    try:
+        while True:
+            kind, payload = queue.get()
+            if kind == "done":
+                break
+            if kind == "error":
+                assert isinstance(payload, BaseException)
+                raise payload
+            yield payload
+    finally:
+        thread.join(timeout=0.1)
+
+
+async def _produce_action_sse(
+    items: AsyncIterable[ActionItem],
+    queue: Queue[tuple[str, str | BaseException | None]],
+) -> None:
     redirect_seen = False
     async_iterator = items.__aiter__()
     while True:
-        item = async_to_sync(_next_async_action_item)(async_iterator)
+        item = await _next_async_action_item(async_iterator)
         if item is _ITERATION_DONE:
             break
         event_name, payload = serialize_action_item(item)
-        yield _format_sse_event(event_name, payload)
+        queue.put(("event", _format_sse_event(event_name, payload)))
         if isinstance(item, Redirect):
             redirect_seen = True
             break
 
     if not redirect_seen:
-        yield _format_sse_event("end", {})
+        queue.put(("event", _format_sse_event("end", {})))
 
 
 async def stream_action_exception_sse_async(
