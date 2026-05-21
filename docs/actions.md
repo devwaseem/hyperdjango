@@ -274,6 +274,7 @@ class PageView(HyperView):
 ### `History`
 
 Use `History(...)` when the URL should change without leaving the current page.
+`push_url` adds a browser history entry; `replace_url` updates the current entry.
 
 ```python
 from __future__ import annotations
@@ -290,6 +291,11 @@ class PageView(HyperView):
             HTML(content=f"<div id='results'>Results for {q}</div>", target="#results"),
         ]
 ```
+
+When the user presses Back or Forward, HyperDjango fetches the restored URL and
+swaps the response into the pop target. See [History And Back/Forward
+Restoration](history.md) for the full restoration model, target behavior, and
+body script handling.
 
 ### `LoadJS`
 

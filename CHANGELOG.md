@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.34.0
+- Activated newly inserted inline and external body scripts during full-document history restores while avoiding duplicate execution for scripts already present before the swap.
+- Added `hyper:history:restore:before` and `hyper:history:restore:after` events around Back/Forward restoration.
+- Made Back/Forward restoration default to `body` when `hyper-pop-target` is omitted from the page.
+- Added a dedicated History guide documenting URL restoration, pop targets, full-document swaps, body script activation, and restore lifecycle events.
+
 ## 0.33.0
 - Fixed browser back/forward restoration after `History(...)` updates by safely handling full-document responses during body swaps.
 - Added a `/history-demo/` example that exercises `History(push_url=...)` and browser Back restoration.

@@ -7,11 +7,16 @@ This guide shortens the feedback loop when integrating progressive interactions.
 Symptoms:
 
 - popstate shows partial/action payload instead of full page shell
+- page disappears or contains nested document markup after Back/Forward
+- expected body scripts do not run after a restored page swap
 
 Checks:
 
+- ensure the restored URL renders a normal page for a plain `GET`
+- ensure `hyper-pop-target` points at the element you intend to restore; if omitted, the runtime defaults to `body`
 - ensure you are using Hyper action responses with no-cache headers
 - verify reverse proxy/CDN is not caching action endpoints
+- if restored scripts are required, keep them inside the returned `<body>` or load action-specific modules with `LoadJS(...)`
 
 ## Target swap does nothing
 

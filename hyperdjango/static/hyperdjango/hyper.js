@@ -1139,15 +1139,52 @@ const Hyper = (() => {
 
   function normalizeBodySwapHTML(el, html, mode) {
     if (el !== document.body || mode !== "inner") {
-      return html;
+      return { html, activateScripts: false };
     }
     const doc = parseFullDocument(html);
     if (!doc) {
-      return html;
+      return { html, activateScripts: false };
     }
     document.title = doc.title;
     syncAttributes(document.body, doc.body);
-    return doc.body.innerHTML;
+    return { html: doc.body.innerHTML, activateScripts: true };
+  }
+
+  function scriptSrcs(root = document) {
+    return new Set(
+      Array.from(root.querySelectorAll("script[src]")).map((script) => script.src)
+    );
+  }
+
+  function isExecutableScript(script) {
+    const type = (script.getAttribute("type") || "").trim().toLowerCase();
+    return [
+      "",
+      "module",
+      "text/javascript",
+      "application/javascript",
+      "text/ecmascript",
+      "application/ecmascript",
+    ].includes(type);
+  }
+
+  function activateScripts(root, previousSrcs = new Set()) {
+    const scripts = Array.from(root.querySelectorAll("script"));
+    for (const inertScript of scripts) {
+      if (!isExecutableScript(inertScript)) {
+        continue;
+      }
+      if (inertScript.src && previousSrcs.has(inertScript.src)) {
+        continue;
+      }
+
+      const script = document.createElement("script");
+      for (const attr of Array.from(inertScript.attributes)) {
+        script.setAttribute(attr.name, attr.value);
+      }
+      script.textContent = inertScript.textContent || "";
+      inertScript.replaceWith(script);
+    }
   }
 
   function morphInner(el, html) {
@@ -1197,7 +1234,8 @@ const Hyper = (() => {
     }
 
     const mode = normalizeSwap(swap);
-    const normalizedHTML = normalizeBodySwapHTML(el, html, mode);
+    const normalized = normalizeBodySwapHTML(el, html, mode);
+    const previousScriptSrcs = normalized.activateScripts ? scriptSrcs() : new Set();
 
     if (mode === "none") {
       return true;
@@ -1207,27 +1245,30 @@ const Hyper = (() => {
       return true;
     }
     if (mode === "outer") {
-      morphOuter(el, normalizedHTML);
+      morphOuter(el, normalized.html);
       return true;
     }
     if (mode === "before") {
-      el.insertAdjacentHTML("beforebegin", normalizedHTML);
+      el.insertAdjacentHTML("beforebegin", normalized.html);
       return true;
     }
     if (mode === "after") {
-      el.insertAdjacentHTML("afterend", normalizedHTML);
+      el.insertAdjacentHTML("afterend", normalized.html);
       return true;
     }
     if (mode === "prepend") {
-      el.insertAdjacentHTML("afterbegin", normalizedHTML);
+      el.insertAdjacentHTML("afterbegin", normalized.html);
       return true;
     }
     if (mode === "append") {
-      el.insertAdjacentHTML("beforeend", normalizedHTML);
+      el.insertAdjacentHTML("beforeend", normalized.html);
       return true;
     }
 
-    morphInner(el, normalizedHTML);
+    morphInner(el, normalized.html);
+    if (normalized.activateScripts) {
+      activateScripts(el, previousScriptSrcs);
+    }
     return true;
   }
 
@@ -1837,9 +1878,18 @@ const Hyper = (() => {
       });
     });
 
-    window.addEventListener("popstate", () => {
+    window.addEventListener("popstate", async (event) => {
       const target = document.body.getAttribute("hyper-pop-target") || "body";
-      navigate(window.location.pathname + window.location.search, { target, push: false });
+      const url = window.location.pathname + window.location.search;
+      const detail = { url, target, state: event.state };
+      emitEvent("hyper:history:restore:before", detail);
+      try {
+        await navigate(url, { target, push: false });
+        emitEvent("hyper:history:restore:after", { ...detail, success: true });
+      } catch (error) {
+        emitEvent("hyper:history:restore:after", { ...detail, success: false, error });
+        throw error;
+      }
     });
   }
 

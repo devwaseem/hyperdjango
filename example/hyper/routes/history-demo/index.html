@@ -6,6 +6,11 @@
             Click the buttons below. Each action swaps this panel and pushes a URL with
             <code>History(push_url=...)</code>. Then use the browser Back button.
         </p>
+        <p id="history-script-status">Body script has not run yet.</p>
         {% include "routes/history-demo/partials/state.html" %}
+        <script>
+          window.__historyDemoScriptRuns = (window.__historyDemoScriptRuns || 0) + 1;
+          document.getElementById("history-script-status").textContent = `Body script ran ${window.__historyDemoScriptRuns} time(s).`;
+        </script>
     </section>
 {% endblock page %}

@@ -112,7 +112,24 @@ The HyperDjango client runtime dispatches events to `window` for lifecycle monit
 | `hyper:uploadProgress` | During file upload progress tracking. | `key`, `progress` (0-1) |
 | `hyper:streamEvent` | When a new SSE event is received from the server. | `event` (type), `data` (payload) |
 | `hyper:toast` | When a `Toast` action is received. | `value` |
+| `hyper:history:restore:before` | Before a Back/Forward restore fetch starts. | `url`, `target`, `state` |
+| `hyper:history:restore:after` | After a Back/Forward restore finishes or fails. | `url`, `target`, `state`, `success`, `error` |
 
+## Back/Forward Restoration
+
+The runtime listens for `popstate`. On Back or Forward it fetches
+`window.location.pathname + window.location.search` with `GET` and swaps the
+response into `document.body.getAttribute("hyper-pop-target") || "body"`.
+
+It emits `hyper:history:restore:before` before the restore fetch and
+`hyper:history:restore:after` after the restore finishes or fails.
+
+For `body` restores that receive a full HTML document, the runtime extracts the
+returned `<body>` contents, syncs body attributes, updates `document.title`, and
+activates executable body scripts after the swap.
+
+See [History And Back/Forward Restoration](../history.md) for the guide-level
+explanation.
 
 ## Server-Side Action Detection
 

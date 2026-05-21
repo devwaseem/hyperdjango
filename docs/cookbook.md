@@ -177,6 +177,11 @@ return [
 
 Use `push_url` when you want a new history entry instead.
 
+Back/Forward restoration uses the URL as the source of truth. Make sure a normal
+`GET` to the pushed or replaced URL can render the same state. See
+[History And Back/Forward Restoration](history.md) for target behavior and full
+document restore details.
+
 ## 11) Use `HyperPageTemplate` in a custom Django view
 
 ```python

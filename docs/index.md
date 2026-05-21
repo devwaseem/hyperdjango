@@ -36,6 +36,7 @@ pages-and-rendering
 layouts
 base-template
 actions
+history
 client-side-actions
 declarative-html-apis
 alpine-integration

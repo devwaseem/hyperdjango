@@ -185,6 +185,9 @@ Behavior:
 - `push_url` adds a history entry
 - `replace_url` replaces the current history entry
 - no full redirect occurs
+- Back/Forward restoration re-fetches the restored URL and swaps the response into `hyper-pop-target`, defaulting to `body`
+- full-document responses restored into `body` are normalized to their returned `<body>` contents, with `document.title` and body attributes synced
+- executable body scripts from a full-document restore are activated after the swap; external scripts whose `src` already existed before the swap are skipped
 
 Event emitted to the client runtime:
 
