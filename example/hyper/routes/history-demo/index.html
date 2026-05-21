@@ -1,0 +1,11 @@
+{% extends "layouts/base/index.html" %}
+{% block page %}
+    <section>
+        <h1>History back-button demo</h1>
+        <p>
+            Click the buttons below. Each action swaps this panel and pushes a URL with
+            <code>History(push_url=...)</code>. Then use the browser Back button.
+        </p>
+        {% include "routes/history-demo/partials/state.html" %}
+    </section>
+{% endblock page %}

@@ -1119,6 +1119,37 @@ const Hyper = (() => {
     return first || null;
   }
 
+  function parseFullDocument(html) {
+    if (typeof html !== "string" || !/<(?:!doctype|html|head|body)[\s>]/i.test(html)) {
+      return null;
+    }
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+    return doc && doc.body ? doc : null;
+  }
+
+  function syncAttributes(el, nextEl) {
+    for (const attr of Array.from(el.attributes)) {
+      el.removeAttribute(attr.name);
+    }
+    for (const attr of Array.from(nextEl.attributes)) {
+      el.setAttribute(attr.name, attr.value);
+    }
+  }
+
+  function normalizeBodySwapHTML(el, html, mode) {
+    if (el !== document.body || mode !== "inner") {
+      return html;
+    }
+    const doc = parseFullDocument(html);
+    if (!doc) {
+      return html;
+    }
+    document.title = doc.title;
+    syncAttributes(document.body, doc.body);
+    return doc.body.innerHTML;
+  }
+
   function morphInner(el, html) {
     const morpher = getMorpher();
     if (!morpher) {
@@ -1166,6 +1197,7 @@ const Hyper = (() => {
     }
 
     const mode = normalizeSwap(swap);
+    const normalizedHTML = normalizeBodySwapHTML(el, html, mode);
 
     if (mode === "none") {
       return true;
@@ -1175,27 +1207,27 @@ const Hyper = (() => {
       return true;
     }
     if (mode === "outer") {
-      morphOuter(el, html);
+      morphOuter(el, normalizedHTML);
       return true;
     }
     if (mode === "before") {
-      el.insertAdjacentHTML("beforebegin", html);
+      el.insertAdjacentHTML("beforebegin", normalizedHTML);
       return true;
     }
     if (mode === "after") {
-      el.insertAdjacentHTML("afterend", html);
+      el.insertAdjacentHTML("afterend", normalizedHTML);
       return true;
     }
     if (mode === "prepend") {
-      el.insertAdjacentHTML("afterbegin", html);
+      el.insertAdjacentHTML("afterbegin", normalizedHTML);
       return true;
     }
     if (mode === "append") {
-      el.insertAdjacentHTML("beforeend", html);
+      el.insertAdjacentHTML("beforeend", normalizedHTML);
       return true;
     }
 
-    morphInner(el, html);
+    morphInner(el, normalizedHTML);
     return true;
   }
 

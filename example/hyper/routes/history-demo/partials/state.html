@@ -1,0 +1,18 @@
+<div id="history-state"
+     data-step="{{ step }}"
+     style="border: 1px solid #cbd5e1;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            background: {{ state.tone }}">
+    <p style="margin-top: 0; color: #64748b; font-size: 0.875rem;">Current URL state</p>
+    <h2 style="margin-bottom: 0.25rem;">{{ state.label }}</h2>
+    <p>{{ state.description }}</p>
+    <p>
+        Server-rendered step: <strong>{{ step }}</strong>
+    </p>
+    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+        <button type="button" onclick="window.action('go', { step: 'home' }, { method: 'GET' })">Push home</button>
+        <button type="button" onclick="window.action('go', { step: 'alpha' }, { method: 'GET' })">Push alpha</button>
+        <button type="button" onclick="window.action('go', { step: 'beta' }, { method: 'GET' })">Push beta</button>
+    </div>
+</div>

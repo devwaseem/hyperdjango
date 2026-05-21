@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.33.0
+- Fixed browser back/forward restoration after `History(...)` updates by safely handling full-document responses during body swaps.
+- Added a `/history-demo/` example that exercises `History(push_url=...)` and browser Back restoration.
+
 ## 0.31.0
 - Fixed SSE streaming for async action generators so yielded events flush incrementally with pauses preserved on both sync and async request paths.
 

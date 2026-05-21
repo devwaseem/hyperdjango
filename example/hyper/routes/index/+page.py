@@ -58,6 +58,10 @@ class PageView(BaseLayout):
                     "label": "Upload progress with $action and window.action",
                 },
                 {
+                    "url": "/history-demo",
+                    "label": "History push + browser back restoration",
+                },
+                {
                     "url": "/sse-demo",
                     "label": "Long-running SSE action with live updates",
                 },
