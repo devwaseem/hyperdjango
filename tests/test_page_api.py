@@ -8,6 +8,7 @@ import django
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse
+from django.template import Context, Engine
 from django.test import override_settings
 from django.test import RequestFactory
 from django.views import View
@@ -72,6 +73,51 @@ def test_page_template_get_context_accepts_request() -> None:
     request = RequestFactory().get("/demo")
 
     assert page.get_context(request)["request_path"] == "/demo"
+
+
+def test_hyper_csp_nonce_template_tag_reads_request_nonce() -> None:
+    engine = Engine(
+        libraries={"hyper_tags": "hyperdjango.templatetags.hyper_tags"}
+    )
+    template = engine.from_string("{% load hyper_tags %}{% hyper_csp_nonce %}")
+    request = RequestFactory().get("/demo")
+    setattr(request, "_csp_nonce", "test-nonce")
+
+    assert template.render(Context({"request": request})) == "test-nonce"
+
+
+def test_base_template_adds_nonce_to_runtime_scripts() -> None:
+    template = (
+        Path(__file__).resolve().parent.parent
+        / "hyperdjango"
+        / "templates"
+        / "hyperdjango"
+        / "base.html"
+    ).read_text()
+
+    assert "{% hyper_csp_nonce as hyper_nonce %}" in template
+    assert (
+        '<script src="{% static \'hyperdjango/hyper.js\' %}"'
+        "{% if hyper_nonce %} nonce=\"{{ hyper_nonce }}\"{% endif %}>"
+    ) in template
+    assert (
+        '<script src="{% static \'hyperdjango/hyper-alpine.js\' %}"'
+        "{% if hyper_nonce %} nonce=\"{{ hyper_nonce }}\"{% endif %}>"
+    ) in template
+
+
+def test_client_runtime_applies_nonce_to_dynamic_scripts() -> None:
+    runtime = (
+        Path(__file__).resolve().parent.parent
+        / "hyperdjango"
+        / "static"
+        / "hyperdjango"
+        / "hyper.js"
+    ).read_text()
+
+    assert "function currentScriptNonce() {" in runtime
+    assert "script.nonce = nonce;" in runtime
+    assert "const nonce = fromScript.nonce || currentScriptNonce();" in runtime
 
 
 def test_hyperview_registers_actions() -> None:

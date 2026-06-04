@@ -36,6 +36,11 @@ def _get_csp_nonce(context: template.Context) -> str | None:
 
 
 @register.simple_tag(takes_context=True)
+def hyper_csp_nonce(context: template.Context) -> str:
+    return _get_csp_nonce(context) or ""
+
+
+@register.simple_tag(takes_context=True)
 def hyper_preloads(context: template.Context) -> str:
     page = _get_page(context)
     return _render_tags(cast(list[AssetTag], page.preload_imports))

@@ -22,7 +22,9 @@ Action responses include no-store/no-cache and `Vary` headers for Hyper request 
 
 - keep Django CSRF middleware enabled
 - send CSRF cookie or render `{% csrf_token %}` in base layout
-- if using CSP, ensure nonce support for rendered asset tags
+- if using CSP, use Django's CSP middleware/context processor or otherwise
+  expose `request._csp_nonce` so HyperDjango can nonce rendered asset tags,
+  runtime scripts, and dynamically activated scripts
 
 ## Client Contracts
 

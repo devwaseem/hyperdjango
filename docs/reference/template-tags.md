@@ -8,6 +8,7 @@ Load tags:
 
 Available tags:
 
+- `{% hyper_csp_nonce %}`
 - `{% hyper_preloads %}`
 - `{% hyper_stylesheets %}`
 - `{% hyper_head_scripts %}`
@@ -17,6 +18,14 @@ Available tags:
 These read asset information from the current `page` object.
 
 If `page` is missing from template context, HyperDjango raises `PageContextNotFoundError`.
+
+## `hyper_csp_nonce`
+
+Returns the current request CSP nonce when Django's CSP middleware has attached
+one to `request._csp_nonce`.
+
+This is used by HyperDjango's shipped base template to add nonce attributes to
+the runtime scripts.
 
 ## `hyper_preloads`
 
@@ -37,6 +46,8 @@ Source:
 Nonce behavior:
 
 - if `request._csp_nonce` exists, the nonce is attached to the rendered tags
+- the HyperDjango client runtime also copies the active page nonce to
+  dynamically inserted module scripts and scripts activated from partial HTML
 
 ## `hyper_head_scripts`
 

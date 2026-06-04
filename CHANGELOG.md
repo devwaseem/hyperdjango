@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.35.0
+- Added CSP nonce support for HyperDjango's shipped runtime scripts.
+- Added the `{% hyper_csp_nonce %}` template tag for reading Django's request CSP nonce.
+- Propagated the active page nonce to dynamically inserted module scripts and scripts activated from partial HTML.
+
 ## 0.34.0
 - Activated newly inserted inline and external body scripts during full-document history restores while avoiding duplicate execution for scripts already present before the swap.
 - Added `hyper:history:restore:before` and `hyper:history:restore:after` events around Back/Forward restoration.

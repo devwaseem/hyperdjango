@@ -536,6 +536,10 @@ const Hyper = (() => {
       const script = document.createElement("script");
       script.type = "module";
       script.src = src;
+      const nonce = currentScriptNonce();
+      if (nonce) {
+        script.nonce = nonce;
+      }
       script.addEventListener("load", () => resolve());
       script.addEventListener("error", () => reject(new Error(`Failed to load module: ${src}`)));
       document.body.appendChild(script);
@@ -543,6 +547,10 @@ const Hyper = (() => {
 
     loadedModuleScripts.set(src, promise);
     return promise;
+  }
+
+  function currentScriptNonce() {
+    return document.querySelector("script[nonce]")?.nonce || "";
   }
 
   function csrfTokenFromCookie() {
@@ -1168,6 +1176,22 @@ const Hyper = (() => {
     ].includes(type);
   }
 
+  function copyScriptAttributes(fromScript, toScript) {
+    for (const attr of Array.from(fromScript.attributes)) {
+      if (attr.name.toLowerCase() === "nonce") {
+        continue;
+      }
+      toScript.setAttribute(attr.name, attr.value);
+    }
+
+    // Browsers intentionally hide nonce values from getAttribute() in some
+    // contexts, but expose them through the nonce property for CSP propagation.
+    const nonce = fromScript.nonce || currentScriptNonce();
+    if (nonce) {
+      toScript.nonce = nonce;
+    }
+  }
+
   function activateScripts(root, previousSrcs = new Set()) {
     const scripts = Array.from(root.querySelectorAll("script"));
     for (const inertScript of scripts) {
@@ -1179,9 +1203,7 @@ const Hyper = (() => {
       }
 
       const script = document.createElement("script");
-      for (const attr of Array.from(inertScript.attributes)) {
-        script.setAttribute(attr.name, attr.value);
-      }
+      copyScriptAttributes(inertScript, script);
       script.textContent = inertScript.textContent || "";
       inertScript.replaceWith(script);
     }
