@@ -97,7 +97,7 @@ Meaning:
 
 ## Runtime Events
 
-The HyperDjango client runtime dispatches events to `window` for lifecycle monitoring and integration.
+The HyperDjango client runtime dispatches events to `window` for lifecycle monitoring and integration. History restore events are also dispatched on `document`.
 
 | Event | Fired When | Payload Properties |
 | :--- | :--- | :--- |

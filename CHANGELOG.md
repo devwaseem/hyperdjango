@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.36.0
+- Emit history events in both window and document
 ## 0.35.0
 - Added CSP nonce support for HyperDjango's shipped runtime scripts.
 - Added the `{% hyper_csp_nonce %}` template tag for reading Django's request CSP nonce.

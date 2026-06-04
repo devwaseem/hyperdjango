@@ -18,6 +18,12 @@ const Hyper = (() => {
     window.dispatchEvent(new CustomEvent(name, { detail }));
   }
 
+  function emitHistoryRestoreEvent(name, detail) {
+    const eventInit = { detail };
+    window.dispatchEvent(new CustomEvent(name, eventInit));
+    document.dispatchEvent(new CustomEvent(name, eventInit));
+  }
+
   function configure(next = {}) {
     if (!next || typeof next !== "object") {
       return { ...config };
@@ -1904,12 +1910,16 @@ const Hyper = (() => {
       const target = document.body.getAttribute("hyper-pop-target") || "body";
       const url = window.location.pathname + window.location.search;
       const detail = { url, target, state: event.state };
-      emitEvent("hyper:history:restore:before", detail);
+      emitHistoryRestoreEvent("hyper:history:restore:before", detail);
       try {
         await navigate(url, { target, push: false });
-        emitEvent("hyper:history:restore:after", { ...detail, success: true });
+        emitHistoryRestoreEvent("hyper:history:restore:after", { ...detail, success: true });
       } catch (error) {
-        emitEvent("hyper:history:restore:after", { ...detail, success: false, error });
+        emitHistoryRestoreEvent("hyper:history:restore:after", {
+          ...detail,
+          success: false,
+          error,
+        });
         throw error;
       }
     });

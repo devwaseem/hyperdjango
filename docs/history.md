@@ -55,16 +55,18 @@ This means every URL you push or replace should be restorable with a normal `GET
 The runtime emits events around Back/Forward restoration so application code can pause UI, clean up page-local integrations, or reinitialize behavior after the restored page settles.
 
 ```js
-window.addEventListener("hyper:history:restore:before", (event) => {
+document.addEventListener("hyper:history:restore:before", (event) => {
   console.log("restoring", event.detail.url, event.detail.target);
 });
 
-window.addEventListener("hyper:history:restore:after", (event) => {
+document.addEventListener("hyper:history:restore:after", (event) => {
   if (event.detail.success) {
     console.log("restored", event.detail.url);
   }
 });
 ```
+
+The history restore events are dispatched on both `document` and `window`.
 
 Both events include:
 
