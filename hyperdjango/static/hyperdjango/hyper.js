@@ -843,68 +843,98 @@ const Hyper = (() => {
     let response;
     let aborted = false;
     try {
-      const expectSSE = headers["X-Hyper-Action"] && typeof options.onSSEEvent === "function";
-      const canTrackUpload =
-        typeof options.onUploadProgress === "function" && method !== "GET" && method !== "HEAD" && options.body;
-      response = canTrackUpload
-        ? await requestWithXHR(url, options, {
-            method,
-            headers,
-            hookMeta,
-            requestId,
-            requestKey,
-            controller,
-            expectSSE,
-          })
-        : await fetch(url, {
-            ...options,
-            credentials: "same-origin",
-            headers,
-            signal: controller.signal,
-          });
+      try {
+        const expectSSE = headers["X-Hyper-Action"] && typeof options.onSSEEvent === "function";
+        const canTrackUpload =
+          typeof options.onUploadProgress === "function" && method !== "GET" && method !== "HEAD" && options.body;
+        response = canTrackUpload
+          ? await requestWithXHR(url, options, {
+              method,
+              headers,
+              hookMeta,
+              requestId,
+              requestKey,
+              controller,
+              expectSSE,
+            })
+          : await fetch(url, {
+              ...options,
+              credentials: "same-origin",
+              headers,
+              signal: controller.signal,
+            });
 
-      if (response.ok) {
-        emitEvent("hyper:requestSuccess", {
-          id: requestId,
-          url,
-          method,
-          status: response.status,
-          response,
-          ...hookMeta,
-        });
-      } else {
-        emitEvent("hyper:requestError", {
-          id: requestId,
-          url,
-          method,
-          status: response.status,
-          response,
-          ...hookMeta,
-        });
+        if (response.ok) {
+          emitEvent("hyper:requestSuccess", {
+            id: requestId,
+            url,
+            method,
+            status: response.status,
+            response,
+            ...hookMeta,
+          });
+        } else {
+          emitEvent("hyper:requestError", {
+            id: requestId,
+            url,
+            method,
+            status: response.status,
+            response,
+            ...hookMeta,
+          });
+        }
+      } catch (error) {
+        if (error && error.name === "AbortError") {
+          aborted = true;
+          emitEvent("hyper:requestAborted", {
+            id: requestId,
+            key: requestKey,
+            mode: syncMode,
+            url,
+            method,
+            ...hookMeta,
+          });
+        } else {
+          emitEvent("hyper:requestException", {
+            id: requestId,
+            key: requestKey,
+            mode: syncMode,
+            url,
+            method,
+            error,
+            ...hookMeta,
+          });
+          throw error;
+        }
       }
-    } catch (error) {
-      if (error && error.name === "AbortError") {
-        aborted = true;
-        emitEvent("hyper:requestAborted", {
-          id: requestId,
-          key: requestKey,
-          mode: syncMode,
-          url,
-          method,
-          ...hookMeta,
-        });
+
+      let result;
+      if (aborted) {
+        result = {
+          kind: "aborted",
+          data: null,
+          response: null,
+          blocked: false,
+          aborted: true,
+        };
       } else {
-        emitEvent("hyper:requestException", {
-          id: requestId,
-          key: requestKey,
-          mode: syncMode,
-          url,
-          method,
-          error,
-          ...hookMeta,
-        });
-        throw error;
+        const contentType = response.headers.get("content-type") || "";
+        if (contentType.includes("text/event-stream")) {
+          if (!canUseXHRResponse(response) && typeof options.onSSEEvent === "function") {
+            await readSSEStream(response, options.onSSEEvent);
+          }
+          result = { kind: "sse", data: null, response };
+        } else if (contentType.includes("application/json")) {
+          result = { kind: "json", data: await response.json(), response };
+        } else {
+          result = { kind: "html", data: await response.text(), response };
+        }
       }
+
+      if (typeof options.afterResponse === "function") {
+        return await options.afterResponse(result);
+      }
+      return result;
     } finally {
       if (syncMode !== "none") {
         const active = inFlightRequests.get(requestKey);
@@ -931,28 +961,6 @@ const Hyper = (() => {
         target: hookMeta.target || "",
       });
     }
-
-    if (aborted) {
-      return {
-        kind: "aborted",
-        data: null,
-        response: null,
-        blocked: false,
-        aborted: true,
-      };
-    }
-
-    const contentType = response.headers.get("content-type") || "";
-    if (contentType.includes("text/event-stream")) {
-      if (!canUseXHRResponse(response) && typeof options.onSSEEvent === "function") {
-        await readSSEStream(response, options.onSSEEvent);
-      }
-      return { kind: "sse", data: null, response };
-    }
-    if (contentType.includes("application/json")) {
-      return { kind: "json", data: await response.json(), response };
-    }
-    return { kind: "html", data: await response.text(), response };
   }
 
   function canUseXHRResponse(response) {
@@ -1479,69 +1487,23 @@ const Hyper = (() => {
     }
   }
 
-  async function runAction({
-    url,
-    action,
-    target,
-    method = "POST",
-    body = null,
-    sourceEl = null,
-    kwargs = null,
-    swap = "inner",
-    transition = false,
-    push = false,
-    replace = false,
-    sync = "replace",
-    key = null,
-    strictTargets = undefined,
-    swapDelay = 0,
-    settleDelay = 0,
-    focus = "preserve",
-    onUploadProgress = null,
-  }) {
-    const resolvedUrl = url || window.location.pathname;
-    const streamedEvents = [];
-    const headers = {
-      "X-Hyper-Action": action,
-    };
-    if (kwargs && typeof kwargs === "object") {
-      headers["X-Hyper-Data"] = JSON.stringify(kwargs);
-    }
-    if (target) {
-      headers["X-Hyper-Target"] = target;
-    }
-
-    const result = await request(resolvedUrl, {
-      method,
-      headers,
-      body,
-      onUploadProgress,
-      onSSEEvent: async (event) => {
-        streamedEvents.push(event);
-        await handleActionStreamEvent(event, {
-          action,
-          key,
-          url: resolvedUrl,
-          method,
-          target,
-          swap,
-          transition,
-          focus,
-          swapDelay,
-          settleDelay,
-          strictTargets,
-          sourceEl,
-        });
-      },
-      hookMeta: {
-        kind: "action",
-        action,
-        target: target || null,
-        sourceEl,
-      },
-      sync,
+  async function handleActionResult(result, context) {
+    const {
+      action,
       key,
-    });
+      resolvedUrl,
+      target,
+      swap,
+      transition,
+      push,
+      replace,
+      strictTargets,
+      swapDelay,
+      settleDelay,
+      focus,
+      sourceEl,
+      streamedEvents,
+    } = context;
 
     if (result.blocked || result.aborted) {
       return result;
@@ -1665,29 +1627,98 @@ const Hyper = (() => {
     return result.data;
   }
 
-  async function visit({
+  async function runAction({
     url,
+    action,
     target,
-    push = true,
-    sync = "replace",
-    key = null,
+    method = "POST",
+    body = null,
+    sourceEl = null,
+    kwargs = null,
     swap = "inner",
     transition = false,
+    push = false,
+    replace = false,
+    sync = "replace",
+    key = null,
+    strictTargets = undefined,
     swapDelay = 0,
     settleDelay = 0,
-    strictTargets = undefined,
     focus = "preserve",
+    onUploadProgress = null,
   }) {
-    const result = await request(url, {
-      method: "GET",
+    const resolvedUrl = url || window.location.pathname;
+    const streamedEvents = [];
+    const headers = {
+      "X-Hyper-Action": action,
+    };
+    if (kwargs && typeof kwargs === "object") {
+      headers["X-Hyper-Data"] = JSON.stringify(kwargs);
+    }
+    if (target) {
+      headers["X-Hyper-Target"] = target;
+    }
+
+    return request(resolvedUrl, {
+      method,
+      headers,
+      body,
+      onUploadProgress,
+      onSSEEvent: async (event) => {
+        streamedEvents.push(event);
+        await handleActionStreamEvent(event, {
+          action,
+          key,
+          url: resolvedUrl,
+          method,
+          target,
+          swap,
+          transition,
+          focus,
+          swapDelay,
+          settleDelay,
+          strictTargets,
+          sourceEl,
+        });
+      },
       hookMeta: {
-        kind: "visit",
+        kind: "action",
+        action,
         target: target || null,
+        sourceEl,
       },
       sync,
       key,
+      afterResponse: async (result) => handleActionResult(result, {
+        action,
+        key,
+        resolvedUrl,
+        target,
+        swap,
+        transition,
+        push,
+        replace,
+        strictTargets,
+        swapDelay,
+        settleDelay,
+        focus,
+        sourceEl,
+        streamedEvents,
+      }),
     });
+  }
 
+  async function handleVisitResult(result, {
+    url,
+    target,
+    push,
+    swap,
+    transition,
+    swapDelay,
+    settleDelay,
+    strictTargets,
+    focus,
+  }) {
     if (result.blocked || result.aborted) {
       return result;
     }
@@ -1746,6 +1777,41 @@ const Hyper = (() => {
     if (push) {
       history.pushState({}, "", url);
     }
+  }
+
+  async function visit({
+    url,
+    target,
+    push = true,
+    sync = "replace",
+    key = null,
+    swap = "inner",
+    transition = false,
+    swapDelay = 0,
+    settleDelay = 0,
+    strictTargets = undefined,
+    focus = "preserve",
+  }) {
+    return request(url, {
+      method: "GET",
+      hookMeta: {
+        kind: "visit",
+        target: target || null,
+      },
+      sync,
+      key,
+      afterResponse: async (result) => handleVisitResult(result, {
+        url,
+        target,
+        push,
+        swap,
+        transition,
+        swapDelay,
+        settleDelay,
+        strictTargets,
+        focus,
+      }),
+    });
   }
 
   async function navigate(
@@ -1883,26 +1949,27 @@ const Hyper = (() => {
         hookMeta: { kind: "nav-form", target },
         sync: form.getAttribute("hyper-sync") || "replace",
         key: form.getAttribute("hyper-key") || null,
-      }).then((result) => {
-        if (result.blocked || result.aborted) {
-          return;
-        }
-        if (result.kind === "html") {
-          applySwapLifecycle({
-            target,
-            swapDelay,
-            settleDelay,
-            focus,
-            detail: { kind: "nav-form", swap: "inner" },
-            mutate: async () => {
-              await withViewTransition(transition, () => {
-                applySwap(target, result.data, "inner");
-              });
-            },
-          }).then(() => {
+        afterResponse: async (result) => {
+          if (result.blocked || result.aborted) {
+            return result;
+          }
+          if (result.kind === "html") {
+            await applySwapLifecycle({
+              target,
+              swapDelay,
+              settleDelay,
+              focus,
+              detail: { kind: "nav-form", swap: "inner" },
+              mutate: async () => {
+                await withViewTransition(transition, () => {
+                  applySwap(target, result.data, "inner");
+                });
+              },
+            });
             history.pushState({}, "", action);
-          });
-        }
+          }
+          return result;
+        },
       });
     });
 

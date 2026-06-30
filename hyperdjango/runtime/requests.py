@@ -12,7 +12,6 @@ ACTION_QUERY_KEY = "_action"
 def get_action_name(request: HttpRequest) -> str:
     return str(
         request.META.get(ACTION_HEADER, "")
-        or request.GET.get(ACTION_QUERY_KEY, "")
         or request.POST.get(ACTION_QUERY_KEY, "")
     ).strip()
 

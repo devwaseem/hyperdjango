@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.13"
 
 [[package]]
@@ -48,7 +48,7 @@ wheels = [
 
 [[package]]
 name = "hyperdjango"
-version = "0.35.0"
+version = "0.37.0"
 source = { editable = "." }
 dependencies = [
     { name = "django" },

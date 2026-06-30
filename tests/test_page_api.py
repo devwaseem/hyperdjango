@@ -432,6 +432,40 @@ def test_dispatch_page_routes_post_action_from_header() -> None:
     )
 
 
+def test_dispatch_page_ignores_get_action_query_parameter() -> None:
+    class DemoPage(HyperView):
+        @action
+        def save(self, request, **params):
+            return "action"
+
+        def get(self, request, **params):
+            return "page"
+
+    request = RequestFactory().get("/demo", {"_action": "save"})
+
+    response = dispatch_page(DemoPage(), request)
+
+    assert response.status_code == 200
+    assert response.content == b"page"
+
+
+def test_dispatch_page_routes_post_action_from_form_field() -> None:
+    class DemoPage(HyperView):
+        @action
+        def save(self, request, **params):
+            return "ok"
+
+    request = RequestFactory().post("/demo", {"_action": "save"})
+
+    response = dispatch_page(DemoPage(), request)
+
+    assert response.status_code == 200
+    assert _read_streaming_response(response) == (
+        b'event: patch_html\ndata: {"content": "ok", "swap": "outer"}\n\n'
+        b"event: end\ndata: {}\n\n"
+    )
+
+
 def test_dispatch_page_supports_generator_actions() -> None:
     _ensure_settings()
 
