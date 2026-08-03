@@ -1,0 +1,222 @@
+name: Library CI
+
+on:
+  push:
+    paths:
+      - "hyperdjango/**"
+      - "tests/**"
+      - "example/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".python-version"
+      - ".github/workflows/library-ci.yml"
+  pull_request:
+    paths:
+      - "hyperdjango/**"
+      - "tests/**"
+      - "example/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".python-version"
+      - ".github/workflows/library-ci.yml"
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: library-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  security:
+    name: Security checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - name: Install the locked security tools
+        run: uv sync --locked --group dev
+
+      - name: Run Bandit against library code
+        run: >-
+          uv run bandit --quiet --recursive hyperdjango
+          --severity-level medium --confidence-level high
+
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret,misconfig
+          format: table
+          exit-code: "1"
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          timeout: 10m0s
+
+  test:
+    name: Tests (Python ${{ matrix.python-version }}, Django ${{ matrix.django-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Verify the Django lower bound declared in the package metadata.
+          - python-version: "3.13"
+            django-version: "4.2.*"
+          # Test the current Django LTS release on the minimum supported Python.
+          - python-version: "3.13"
+            django-version: "5.2.*"
+          # Test the latest supported Django release on all supported Python lines.
+          - python-version: "3.13"
+            django-version: "6.0.*"
+          - python-version: "3.14"
+            django-version: "6.0.*"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - name: Install the test environment
+        run: >-
+          uv pip install --system
+          -e .
+          "django==${{ matrix.django-version }}"
+          "pytest>=9"
+
+      - name: Run tests
+        run: python -m pytest -q
+
+  package:
+    name: Package and locked environment
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - name: Validate the lockfile
+        run: uv lock --check
+
+      - name: Install the locked development environment
+        run: uv sync --locked --group dev
+
+      - name: Run the locked test suite
+        run: uv run pytest -q
+
+      - name: Build distributions
+        run: uv build --out-dir dist
+
+      - name: Validate distribution metadata
+        run: uvx --from twine twine check --strict dist/*
+
+      - name: Install and inspect the wheel
+        shell: bash
+        run: |
+          set -euo pipefail
+          wheels=(dist/*.whl)
+          test "${#wheels[@]}" -eq 1
+          wheel_venv="$GITHUB_WORKSPACE/.venv-wheel"
+          uv venv --clear "$wheel_venv"
+          uv pip install --python "$wheel_venv/bin/python" "${wheels[0]}"
+          temp_dir="$(mktemp -d)"
+          pushd "$temp_dir" > /dev/null
+          "$wheel_venv/bin/python" - <<'PY'
+          from importlib.resources import files
+
+          import hyperdjango
+
+          package = files("hyperdjango")
+          assert package.joinpath("py.typed").is_file()
+          assert package.joinpath("static/hyperdjango/hyper.js").is_file()
+          assert package.joinpath("templates/hyperdjango/base.html").is_file()
+          print(hyperdjango.__file__)
+          PY
+          popd > /dev/null
+
+  browser:
+    name: Browser integration tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: example/package-lock.json
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - name: Install the example's Python dependencies
+        run: uv sync --locked --group dev
+
+      - name: Install browser test dependencies
+        working-directory: example
+        run: npm ci
+
+      - name: Install Chromium
+        working-directory: example
+        run: npx playwright install --with-deps chromium
+
+      - name: Run browser integration tests
+        working-directory: example
+        run: npm run test:browser
+
+      - name: Upload browser test artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-test-results
+          path: example/test-results
+          if-no-files-found: ignore

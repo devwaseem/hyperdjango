@@ -3,7 +3,8 @@ from __future__ import annotations
 from typing import cast
 
 from django import template
-from django.utils.safestring import SafeString, mark_safe
+from django.utils.html import format_html_join
+from django.utils.safestring import SafeString
 
 from hyperdjango.assets import AssetTag
 from hyperdjango.page import HyperPageTemplate
@@ -23,8 +24,8 @@ def _get_page(context: template.Context) -> HyperPageTemplate:
 
 
 def _render_tags(tags: list[AssetTag], nonce: str | None = None) -> SafeString:
-    return cast(
-        SafeString, mark_safe("\n".join(tag.render(nonce=nonce) for tag in tags))
+    return format_html_join(
+        "\n", "{}", ((tag.render(nonce=nonce),) for tag in tags)
     )
 
 

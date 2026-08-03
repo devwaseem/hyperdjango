@@ -104,6 +104,7 @@ class PageView(BaseLayout):
                     context_updates={"editable_text": self._current_text(request)},
                 ),
                 target="#editor",
+                swap="inner",
             ),
             HTML(
                 content=self.render(
@@ -112,6 +113,7 @@ class PageView(BaseLayout):
                     context_updates={"message": "Editing..."},
                 ),
                 target="#flash",
+                swap="inner",
             ),
         ]
 
@@ -133,6 +135,7 @@ class PageView(BaseLayout):
                     context_updates={"editable_text": self._current_text(request)},
                 ),
                 target="#editor",
+                swap="inner",
             ),
             HTML(
                 content=self.render(
@@ -141,6 +144,7 @@ class PageView(BaseLayout):
                     context_updates={"message": "Saved."},
                 ),
                 target="#flash",
+                swap="inner",
             ),
         ]
 
@@ -154,6 +158,7 @@ class PageView(BaseLayout):
                     context_updates={"editable_text": self._current_text(request)},
                 ),
                 target="#editor",
+                swap="inner",
             ),
             HTML(
                 content=self.render(
@@ -162,6 +167,7 @@ class PageView(BaseLayout):
                     context_updates={"message": "Canceled."},
                 ),
                 target="#flash",
+                swap="inner",
             ),
         ]
 
@@ -180,6 +186,7 @@ class PageView(BaseLayout):
                     },
                 ),
                 target="#tip-card",
+                swap="inner",
                 transition=True,
             )
         ]

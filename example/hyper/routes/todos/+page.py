@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from hyper.layouts.base import BaseLayout
 
-from hyperdjango.actions import Delete, HTML, Toast, action
+from hyperdjango.actions import Delete, HTML, Signal, Toast, action
 
 
 class PageView(BaseLayout):
@@ -37,22 +37,36 @@ class PageView(BaseLayout):
         todos.append(todo)
         self._save_todos(request, todos)
 
-        return self.action_response(
-            html=self.render(
-                request=request,
-                relative_template_name="partials/item.html",
-                context_updates={"todo": todo},
+        return [
+            Signal(name="title", value=""),
+            HTML(
+                content=self.render(
+                    request=request,
+                    relative_template_name="partials/item.html",
+                    context_updates={"todo": todo},
+                ),
+                target="#todo-list",
+                swap="append",
+                transition=True,
             ),
-            signals={"title": ""},
-            target="#todo-list",
-            swap="append",
-            transition=True,
-            toast={
-                "type": "success",
-                "title": "Added",
-                "message": f"{clean_title} added.",
-            },
-        )
+            HTML(
+                content=self._render_stats(request, todos),
+                target="#todo-stats",
+                swap="inner",
+            ),
+            HTML(
+                content=self._render_empty(request, todos),
+                target="#todo-empty",
+                swap="inner",
+            ),
+            Toast(
+                payload={
+                    "type": "success",
+                    "title": "Added",
+                    "message": f"{clean_title} added.",
+                }
+            ),
+        ]
 
     @action
     def toggle_todo(self, request, id="", **params):
@@ -70,21 +84,30 @@ class PageView(BaseLayout):
         target["done"] = not bool(target["done"])
         self._save_todos(request, todos)
 
-        return self.action_response(
-            html=self.render(
-                request=request,
-                relative_template_name="partials/item.html",
-                context_updates={"todo": target},
+        return [
+            HTML(
+                content=self.render(
+                    request=request,
+                    relative_template_name="partials/item.html",
+                    context_updates={"todo": target},
+                ),
+                target=f"#todo-{target['id']}",
+                swap="outer",
+                transition=True,
             ),
-            target=f"#todo-{target['id']}",
-            swap="outer",
-            transition=True,
-            toast={
-                "type": "info",
-                "title": "Updated",
-                "message": "Marked completed." if target["done"] else "Marked active.",
-            },
-        )
+            HTML(
+                content=self._render_stats(request, todos),
+                target="#todo-stats",
+                swap="inner",
+            ),
+            Toast(
+                payload={
+                    "type": "info",
+                    "title": "Updated",
+                    "message": "Marked completed." if target["done"] else "Marked active.",
+                }
+            ),
+        ]
 
     @action
     def delete_todo(self, request, id="", **params):
@@ -110,8 +133,16 @@ class PageView(BaseLayout):
                     "message": "Todo deleted.",
                 }
             ),
-            HTML(content=self._render_stats(request, remaining), target="#todo-stats"),
-            HTML(content=self._render_empty(request, remaining), target="#todo-empty"),
+            HTML(
+                content=self._render_stats(request, remaining),
+                target="#todo-stats",
+                swap="inner",
+            ),
+            HTML(
+                content=self._render_empty(request, remaining),
+                target="#todo-empty",
+                swap="inner",
+            ),
         ]
 
     @action

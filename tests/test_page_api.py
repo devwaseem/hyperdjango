@@ -86,6 +86,19 @@ def test_hyper_csp_nonce_template_tag_reads_request_nonce() -> None:
     assert template.render(Context({"request": request})) == "test-nonce"
 
 
+def test_asset_tags_escape_attribute_values() -> None:
+    rendered = str(
+        ModuleTag(src='https://assets.example/app.js" onerror="alert(1)').render(
+            nonce='safe" onclick="alert(1)'
+        )
+    )
+
+    assert 'src="https://assets.example/app.js&quot; onerror=&quot;alert(1)"' in rendered
+    assert 'nonce="safe&quot; onclick=&quot;alert(1)"' in rendered
+    assert '" onerror="' not in rendered
+    assert '" onclick="' not in rendered
+
+
 def test_base_template_adds_nonce_to_runtime_scripts() -> None:
     template = (
         Path(__file__).resolve().parent.parent

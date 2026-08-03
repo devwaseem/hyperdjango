@@ -90,13 +90,17 @@ const Hyper = (() => {
   }
 
   function loadingElements() {
-    return Array.from(document.querySelectorAll("[hyper-loading]")).filter(
+    return Array.from(document.querySelectorAll(
+      "[hyper-loading], [hyper-loading-key], [hyper-loading-action]"
+    )).filter(
       (el) => el !== document.documentElement
     );
   }
 
   function loadingDisableElements() {
-    return Array.from(document.querySelectorAll("[hyper-loading-disable]"));
+    return Array.from(document.querySelectorAll(
+      "[hyper-loading-disable], [hyper-loading-disable-key]"
+    ));
   }
 
   function loadingClassElements() {
@@ -1224,6 +1228,14 @@ const Hyper = (() => {
   }
 
   function morphInner(el, html) {
+    // Alpine's morph implementation treats <body> as a complete document node.
+    // For full-page visits we only need to replace its children; using innerHTML
+    // preserves the existing document body and delegated runtime listeners.
+    if (el === document.body) {
+      swapHTML(el, html);
+      return;
+    }
+
     const morpher = getMorpher();
     if (!morpher) {
       swapHTML(el, html);
@@ -2101,6 +2113,17 @@ const Hyper = (() => {
       if (!payload.has("_action")) {
         payload.append("_action", action);
       }
+      const actionOptions = {
+        target: options.target || null,
+        swap: options.swap || "inner",
+        transition: Boolean(options.transition),
+        push: Boolean(options.push),
+        replace: Boolean(options.replace),
+        strictTargets: options.strictTargets,
+        swapDelay: options.swapDelay || 0,
+        settleDelay: options.settleDelay || 0,
+        focus: options.focus || "preserve",
+      };
       if (method === "GET") {
         return runAction({
           url,
@@ -2111,6 +2134,7 @@ const Hyper = (() => {
           sourceEl,
           onUploadProgress,
           kwargs: formToKwargs(payload),
+          ...actionOptions,
         });
       }
       return runAction({
@@ -2121,8 +2145,9 @@ const Hyper = (() => {
         key,
         sourceEl,
         onUploadProgress,
-          body: payload,
-        });
+        body: payload,
+        ...actionOptions,
+      });
     }
 
     if (method !== "GET" && method !== "HEAD") {

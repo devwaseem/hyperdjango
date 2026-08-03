@@ -1,6 +1,6 @@
 {% extends "layouts/base/index.html" %}
 {% block page %}
-    <section style="display: grid; gap: 1rem; max-width: 42rem;">
+    <section x-data="{}" style="display: grid; gap: 1rem; max-width: 42rem;">
         <header>
             <h1>Request error handling</h1>
             <p>This page shows how to listen for <code>hyper:requestError</code> to display a toast and render a UI error state after an action raises an exception.</p>

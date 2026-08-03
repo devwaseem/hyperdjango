@@ -33,6 +33,7 @@ class PageView(BaseLayout):
                         },
                     ),
                     target=target,
+                    swap="inner",
                 )
             ]
 
@@ -56,5 +57,6 @@ class PageView(BaseLayout):
                     },
                 ),
                 target=target,
+                swap="inner",
             ),
         ]
