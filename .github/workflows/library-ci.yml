@@ -205,6 +205,10 @@ jobs:
         working-directory: example
         run: npm ci
 
+      - name: Create the example test database
+        working-directory: example
+        run: ../.venv/bin/python manage.py migrate --noinput
+
       - name: Install Chromium
         working-directory: example
         run: npx playwright install --with-deps chromium
