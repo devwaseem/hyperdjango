@@ -102,6 +102,8 @@ ENV PYTHONFAULTHANDLER=1
 
 WORKDIR "$APP_HOME"
 
+USER nonroot:nonroot
+
 COPY --from=production-base /usr/local /usr/local
 COPY --from=production-base /usr/lib /usr/lib
 COPY --from=production-base /lib /lib
