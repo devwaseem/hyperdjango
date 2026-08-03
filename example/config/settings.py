@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 
@@ -67,5 +68,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 HYPER_FRONTEND_DIR = BASE_DIR / "hyper"
 HYPER_VITE_OUTPUT_DIR = REPO_DIR / "dist"
-HYPER_VITE_DEV_SERVER_URL = "http://localhost:5173/"
+HYPER_VITE_DEV_SERVER_URL = os.environ.get(
+    "HYPER_VITE_DEV_SERVER_URL", "http://localhost:5173/"
+)
 HYPER_DEV = True

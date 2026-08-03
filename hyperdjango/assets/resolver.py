@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from typing import Generator
 
 from django.templatetags.static import static
+from django.utils.html import format_html
+from django.utils.safestring import SafeString
 
 from hyperdjango.assets.manifest import ManifestEntry, load_manifest
 from hyperdjango.conf import get_vite_dev_server_url, is_dev_env
@@ -15,28 +17,32 @@ class AssetTag(ABC):
     src: str
 
     @abstractmethod
-    def render(self, nonce: str | None = None) -> str:
+    def render(self, nonce: str | None = None) -> SafeString:
         raise NotImplementedError
 
 
 @dataclass(frozen=True)
 class ModulePreloadTag(AssetTag):
-    def render(self, nonce: str | None = None) -> str:
-        return f'<link rel="modulepreload" href="{self.src}" />'
+    def render(self, nonce: str | None = None) -> SafeString:
+        return format_html('<link rel="modulepreload" href="{}" />', self.src)
 
 
 @dataclass(frozen=True)
 class ModuleTag(AssetTag):
-    def render(self, nonce: str | None = None) -> str:
-        nonce_attr = f' nonce="{nonce}"' if nonce else ""
-        return f'<script type="module" src="{self.src}"{nonce_attr}></script>'
+    def render(self, nonce: str | None = None) -> SafeString:
+        nonce_attr = format_html(' nonce="{}"', nonce) if nonce else ""
+        return format_html(
+            '<script type="module" src="{}"{}></script>', self.src, nonce_attr
+        )
 
 
 @dataclass(frozen=True)
 class StyleSheetTag(AssetTag):
-    def render(self, nonce: str | None = None) -> str:
-        nonce_attr = f' nonce="{nonce}"' if nonce else ""
-        return f'<link rel="stylesheet" href="{self.src}"{nonce_attr}>'
+    def render(self, nonce: str | None = None) -> SafeString:
+        nonce_attr = format_html(' nonce="{}"', nonce) if nonce else ""
+        return format_html(
+            '<link rel="stylesheet" href="{}"{}>', self.src, nonce_attr
+        )
 
 
 class AssetResolver(ABC):

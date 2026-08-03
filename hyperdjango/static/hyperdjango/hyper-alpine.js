@@ -116,6 +116,7 @@
   }
 
   function install() {
+    ensureHyperStore();
     registerSignalBridge();
     registerAlpineMagicHelpers();
   }

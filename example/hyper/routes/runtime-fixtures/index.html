@@ -1,0 +1,86 @@
+{% extends "layouts/base/index.html" %}
+{% block page %}
+    <section x-data="{ fixtureCount: 0, fixtureMessage: '' }"
+             x-on:hyper:signals.window="if ($event.detail.fixtureCount !== undefined) fixtureCount = $event.detail.fixtureCount; if ($event.detail.fixtureMessage !== undefined) fixtureMessage = $event.detail.fixtureMessage"
+             style="display: grid; gap: 1rem;">
+        <h1>Runtime browser fixtures</h1>
+        <p>State: <strong id="fixture-state">{{ state }}</strong></p>
+        {% if redirected %}<p id="fixture-redirected">Redirected successfully.</p>{% endif %}
+
+        <section>
+            <h2>Typed action items</h2>
+            <button id="apply-items" type="button" x-on:click="$action('apply_items', {}, { key: 'typed-items' })">Apply typed items</button>
+            <button id="redirect-action" type="button" x-on:click="$action('redirect', {})">Redirect</button>
+            <div id="append-target"><span data-fixture="existing">existing</span></div>
+            <div id="swap-neighbors"><span id="swap-marker">marker</span></div>
+            <div id="outer-target">outer original</div>
+            <div id="inner-target">inner original</div>
+            <div id="none-target">none original</div>
+            <div id="delete-target">delete me</div>
+            <div id="event-target">event target</div>
+        </section>
+
+        <section>
+            <h2>Signals and focus</h2>
+            <button id="patch-signals" type="button" x-on:click="$action('patch_signals', {})">Patch signals</button>
+            <p>Local: <strong id="fixture-local" x-text="fixtureCount"></strong></p>
+            <p>Message: <strong id="fixture-message" x-text="fixtureMessage"></strong></p>
+            <p>Global: <strong id="fixture-global" x-text="$store.hyper.fixtureGlobal"></strong></p>
+            <button id="focus-after-swap" type="button" x-on:click="$action('focus_after_swap', {})">Swap and focus</button>
+            <div id="focus-result">focus original</div>
+        </section>
+
+        <section>
+            <h2>Loading, form, and lifecycle APIs</h2>
+            <form id="loading-form"
+                  method="post"
+                  hyper-form
+                  hyper-action="slow_loading"
+                  hyper-key="loading-fixture"
+                  hyper-target="#loading-result"
+                  hyper-swap="inner"
+                  hyper-form-disable>
+                {% csrf_token %}
+                <button id="loading-submit" type="submit">Start loading fixture</button>
+                <button id="loading-secondary" type="button">Secondary control</button>
+            </form>
+            <p id="loading-global" hyper-loading>Global loading</p>
+            <p id="loading-key" hyper-loading="loading-fixture">Key loading</p>
+            <p id="loading-key-attribute" hyper-loading-key="loading-fixture">Key attribute loading</p>
+            <p id="loading-action" hyper-loading-action="slow_loading">Action loading</p>
+            <p id="loading-delayed" hyper-loading="loading-fixture" hyper-loading-delay="100">Delayed loading</p>
+            <div id="loading-class" hyper-loading="loading-fixture" hyper-loading-class="is-busy">class target</div>
+            <div id="loading-remove-class" class="is-hidden" hyper-loading="loading-fixture" hyper-loading-remove-class="is-hidden">remove class target</div>
+            <button id="loading-disable-key" type="button" hyper-loading-disable-key="loading-fixture">Key disable</button>
+            <button id="loading-disable-raw" type="button" hyper-loading-disable="loading-fixture">Raw disable</button>
+            <div id="loading-target-busy" hyper-target-busy="#loading-result">target busy</div>
+            <div id="loading-result">waiting</div>
+        </section>
+
+        <section>
+            <h2>Action options and coordination</h2>
+            <button id="alpine-options"
+                    type="button"
+                    x-on:click="$action('alpine_options', { value: 'from-alpine' }, { method: 'POST', url: '/runtime-fixtures/', key: 'options-fixture', onBeforeSubmit() { document.getElementById('before-submit-result').textContent = 'called'; } })">Run Alpine action options</button>
+            <p id="before-submit-result">not called</p>
+            <div id="alpine-options-result">waiting</div>
+            <button id="block-action" type="button" x-on:click="$action('slow_loading', {}, { method: 'POST', key: 'block-fixture', sync: 'block' })">Run blocked action</button>
+            <button id="concurrent-one" type="button" x-on:click="$action('concurrent_append', { label: 'one' }, { method: 'POST', key: 'concurrent-fixture', sync: 'none' })">Concurrent one</button>
+            <button id="concurrent-two" type="button" x-on:click="$action('concurrent_append', { label: 'two' }, { method: 'POST', key: 'concurrent-fixture', sync: 'none' })">Concurrent two</button>
+            <ul id="concurrent-results"></ul>
+        </section>
+
+        <section>
+            <h2>Strict targets and declarative navigation</h2>
+            <button id="missing-target"
+                    type="button"
+                    x-on:click="$action('missing_target', {}).then(() => { document.getElementById('strict-result').textContent = 'unexpected success'; }).catch((error) => { document.getElementById('strict-result').textContent = error.message; })">Trigger strict missing target</button>
+            <p id="strict-result">waiting</p>
+            <a id="fixture-hyper-nav" href="/about" hyper-nav>Navigate via hyper-nav</a>
+            <form id="fixture-hyper-nav-form" method="get" action="/about" hyper-nav>
+                <input name="from" value="fixture" />
+                <button type="submit">Navigate form via hyper-nav</button>
+            </form>
+        </section>
+    </section>
+{% endblock page %}

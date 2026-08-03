@@ -28,6 +28,7 @@ class PageView(BaseLayout):
                     context_updates={"form": form},
                 ),
                 target="#profile-panel",
+                swap="inner",
                 focus="first-invalid",
             )
 
