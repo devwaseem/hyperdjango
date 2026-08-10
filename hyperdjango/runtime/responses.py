@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 from collections.abc import AsyncIterable, AsyncIterator, Iterable, Iterator
 from queue import Queue
 from threading import Thread
@@ -32,9 +33,12 @@ ACTION_VARY_HEADERS = [
     "X-Hyper-Target",
     "X-Hyper-Data",
     "X-Requested-With",
+    "X-Hyper-Request-ID",
+    "Last-Event-ID",
 ]
 
 _ITERATION_DONE = object()
+_VALID_SSE_REQUEST_ID = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
 
 
 def ensure_action_response_headers(response: HttpResponse) -> HttpResponse:
@@ -48,11 +52,16 @@ def to_action_http_response(
     result: Any, *, request: HttpRequest | None = None
 ) -> HttpResponse:
     items, status, headers = normalize_action_result(result)
+    event_id_prefix, skip_events = _sse_resume_context(request)
     streaming_content: Iterable[str] | AsyncIterator[str]
     if _is_asgi_request(request):
-        streaming_content = stream_action_sse_async(items)
+        streaming_content = stream_action_sse_async(
+            items, event_id_prefix=event_id_prefix, skip_events=skip_events
+        )
     else:
-        streaming_content = stream_action_sse_sync(items)
+        streaming_content = stream_action_sse_sync(
+            items, event_id_prefix=event_id_prefix, skip_events=skip_events
+        )
     response = StreamingHttpResponse(
         streaming_content,
         status=status,
@@ -71,13 +80,21 @@ def _action_error_event(status: int, message: str) -> tuple[str, dict[str, Any]]
 def to_action_exception_response(
     status: int, message: str, *, request: HttpRequest | None = None
 ) -> HttpResponse:
+    event_id_prefix, skip_events = _sse_resume_context(request)
     response = StreamingHttpResponse(
-        stream_action_exception_sse_async(status, message)
+        stream_action_exception_sse_async(
+            status,
+            message,
+            event_id_prefix=event_id_prefix,
+            skip_events=skip_events,
+        )
         if _is_asgi_request(request)
-        else [
-            _format_sse_event(*_action_error_event(status, message)),
-            _format_sse_event("end", {}),
-        ],
+        else stream_action_exception_sse_sync(
+            status,
+            message,
+            event_id_prefix=event_id_prefix,
+            skip_events=skip_events,
+        ),
         status=status,
         content_type="text/event-stream",
     )
@@ -157,38 +174,64 @@ def compile_action_result(result: ActionResult) -> list[ActionItem]:
     return items
 
 
-def stream_action_sse(items: Iterable[ActionItem]) -> Iterator[str]:
+def stream_action_sse(
+    items: Iterable[ActionItem], *, event_id_prefix: str = "", skip_events: int = 0
+) -> Iterator[str]:
     redirect_seen = False
+    event_index = 0
     for item in items:
+        event_index += 1
         event_name, payload = serialize_action_item(item)
-        yield _format_sse_event(event_name, payload)
+        if event_index > skip_events:
+            yield _format_sse_event(
+                event_name, payload, _event_id(event_id_prefix, event_index)
+            )
         if isinstance(item, Redirect):
             redirect_seen = True
             break
     if not redirect_seen:
-        yield _format_sse_event("end", {})
+        event_index += 1
+        if event_index > skip_events:
+            yield _format_sse_event(
+                "end", {}, _event_id(event_id_prefix, event_index)
+            )
 
 
 def stream_action_sse_sync(
     items: Iterable[ActionItem] | AsyncIterable[ActionItem],
+    *,
+    event_id_prefix: str = "",
+    skip_events: int = 0,
 ) -> Iterator[str]:
     if isinstance(items, AsyncIterable):
-        return _stream_action_sse_sync_from_async(items)
-    return stream_action_sse(items)
+        return _stream_action_sse_sync_from_async(
+            items, event_id_prefix=event_id_prefix, skip_events=skip_events
+        )
+    return stream_action_sse(
+        items, event_id_prefix=event_id_prefix, skip_events=skip_events
+    )
 
 
 async def stream_action_sse_async(
     items: Iterable[ActionItem] | AsyncIterable[ActionItem],
+    *,
+    event_id_prefix: str = "",
+    skip_events: int = 0,
 ) -> AsyncIterator[str]:
     redirect_seen = False
+    event_index = 0
     if isinstance(items, AsyncIterable):
         async_iterator = items.__aiter__()
         while True:
             item = await _next_async_action_item(async_iterator)
             if item is _ITERATION_DONE:
                 break
+            event_index += 1
             event_name, payload = serialize_action_item(item)
-            yield _format_sse_event(event_name, payload)
+            if event_index > skip_events:
+                yield _format_sse_event(
+                    event_name, payload, _event_id(event_id_prefix, event_index)
+                )
             if isinstance(item, Redirect):
                 redirect_seen = True
                 break
@@ -200,24 +243,42 @@ async def stream_action_sse_async(
             )
             if item is _ITERATION_DONE:
                 break
+            event_index += 1
             event_name, payload = serialize_action_item(item)
-            yield _format_sse_event(event_name, payload)
+            if event_index > skip_events:
+                yield _format_sse_event(
+                    event_name, payload, _event_id(event_id_prefix, event_index)
+                )
             if isinstance(item, Redirect):
                 redirect_seen = True
                 break
 
     if not redirect_seen:
-        yield _format_sse_event("end", {})
+        event_index += 1
+        if event_index > skip_events:
+            yield _format_sse_event(
+                "end", {}, _event_id(event_id_prefix, event_index)
+            )
 
 
 def _stream_action_sse_sync_from_async(
     items: AsyncIterable[ActionItem],
+    *,
+    event_id_prefix: str = "",
+    skip_events: int = 0,
 ) -> Iterator[str]:
     queue: Queue[tuple[str, str | BaseException | None]] = Queue()
 
     def producer() -> None:
         try:
-            asyncio.run(_produce_action_sse(items, queue))
+            asyncio.run(
+                _produce_action_sse(
+                    items,
+                    queue,
+                    event_id_prefix=event_id_prefix,
+                    skip_events=skip_events,
+                )
+            )
         except BaseException as exc:  # pragma: no cover - defensive bridge
             queue.put(("error", exc))
         finally:
@@ -241,28 +302,76 @@ def _stream_action_sse_sync_from_async(
 async def _produce_action_sse(
     items: AsyncIterable[ActionItem],
     queue: Queue[tuple[str, str | BaseException | None]],
+    *,
+    event_id_prefix: str = "",
+    skip_events: int = 0,
 ) -> None:
     redirect_seen = False
+    event_index = 0
     async_iterator = items.__aiter__()
     while True:
         item = await _next_async_action_item(async_iterator)
         if item is _ITERATION_DONE:
             break
+        event_index += 1
         event_name, payload = serialize_action_item(item)
-        queue.put(("event", _format_sse_event(event_name, payload)))
+        if event_index > skip_events:
+            queue.put(
+                (
+                    "event",
+                    _format_sse_event(
+                        event_name,
+                        payload,
+                        _event_id(event_id_prefix, event_index),
+                    ),
+                )
+            )
         if isinstance(item, Redirect):
             redirect_seen = True
             break
 
     if not redirect_seen:
-        queue.put(("event", _format_sse_event("end", {})))
+        event_index += 1
+        if event_index > skip_events:
+            queue.put(
+                (
+                    "event",
+                    _format_sse_event(
+                        "end", {}, _event_id(event_id_prefix, event_index)
+                    ),
+                )
+            )
 
 
 async def stream_action_exception_sse_async(
-    status: int, message: str
+    status: int,
+    message: str,
+    *,
+    event_id_prefix: str = "",
+    skip_events: int = 0,
 ) -> AsyncIterator[str]:
-    yield _format_sse_event(*_action_error_event(status, message))
-    yield _format_sse_event("end", {})
+    for chunk in stream_action_exception_sse_sync(
+        status,
+        message,
+        event_id_prefix=event_id_prefix,
+        skip_events=skip_events,
+    ):
+        yield chunk
+
+
+def stream_action_exception_sse_sync(
+    status: int,
+    message: str,
+    *,
+    event_id_prefix: str = "",
+    skip_events: int = 0,
+) -> Iterator[str]:
+    events = [(_action_error_event(status, message)), ("end", {})]
+    for event_index, (event_name, payload) in enumerate(events, start=1):
+        if event_index > skip_events:
+            yield _format_sse_event(
+                event_name, payload, _event_id(event_id_prefix, event_index)
+            )
 
 
 def serialize_action_item(item: ActionItem) -> tuple[str, dict[str, Any]]:
@@ -317,9 +426,31 @@ def serialize_action_item(item: ActionItem) -> tuple[str, dict[str, Any]]:
     raise TypeError(f"Unsupported action item type: {type(item).__name__}")
 
 
-def _format_sse_event(event_name: str, payload: dict[str, Any]) -> str:
+def _format_sse_event(
+    event_name: str, payload: dict[str, Any], event_id: str = ""
+) -> str:
     body = json.dumps(payload)
-    return f"event: {event_name}\ndata: {body}\n\n"
+    id_line = f"id: {event_id}\n" if event_id else ""
+    return f"event: {event_name}\n{id_line}data: {body}\n\n"
+
+
+def _event_id(prefix: str, event_index: int) -> str:
+    return f"{prefix}:{event_index}" if prefix else ""
+
+
+def _sse_resume_context(request: HttpRequest | None) -> tuple[str, int]:
+    if request is None:
+        return "", 0
+
+    request_id = request.headers.get("X-Hyper-Request-ID", "").strip()
+    if not _VALID_SSE_REQUEST_ID.fullmatch(request_id):
+        return "", 0
+
+    last_event_id = request.headers.get("Last-Event-ID", "").strip()
+    prefix, separator, raw_index = last_event_id.rpartition(":")
+    if separator and prefix == request_id and raw_index.isdigit():
+        return request_id, int(raw_index)
+    return request_id, 0
 
 
 def _is_asgi_request(request: HttpRequest | None) -> bool:

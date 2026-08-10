@@ -12,6 +12,11 @@ const Hyper = (() => {
   let nextElementRequestKey = 0;
   const config = {
     strictTargets: false,
+    sseRetry: true,
+    sseRetryInterval: 1000,
+    sseRetryScaler: 2,
+    sseRetryMaxWait: 30000,
+    sseRetryMaxCount: 10,
   };
 
   function emitEvent(name, detail) {
@@ -30,6 +35,22 @@ const Hyper = (() => {
     }
     if (Object.prototype.hasOwnProperty.call(next, "strictTargets")) {
       config.strictTargets = Boolean(next.strictTargets);
+    }
+    if (Object.prototype.hasOwnProperty.call(next, "sseRetry")) {
+      config.sseRetry = Boolean(next.sseRetry);
+    }
+    for (const key of [
+      "sseRetryInterval",
+      "sseRetryScaler",
+      "sseRetryMaxWait",
+      "sseRetryMaxCount",
+    ]) {
+      if (Object.prototype.hasOwnProperty.call(next, key)) {
+        const value = Number(next[key]);
+        if (Number.isFinite(value) && value >= 0) {
+          config[key] = value;
+        }
+      }
     }
     return { ...config };
   }
@@ -697,7 +718,7 @@ const Hyper = (() => {
       xhr.addEventListener("error", () => reject(new Error(`Hyper request failed: ${meta.method} ${url}`)));
       xhr.addEventListener("abort", () => reject(new DOMException("The operation was aborted.", "AbortError")));
 
-      meta.controller.abort = () => xhr.abort();
+      meta.controller.xhr = xhr;
       xhr.send(options.body);
     });
   }
@@ -705,12 +726,12 @@ const Hyper = (() => {
   async function consumeSSEChunk(chunk, { buffer = "", onEvent = null, flush = false } = {}) {
     let pending = buffer + chunk;
     while (true) {
-      const boundary = pending.indexOf("\n\n");
-      if (boundary === -1) {
+      const boundary = /\r\n\r\n|\n\n|\r\r/.exec(pending);
+      if (!boundary) {
         break;
       }
-      const rawEvent = pending.slice(0, boundary);
-      pending = pending.slice(boundary + 2);
+      const rawEvent = pending.slice(0, boundary.index);
+      pending = pending.slice(boundary.index + boundary[0].length);
       const parsed = parseSSEEvent(rawEvent);
       if (parsed && typeof onEvent === "function") {
         await onEvent(parsed);
@@ -727,9 +748,13 @@ const Hyper = (() => {
   }
 
   function parseSSEEvent(rawEvent) {
-    const lines = rawEvent.split(/\r?\n/);
+    const lines = rawEvent.split(/\r\n|\r|\n/);
     let eventName = "message";
     const dataLines = [];
+    let id = "";
+    let idPresent = false;
+    let retry = null;
+    let controlFieldSeen = false;
     for (const line of lines) {
       if (!line || line.startsWith(":")) {
         continue;
@@ -738,16 +763,44 @@ const Hyper = (() => {
         eventName = line.slice(6).trim();
         continue;
       }
+      if (line.startsWith("id:")) {
+        controlFieldSeen = true;
+        idPresent = true;
+        const nextId = line.slice(3).trimStart();
+        if (!nextId.includes("\0")) {
+          id = nextId;
+        }
+        continue;
+      }
+      if (line.startsWith("retry:")) {
+        controlFieldSeen = true;
+        const nextRetry = line.slice(6).trim();
+        if (/^\d+$/.test(nextRetry)) {
+          retry = Number(nextRetry);
+        }
+        continue;
+      }
       if (line.startsWith("data:")) {
-        dataLines.push(line.slice(5).trim());
+        const value = line.slice(5);
+        dataLines.push(value.startsWith(" ") ? value.slice(1) : value);
       }
     }
     if (!dataLines.length) {
-      return null;
+      return controlFieldSeen ? {
+        event: eventName,
+        data: null,
+        id,
+        idPresent,
+        retry,
+        controlOnly: true,
+      } : null;
     }
     return {
       event: eventName,
       data: JSON.parse(dataLines.join("\n") || "{}"),
+      id,
+      idPresent,
+      retry,
     };
   }
 
@@ -769,6 +822,24 @@ const Hyper = (() => {
       });
     }
     await consumeSSEChunk(decoder.decode(), { buffer, onEvent, flush: true });
+  }
+
+  function waitForRetry(delay, signal) {
+    return new Promise((resolve, reject) => {
+      if (signal.aborted) {
+        reject(new DOMException("The operation was aborted.", "AbortError"));
+        return;
+      }
+      const timer = setTimeout(() => {
+        signal.removeEventListener("abort", onAbort);
+        resolve();
+      }, delay);
+      const onAbort = () => {
+        clearTimeout(timer);
+        reject(new DOMException("The operation was aborted.", "AbortError"));
+      };
+      signal.addEventListener("abort", onAbort, { once: true });
+    });
   }
 
   async function request(url, options = {}) {
@@ -828,8 +899,17 @@ const Hyper = (() => {
     }
 
     const controller = new AbortController();
+    const requestControl = {
+      xhr: null,
+      abort() {
+        controller.abort();
+        if (this.xhr) {
+          this.xhr.abort();
+        }
+      },
+    };
     if (syncMode !== "none") {
-      inFlightRequests.set(requestKey, { id: requestId, controller });
+      inFlightRequests.set(requestKey, { id: requestId, controller: requestControl });
     }
 
     setLoading(true, {
@@ -851,22 +931,118 @@ const Hyper = (() => {
         const expectSSE = headers["X-Hyper-Action"] && typeof options.onSSEEvent === "function";
         const canTrackUpload =
           typeof options.onUploadProgress === "function" && method !== "GET" && method !== "HEAD" && options.body;
-        response = canTrackUpload
-          ? await requestWithXHR(url, options, {
+        let retryInterval = Number(options.sseRetryInterval ?? config.sseRetryInterval);
+        const retryScaler = Number(options.sseRetryScaler ?? config.sseRetryScaler);
+        const retryMaxWait = Number(options.sseRetryMaxWait ?? config.sseRetryMaxWait);
+        const retryMaxCount = Number(options.sseRetryMaxCount ?? config.sseRetryMaxCount);
+        const retryEnabled = options.sseRetry ?? config.sseRetry;
+        let retryCount = 0;
+        let terminalEventSeen = false;
+
+        if (expectSSE && !headers.Accept && !headers.accept) {
+          headers.Accept = "text/event-stream";
+        }
+        if (expectSSE && !headers["X-Hyper-Request-ID"]) {
+          headers["X-Hyper-Request-ID"] = requestId;
+        }
+
+        const onSSEEvent = async (event) => {
+          if (event.idPresent) {
+            if (event.id) {
+              headers["Last-Event-ID"] = event.id;
+            } else {
+              delete headers["Last-Event-ID"];
+            }
+          }
+          if (Number.isFinite(event.retry) && event.retry >= 0) {
+            retryInterval = event.retry;
+          }
+          if (event.event === "end" || event.event === "redirect") {
+            terminalEventSeen = true;
+          }
+          if (event.controlOnly) {
+            return;
+          }
+          try {
+            await options.onSSEEvent(event);
+          } catch (error) {
+            if (error && typeof error === "object") {
+              error.hyperSSEHandlerError = true;
+            }
+            throw error;
+          }
+        };
+
+        while (true) {
+          terminalEventSeen = false;
+          try {
+            const attemptOptions = expectSSE ? { ...options, onSSEEvent } : options;
+            response = canTrackUpload
+              ? await requestWithXHR(url, attemptOptions, {
+                  method,
+                  headers,
+                  hookMeta,
+                  requestId,
+                  requestKey,
+                  controller: requestControl,
+                  expectSSE,
+                })
+              : await fetch(url, {
+                  ...attemptOptions,
+                  credentials: "same-origin",
+                  headers,
+                  signal: controller.signal,
+                });
+
+            const contentType = response.headers.get("content-type") || "";
+            if (expectSSE && contentType.includes("text/event-stream")) {
+              if (!canUseXHRResponse(response)) {
+                await readSSEStream(response, onSSEEvent);
+              }
+              if (!terminalEventSeen) {
+                const error = new Error("Hyper SSE stream closed before a terminal event.");
+                error.name = "SSEConnectionError";
+                throw error;
+              }
+            }
+            break;
+          } catch (error) {
+            if (terminalEventSeen && !(error && error.hyperSSEHandlerError)) {
+              break;
+            }
+            const retryable = retryEnabled && expectSSE &&
+              !(error && (error.name === "AbortError" || error.name === "SyntaxError" || error.hyperSSEHandlerError));
+            if (!retryable || retryCount >= retryMaxCount) {
+              if (retryable) {
+                emitEvent("hyper:requestRetriesFailed", {
+                  id: requestId,
+                  key: requestKey,
+                  url,
+                  method,
+                  attempts: retryCount,
+                  error,
+                  ...hookMeta,
+                });
+              }
+              throw error;
+            }
+
+            const delay = Math.min(retryInterval, retryMaxWait);
+            retryCount += 1;
+            emitEvent("hyper:requestRetry", {
+              id: requestId,
+              key: requestKey,
+              url,
               method,
-              headers,
-              hookMeta,
-              requestId,
-              requestKey,
-              controller,
-              expectSSE,
-            })
-          : await fetch(url, {
-              ...options,
-              credentials: "same-origin",
-              headers,
-              signal: controller.signal,
+              attempt: retryCount,
+              delay,
+              error,
+              ...hookMeta,
             });
+            await waitForRetry(delay, controller.signal);
+            retryInterval = Math.min(retryInterval * retryScaler, retryMaxWait);
+          }
+        }
 
         if (response.ok) {
           emitEvent("hyper:requestSuccess", {
@@ -924,9 +1100,6 @@ const Hyper = (() => {
       } else {
         const contentType = response.headers.get("content-type") || "";
         if (contentType.includes("text/event-stream")) {
-          if (!canUseXHRResponse(response) && typeof options.onSSEEvent === "function") {
-            await readSSEStream(response, options.onSSEEvent);
-          }
           result = { kind: "sse", data: null, response };
         } else if (contentType.includes("application/json")) {
           result = { kind: "json", data: await response.json(), response };
@@ -1658,6 +1831,7 @@ const Hyper = (() => {
     settleDelay = 0,
     focus = "preserve",
     onUploadProgress = null,
+    retry = undefined,
   }) {
     const resolvedUrl = url || window.location.pathname;
     const streamedEvents = [];
@@ -1675,6 +1849,7 @@ const Hyper = (() => {
       method,
       headers,
       body,
+      sseRetry: retry,
       onUploadProgress,
       onSSEEvent: async (event) => {
         streamedEvents.push(event);
@@ -2102,6 +2277,7 @@ const Hyper = (() => {
     const key = options.key || null;
     const sourceEl = resolveSourceEl(options.sourceEl || null);
     const onUploadProgress = options.onUploadProgress || null;
+    const retry = options.retry ?? options.sseRetry;
     const extraData = data && typeof data === "object" ? data : null;
 
     if (typeof options.onBeforeSubmit === "function") {
@@ -2123,6 +2299,7 @@ const Hyper = (() => {
         swapDelay: options.swapDelay || 0,
         settleDelay: options.settleDelay || 0,
         focus: options.focus || "preserve",
+        retry,
       };
       if (method === "GET") {
         return runAction({
@@ -2161,6 +2338,7 @@ const Hyper = (() => {
       sync,
       key,
       onUploadProgress,
+      retry,
     });
     }
 
@@ -2173,6 +2351,7 @@ const Hyper = (() => {
       sync,
       key,
       onUploadProgress,
+      retry,
     });
   }
 

@@ -19,6 +19,42 @@ Request metadata sent by the runtime can include:
 - `X-Hyper-Target`
 - `X-Hyper-Data`
 - `X-Requested-With`
+- `X-Hyper-Request-ID`
+- `Last-Event-ID` on an SSE reconnect
+
+## SSE Reconnection
+
+Action streams reconnect automatically after a network or response-body read failure,
+or when the connection closes before an `end` or `redirect` event. The runtime uses
+bounded exponential backoff: 1 second initially, doubling to a maximum
+of 30 seconds, with at most 10 reconnect attempts. A valid SSE `retry:` field changes
+the next retry delay.
+
+Every action request carries a stable `X-Hyper-Request-ID`. Response events are assigned
+IDs, and a reconnect sends `Last-Event-ID`; the response stream skips events the browser
+already processed. The server may execute the action again during a reconnect, so actions
+with non-idempotent external side effects should use `X-Hyper-Request-ID` as an idempotency
+key.
+
+The defaults can be changed globally:
+
+```js
+Hyper.configure({
+  sseRetry: true,
+  sseRetryInterval: 1000,
+  sseRetryScaler: 2,
+  sseRetryMaxWait: 30000,
+  sseRetryMaxCount: 10,
+});
+```
+
+To disable reconnect attempts for one action:
+
+```js
+action("save", data, { retry: false });
+```
+
+To disable them globally, call `Hyper.configure({ sseRetry: false })`.
 
 ## `window.action(name, data, options)`
 
@@ -76,6 +112,11 @@ These options define how the client runtime orchestrates request lifecycle, stat
 - **Purpose**: Enables tracking for multipart/form-data upload progress.
 - **Behavior**: Provides access to `loaded` and `total` bytes for UI progress indicators.
 
+### `retry`
+- **Type**: `boolean`
+- **Purpose**: Enables or disables automatic SSE reconnect attempts for this action.
+- **Default**: `true`, unless disabled globally with `Hyper.configure({ sseRetry: false })`.
+
 ## Outcomes
 
 Common outcome flags:
@@ -109,6 +150,8 @@ The HyperDjango client runtime dispatches events to `window` for lifecycle monit
 | `hyper:requestSuccess` | When a request completes successfully. | `key`, `status` |
 | `hyper:requestError` | When the server returns an error status. | `key`, `status`, `message` |
 | `hyper:requestException` | When client-side code throws an exception. | `key`, `error` |
+| `hyper:requestRetry` | Before reconnecting an interrupted SSE action stream. | `key`, `attempt`, `delay`, `error` |
+| `hyper:requestRetriesFailed` | When an SSE stream exhausts its reconnect attempts. | `key`, `attempts`, `error` |
 | `hyper:uploadProgress` | During file upload progress tracking. | `key`, `progress` (0-1) |
 | `hyper:streamEvent` | When a new SSE event is received from the server. | `event` (type), `data` (payload) |
 | `hyper:toast` | When a `Toast` action is received. | `value` |

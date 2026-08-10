@@ -133,6 +133,20 @@ def test_client_runtime_applies_nonce_to_dynamic_scripts() -> None:
     assert "const nonce = fromScript.nonce || currentScriptNonce();" in runtime
 
 
+def test_client_runtime_exposes_sse_retry_opt_out() -> None:
+    runtime = (
+        Path(__file__).resolve().parent.parent
+        / "hyperdjango"
+        / "static"
+        / "hyperdjango"
+        / "hyper.js"
+    ).read_text()
+
+    assert "sseRetry: true" in runtime
+    assert "const retry = options.retry ?? options.sseRetry;" in runtime
+    assert "const retryable = retryEnabled && expectSSE" in runtime
+
+
 def test_hyperview_registers_actions() -> None:
     class Demo(HyperView):
         @action
@@ -275,6 +289,42 @@ def test_action_http_response_serializes_event_dispatch() -> None:
     assert _read_streaming_response(response) == (
         b'event: dispatch_event\ndata: {"name": "profile:saved", "payload": {"id": 1}, "target": "#profile-panel"}\n\n'
         b"event: end\ndata: {}\n\n"
+    )
+
+
+def test_action_sse_ids_allow_an_interrupted_stream_to_resume() -> None:
+    _ensure_settings()
+    request = RequestFactory().post(
+        "/demo",
+        headers={"X-Hyper-Request-ID": "request-123"},
+    )
+
+    response = to_action_http_response(
+        [Signal(name="count", value=1), HTML(content="<div>Done</div>")],
+        request=request,
+    )
+
+    assert _read_streaming_response(response) == (
+        b"event: patch_signals\nid: request-123:1\ndata: {\"count\": 1}\n\n"
+        b"event: patch_html\nid: request-123:2\ndata: {\"content\": \"<div>Done</div>\", \"swap\": \"outer\"}\n\n"
+        b"event: end\nid: request-123:3\ndata: {}\n\n"
+    )
+
+    resumed_request = RequestFactory().post(
+        "/demo",
+        headers={
+            "X-Hyper-Request-ID": "request-123",
+            "Last-Event-ID": "request-123:1",
+        },
+    )
+    resumed_response = to_action_http_response(
+        [Signal(name="count", value=1), HTML(content="<div>Done</div>")],
+        request=resumed_request,
+    )
+
+    assert _read_streaming_response(resumed_response) == (
+        b"event: patch_html\nid: request-123:2\ndata: {\"content\": \"<div>Done</div>\", \"swap\": \"outer\"}\n\n"
+        b"event: end\nid: request-123:3\ndata: {}\n\n"
     )
 
 

@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file.
 ## 0.37.0
 - Breaking: HyperDjango no longer dispatches actions from the `_action` query parameter on GET requests. Actions should be invoked through the `X-Hyper-Action` header used by HyperDjango's client runtime, or through POST form data.
 - Kept `hyper-loading` active until response bodies are parsed and caller response handling finishes, including awaited swap lifecycles through settle completion for actions, visits, SSE events, and plain navigation forms.
+- Made interrupted SSE action streams reconnect with bounded exponential backoff, `retry:` support, event IDs, and `Last-Event-ID` resume semantics.
+- Added per-action `retry: false` and global `sseRetry: false` options for disabling automatic SSE reconnect attempts.
+- Fixed SSE parsing for CRLF and CR line endings in addition to LF.
 
 ## 0.36.0
 - Emit history events in both window and document

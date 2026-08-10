@@ -8,9 +8,14 @@ Each event is serialized as:
 
 ```
 event: <event_name>
+id: <request_id>:<sequence_number>
 data: <json_payload>
 
 ```
+
+The `id` line is included for requests made by the Hyper client runtime. On reconnect,
+the runtime sends the last processed ID in `Last-Event-ID`, and the server resumes after
+that event. The parser accepts LF, CRLF, and CR line endings as required by the SSE format.
 
 ## Action SSE Events
 
