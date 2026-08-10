@@ -72,3 +72,20 @@ class PageView(BaseLayout):
                 "message": "The server pushed five incremental updates over one action request.",
             }
         )
+
+    @action
+    async def retry_demo(self, request, **params):
+        yield HTML(
+            content="<div data-retry-first>First event delivered.</div>",
+            target="#stream-log",
+            swap="inner",
+        )
+
+        if not request.headers.get("Last-Event-ID"):
+            raise ConnectionResetError("Intentional browser-test stream interruption")
+
+        yield HTML(
+            content="<div data-retry-resumed>Stream resumed.</div>",
+            target="#stream-log",
+            swap="append",
+        )
