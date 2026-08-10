@@ -117,6 +117,10 @@ def test_base_template_adds_nonce_to_runtime_scripts() -> None:
         '<script src="{% static \'hyperdjango/hyper-alpine.js\' %}"'
         "{% if hyper_nonce %} nonce=\"{{ hyper_nonce }}\"{% endif %}>"
     ) in template
+    assert (
+        '<script src="{% static \'hyperdjango/hyper-debug-toolbar.js\' %}"'
+        "{% if hyper_nonce %} nonce=\"{{ hyper_nonce }}\"{% endif %}>"
+    ) in template
 
 
 def test_client_runtime_applies_nonce_to_dynamic_scripts() -> None:
@@ -131,6 +135,20 @@ def test_client_runtime_applies_nonce_to_dynamic_scripts() -> None:
     assert "function currentScriptNonce() {" in runtime
     assert "script.nonce = nonce;" in runtime
     assert "const nonce = fromScript.nonce || currentScriptNonce();" in runtime
+
+
+def test_debug_toolbar_bridge_refreshes_after_body_swaps() -> None:
+    bridge = (
+        Path(__file__).resolve().parent.parent
+        / "hyperdjango"
+        / "static"
+        / "hyperdjango"
+        / "hyper-debug-toolbar.js"
+    ).read_text()
+
+    assert 'window.addEventListener("hyper:settle:end"' in bridge
+    assert 'document.getElementById("djDebug")' in bridge
+    assert "window.djdt.show_toolbar();" in bridge
 
 
 def test_client_runtime_exposes_sse_retry_opt_out() -> None:

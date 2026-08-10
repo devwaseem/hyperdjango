@@ -1,0 +1,74 @@
+{% if is_hyperdjango %}
+  <h4>Route and handler</h4>
+  <table>
+    <tbody>
+      <tr><th>Route name</th><td><code>{{ route.name|default:"—" }}</code></td></tr>
+      <tr><th>Pattern</th><td><code>{{ route.pattern|default:"—" }}</code></td></tr>
+      <tr><th>Page class</th><td><code>{{ route.page_class }}</code></td></tr>
+      <tr><th>HTTP handler</th><td><code>{{ route.handler }}</code></td></tr>
+      <tr><th>Parameters</th><td><code>{{ route.parameters }}</code></td></tr>
+    </tbody>
+  </table>
+
+  {% if action %}
+    <h4>Action</h4>
+    <table>
+      <tbody>
+        <tr><th>Name</th><td><code>{{ action.name }}</code></td></tr>
+        <tr><th>Target</th><td><code>{{ action.target|default:"—" }}</code></td></tr>
+        <tr><th>Arguments</th><td><code>{{ action.arguments }}</code></td></tr>
+      </tbody>
+    </table>
+  {% endif %}
+
+  <h4>Rendering</h4>
+  {% if renders %}
+    <table>
+      <thead><tr><th>Kind</th><th>Template</th><th>Block</th><th>Time</th></tr></thead>
+      <tbody>
+        {% for render in renders %}
+          <tr>
+            <td>{{ render.kind }}</td>
+            <td><code>{{ render.template }}</code></td>
+            <td><code>{{ render.block|default:"—" }}</code></td>
+            <td>{{ render.duration_ms|default:"—" }} ms</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}<p>No HyperDjango template rendering was recorded.</p>{% endif %}
+
+  <h4>Action results and SSE</h4>
+  {% if results %}
+    {% for result in results %}
+      <p><strong>{{ result.kind }}</strong> — {{ result.item_types|join:", " }}{% if result.streaming %} (streaming){% endif %}</p>
+      {% if result.note %}<p>{{ result.note }}</p>{% endif %}
+      {% if result.items %}<pre>{{ result.items }}</pre>{% endif %}
+    {% endfor %}
+  {% else %}<p>No action result was recorded.</p>{% endif %}
+
+  <h4>Phase timings</h4>
+  <table>
+    <thead><tr><th>Phase</th><th>Duration</th></tr></thead>
+    <tbody>
+      {% for timing in timings %}<tr><td>{{ timing.phase }}</td><td>{{ timing.duration_ms }} ms</td></tr>{% endfor %}
+    </tbody>
+  </table>
+
+  {% if exceptions %}
+    <h4>Exceptions</h4>
+    <table>
+      <thead><tr><th>Phase</th><th>Type</th><th>Message</th></tr></thead>
+      <tbody>
+        {% for exception in exceptions %}
+          <tr><td>{{ exception.phase }}</td><td><code>{{ exception.type }}</code></td><td>{{ exception.message }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+
+  <h4>Response</h4>
+  <p>Status {{ response.status }} · <code>{{ response.content_type }}</code>{% if response.streaming %} · streaming{% endif %}</p>
+{% else %}
+  <p>This request did not pass through HyperDjango dispatch.</p>
+{% endif %}

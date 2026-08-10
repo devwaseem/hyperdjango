@@ -4,6 +4,7 @@ from typing import Any
 
 from django.http import HttpRequest, HttpResponse
 
+from hyperdjango.integrations.debug_toolbar.tracing import operation as debug_operation
 from hyperdjango.page import HyperPageTemplate
 
 
@@ -17,9 +18,10 @@ def render_template_page(
 ) -> HttpResponse:
     page = template_cls()
     html = page.render(request=request, context_updates=context)
-    response = HttpResponse(html, status=status)
-    for key, value in (headers or {}).items():
-        response[key] = value
+    with debug_operation(request, "response preparation"):
+        response = HttpResponse(html, status=status)
+        for key, value in (headers or {}).items():
+            response[key] = value
     return response
 
 
@@ -40,7 +42,8 @@ def render_template_block(
         relative_template_name=relative_template_name,
         context_updates=context,
     )
-    response = HttpResponse(html, status=status)
-    for key, value in (headers or {}).items():
-        response[key] = value
+    with debug_operation(request, "response preparation"):
+        response = HttpResponse(html, status=status)
+        for key, value in (headers or {}).items():
+            response[key] = value
     return response

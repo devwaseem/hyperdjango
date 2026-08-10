@@ -17,6 +17,7 @@
         {% block body %}
         {% endblock body %}
         <script src="{% static 'hyperdjango/hyper.js' %}"{% if hyper_nonce %} nonce="{{ hyper_nonce }}"{% endif %}></script>
+        <script src="{% static 'hyperdjango/hyper-debug-toolbar.js' %}"{% if hyper_nonce %} nonce="{{ hyper_nonce }}"{% endif %}></script>
         <script src="{% static 'hyperdjango/hyper-alpine.js' %}"{% if hyper_nonce %} nonce="{{ hyper_nonce }}"{% endif %}></script>
         {% hyper_body_scripts %}
     </body>

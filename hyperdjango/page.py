@@ -21,6 +21,10 @@ from hyperdjango.assets import (
     ViteAssetResolver,
 )
 from hyperdjango.conf import get_frontend_dir, get_vite_dev_server_url, is_dev_env
+from hyperdjango.integrations.debug_toolbar.tracing import (
+    operation as debug_operation,
+    record_render as debug_record_render,
+)
 from hyperdjango.runtime.dispatcher import dispatch_page_async, dispatch_page_sync
 
 
@@ -107,11 +111,18 @@ class HyperPageTemplate(metaclass=HyperPageTemplateMeta):
             if not relative_template_name
             else self.get_relative_template_name(relative_template_name)
         )
-        return self._render_template_name(
-            template_name,
-            request=request,
-            context=self._build_context(request, context_updates),
+        render_event = debug_record_render(
+            request,
+            kind="full page" if not relative_template_name else "relative template",
+            template=template_name,
+            relative_template=relative_template_name or None,
         )
+        with debug_operation(request, "render", render_event):
+            return self._render_template_name(
+                template_name,
+                request=request,
+                context=self._build_context(request, context_updates),
+            )
 
     def render_block(
         self,
@@ -127,15 +138,23 @@ class HyperPageTemplate(metaclass=HyperPageTemplateMeta):
             else self.get_relative_template_name(relative_template_name)
         )
         context = self._build_context(request, context_updates)
-        return cast(
-            str,
-            render_block_to_string(
-                template_name=template_name,
-                block_name=block_name,
-                context=RequestContext(request, context),
-                request=request,
-            ),
+        render_event = debug_record_render(
+            request,
+            kind="block",
+            template=template_name,
+            block=block_name,
+            relative_template=relative_template_name or None,
         )
+        with debug_operation(request, "render", render_event):
+            return cast(
+                str,
+                render_block_to_string(
+                    template_name=template_name,
+                    block_name=block_name,
+                    context=RequestContext(request, context),
+                    request=request,
+                ),
+            )
 
     def render_template(
         self,
@@ -146,11 +165,18 @@ class HyperPageTemplate(metaclass=HyperPageTemplateMeta):
     ) -> HyperPartialTemplateResult:
         target_dir = self._resolve_template_dir(template_dir)
         template_name = self._to_template_name(target_dir / "index.html")
-        html = self._render_template_name(
-            template_name,
-            request=request,
-            context=self._build_context(request, context_updates),
+        render_event = debug_record_render(
+            request,
+            kind="reusable template",
+            template=template_name,
+            relative_template=template_dir,
         )
+        with debug_operation(request, "render", render_event):
+            html = self._render_template_name(
+                template_name,
+                request=request,
+                context=self._build_context(request, context_updates),
+            )
         return HyperPartialTemplateResult(
             html=html,
             js=self._resolve_template_js(target_dir),

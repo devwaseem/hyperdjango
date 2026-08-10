@@ -142,3 +142,8 @@ Update `hyper/routes/about/index.html`:
 python manage.py hyper_routes
 python manage.py hyper_routes --json
 ```
+
+## Optional Development Diagnostics
+
+HyperDjango provides a request, action, rendering, and timing panel for Django Debug
+Toolbar. See [Django Debug Toolbar](debug-toolbar.md) for the development-only setup.

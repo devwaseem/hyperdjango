@@ -70,3 +70,8 @@ Checks:
 - ensure `HYPER_FRONTEND_DIR` points to the directory you edit
 - restart `runserver` once after changing settings
 - verify you are using Django `runserver` autoreload (not a custom process manager without reload)
+
+## Django Debug Toolbar panel is missing or stale
+
+See the [Django Debug Toolbar guide](debug-toolbar.md) for setup checks,
+body-swap bridge requirements, fetch updates, Docker configuration, and SSE limitations.

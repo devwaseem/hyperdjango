@@ -42,6 +42,7 @@ declarative-html-apis
 alpine-integration
 assets-and-vite
 cookbook
+debug-toolbar
 troubleshooting
 production-checklist
 faq
