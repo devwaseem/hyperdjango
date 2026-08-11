@@ -12,7 +12,7 @@ from uuid import uuid4
 from asgiref.sync import markcoroutinefunction
 from django.conf import settings
 from django.templatetags.static import static
-from django.urls import NoReverseMatch, reverse
+from django.urls import NoReverseMatch, Resolver404, resolve, reverse
 
 from hyperdjango.integrations.debug_toolbar.tracing import (
     RequestTrace,
@@ -29,6 +29,7 @@ from hyperdjango.integrations.devtools import is_enabled
 from hyperdjango.integrations.devtools.collectors import start_collectors
 from hyperdjango.integrations.devtools.request_logging import set_request_log_context
 from hyperdjango.integrations.devtools.store import request_store
+from hyperdjango.runtime.requests import is_action_request
 
 
 HEADER_NAME = "X-HyperDjango-Debug-ID"
@@ -50,6 +51,23 @@ def _versioned_static(filename: str) -> str:
 def _internal_prefix() -> str:
     config = getattr(settings, "HYPER_DEBUG_TOOLBAR_CONFIG", {})
     return "/" + str(config.get("URL_PREFIX", "__hyperdebug__")).strip("/") + "/"
+
+
+def _record_page_requests() -> bool:
+    config = getattr(settings, "HYPER_DEBUG_TOOLBAR_CONFIG", {})
+    return bool(config.get("RECORD_PAGE_REQUESTS", True))
+
+
+def _is_internal_debug_request(request) -> bool:
+    if request.path.startswith(_internal_prefix()):
+        return True
+    match = getattr(request, "resolver_match", None)
+    if match is None:
+        try:
+            match = resolve(request.path_info)
+        except Resolver404:
+            return False
+    return "djdt" in getattr(match, "namespaces", ())
 
 
 def _request_details(request, request_id: str) -> dict[str, Any]:
@@ -83,7 +101,7 @@ class HyperDjangoDebugToolbarMiddleware:
             return self.__acall__(request)
         if not self._should_trace(request):
             response = self.get_response(request)
-            if self._should_inject_while_paused(request):
+            if self._should_inject_toolbar(request):
                 self._inject_toolbar(request, "", response)
             return response
 
@@ -98,7 +116,7 @@ class HyperDjangoDebugToolbarMiddleware:
     async def __acall__(self, request):
         if not self._should_trace(request):
             response = await self.get_response(request)
-            if self._should_inject_while_paused(request):
+            if self._should_inject_toolbar(request):
                 self._inject_toolbar(request, "", response)
             return response
 
@@ -115,16 +133,13 @@ class HyperDjangoDebugToolbarMiddleware:
         return (
             is_enabled()
             and not request_store.paused
-            and not request.path.startswith(_internal_prefix())
+            and not _is_internal_debug_request(request)
+            and (_record_page_requests() or is_action_request(request))
         )
 
     @staticmethod
-    def _should_inject_while_paused(request) -> bool:
-        return (
-            is_enabled()
-            and request_store.paused
-            and not request.path.startswith(_internal_prefix())
-        )
+    def _should_inject_toolbar(request) -> bool:
+        return is_enabled() and not _is_internal_debug_request(request)
 
     @staticmethod
     def _start(request) -> tuple[RequestTrace, str, float]:

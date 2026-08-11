@@ -118,6 +118,9 @@ Supported keys:
 - `MAX_HISTORY`: maximum number of unpinned in-process traces retained; defaults to `50`
 - `URL_PREFIX`: URL prefix used to exclude inspector endpoints from tracing; defaults
   to `"__hyperdebug__"` and must match the prefix mounted in the URL configuration
+- `RECORD_PAGE_REQUESTS`: whether to retain ordinary non-action requests; defaults to
+  `True`. Set it to `False` to keep only requests carrying a Hyper action header or
+  POST `_action` field while continuing to inject the inspector into HTML pages.
 
 Example:
 
@@ -125,6 +128,7 @@ Example:
 HYPER_DEBUG_TOOLBAR_CONFIG = {
     "MAX_HISTORY": 75,
     "URL_PREFIX": "__hyperdebug__",
+    "RECORD_PAGE_REQUESTS": False,
 }
 ```
 

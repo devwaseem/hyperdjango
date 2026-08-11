@@ -26,6 +26,7 @@ if DEBUG:
     HYPER_DEBUG_TOOLBAR_CONFIG = {
         "MAX_HISTORY": 50,
         "URL_PREFIX": "__hyperdebug__",
+        "RECORD_PAGE_REQUESTS": True,
     }
 ```
 
@@ -58,6 +59,24 @@ if settings.DEBUG:
 
 `URL_PREFIX` and the mounted URL prefix must match. Restart Django after changing the
 app, middleware, or URL configuration.
+
+To keep the request tape focused on HyperDjango actions, disable normal page-request
+recording:
+
+```python
+HYPER_DEBUG_TOOLBAR_CONFIG = {
+    "RECORD_PAGE_REQUESTS": False,
+}
+```
+
+The middleware still injects the inspector launcher into eligible HTML pages, but it
+does not create a trace for those page navigations. Requests carrying a Hyper action
+through `X-Hyper-Action` or a POST `_action` field continue to be recorded, including
+failed and streaming actions.
+
+Inspector endpoints and URLs in Django Debug Toolbar's `djdt` namespace are always
+excluded from capture and injection. This prevents DJDT history polling (for example,
+`__debug__/history_sidebar/`) from recursively filling HyperDjango's request tape.
 
 ### Enabling it independently of `DEBUG`
 

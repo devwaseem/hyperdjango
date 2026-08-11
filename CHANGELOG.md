@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## 0.40.0 - 2026-08-12
+
+- Added `HYPER_DEBUG_TOOLBAR_CONFIG["RECORD_PAGE_REQUESTS"]`; set it to `False` to keep the standalone inspector available on HTML pages while recording only Hyper action requests.
+- Kept the standalone inspector fully hidden until `DOMContentLoaded`, its stylesheet, and its initial trace state are ready, preventing refresh-time flashes and layout jumps.
+- Excluded Django Debug Toolbar's internal `djdt` endpoints from standalone inspector capture and injection so history polling does not create recursive HyperDjango traces or request-log links.
+
 ## 0.39.0 - 2026-08-11
 
 - Added the terminal `SwitchAction` typed item for coordinated command-to-query handoffs: a non-retried short command can transfer its request lane and uninterrupted loading lifecycle to a separately identified, retryable read-only action without navigation or inherited SSE resume state.

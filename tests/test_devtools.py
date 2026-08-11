@@ -43,7 +43,7 @@ import json
 import logging
 from django.db import connection
 from django.http import HttpResponse
-from django.test import AsyncRequestFactory, Client
+from django.test import AsyncRequestFactory, Client, override_settings
 from django.urls import include, path
 from hyperdjango.actions import Event, HTML, action
 from hyperdjango.integrations.devtools.middleware import HyperDjangoDebugToolbarMiddleware
@@ -74,8 +74,14 @@ class DemoPage(HyperView):
 def demo(request):
     return dispatch_page(DemoPage(), request)
 
+def djdt_history(request):
+    return HttpResponse("<html><body>DJDT history</body></html>")
+
+djdt_patterns = ([path("history_sidebar/", djdt_history)], "djdt")
+
 urlpatterns = [
     path("__hyperdebug__/", include("hyperdjango.integrations.devtools.urls")),
+    path("__debug__/", include(djdt_patterns, namespace="djdt")),
     path("", demo, name="hyper_home"),
 ]
 
@@ -105,6 +111,13 @@ assert page_trace["logs"][0]["logger"] == "demo.trace"
 assert page_trace["costs"]["sql_queries"] == 1
 assert page_trace["costs"]["response_bytes"] > 0
 assert any(event["kind"] == "route resolved" for event in page_trace["lifecycle"])
+
+history_before_djdt = len(client.get("/__hyperdebug__/history/").json()["records"])
+djdt_response = client.get("/__debug__/history_sidebar/")
+assert djdt_response.status_code == 200
+assert "X-HyperDjango-Debug-ID" not in djdt_response.headers
+assert b"hyperdjango/dev-toolbar.js" not in djdt_response.content
+assert len(client.get("/__hyperdebug__/history/").json()["records"]) == history_before_djdt
 
 stream = client.post(
     "/",
@@ -237,6 +250,20 @@ assert b"hyperdjango/dev-toolbar.js" in paused_page.content
 assert "X-HyperDjango-Debug-ID" not in paused_page.headers
 assert len(client.get("/__hyperdebug__/history/").json()["records"]) == paused_count
 assert client.post("/__hyperdebug__/controls/pause/").json()["paused"] is False
+
+actions_only_count = len(client.get("/__hyperdebug__/history/").json()["records"])
+with override_settings(HYPER_DEBUG_TOOLBAR_CONFIG={
+    "MAX_HISTORY": 10,
+    "RECORD_PAGE_REQUESTS": False,
+}):
+    unrecorded_page = client.get("/")
+    assert b"hyperdjango/dev-toolbar.js" in unrecorded_page.content
+    assert "X-HyperDjango-Debug-ID" not in unrecorded_page.headers
+    assert len(client.get("/__hyperdebug__/history/").json()["records"]) == actions_only_count
+
+    recorded_action = client.post("/", HTTP_X_HYPER_ACTION="immediate")
+    assert recorded_action.headers["X-HyperDjango-Debug-ID"]
+    assert len(client.get("/__hyperdebug__/history/").json()["records"]) == actions_only_count + 1
 
 class AsyncPage(HyperView):
     @classmethod
@@ -451,6 +478,12 @@ def test_devtools_assets_expose_rich_brutalist_inspector() -> None:
     assert 'new URL("dev-toolbar.css", script.src).href' in runtime
     assert 'setProperty("visibility", "hidden", "important")' in runtime
     assert 'setProperty("visibility", "visible", "important")' in runtime
+    assert 'setProperty("opacity", "0", "important")' in runtime
+    assert 'setProperty("opacity", "1", "important")' in runtime
+    assert 'setProperty("pointer-events", "none", "important")' in runtime
+    assert 'removeProperty("pointer-events")' in runtime
+    assert 'document.readyState !== "loading"' in runtime
+    assert '"DOMContentLoaded"' in runtime
     assert "streamIsPending" in runtime
     assert "record?.response?.streaming" in runtime
     assert "background: true" in runtime

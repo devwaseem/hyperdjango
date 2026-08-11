@@ -4,24 +4,19 @@ HyperDjango gives Django a server-first workflow with file routing, colocated as
 
 Use it when you want interactive UX without splitting your app into separate backend API and SPA frontend codebases.
 
-## Current Release: 0.39.0
+## Current Release: 0.40.0
 
-HyperDjango 0.39 adds a native command-to-query handoff for safely combining short
-mutating commands with long-running, retryable read streams:
+HyperDjango 0.40 makes the standalone Request Inspector quieter and more focused:
 
-- build terminal handoffs with a typed Python action reference and
-  [`action.switch_to(...)`](actions.md#command-to-query-handoff-with-switch_to)
-- derive the destination name, method, retry policy, and endpoint from declared action
-  metadata instead of duplicating transport details at each call site
-- preserve keyed loading state while assigning the watcher a fresh request ID and SSE
-  resume sequence
-- inspect linked command/watcher requests and switch diagnostics in the
-  [Request Inspector](dev-toolbar.md)
-- try the intentionally interrupted [live SwitchAction demo](/#switch-action-demo)
+- keep the inspector hidden until the DOM, stylesheet, and initial trace state are ready
+- set `HYPER_DEBUG_TOOLBAR_CONFIG["RECORD_PAGE_REQUESTS"] = False` to retain only
+  Hyper action requests while keeping the launcher available on HTML pages
+- exclude Django Debug Toolbar's internal polling endpoints from HyperDjango capture
+  even when DJDT is mounted under a custom path
 
-`SwitchAction` does not make a mutation idempotent. Non-idempotent commands must still
-use `retry: false`, commit durable queryable state before switching, and use a
-side-effect-free destination that is safe to execute again.
+See the [Request Inspector guide](dev-toolbar.md) for configuration and behavior. The
+0.39 command-to-query handoff remains documented under
+[`action.switch_to(...)`](actions.md#command-to-query-handoff-with-switch_to).
 
 Existing projects should also review the [0.38.0 project upgrade notes](https://github.com/devwaseem/hyperdjango/blob/main/CHANGELOG.md#project-upgrade-notes), especially the Vite 8 and Node.js requirements. The [production checklist](production-checklist.md) covers the final validation steps.
 

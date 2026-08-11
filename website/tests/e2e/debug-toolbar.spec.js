@@ -78,7 +78,7 @@ test.describe.serial("HyperDjango request inspector", () => {
 
   test("loads independently and supports launcher, drawer, fullscreen, keyboard, and dragging", async ({ page }) => {
     await visit(page);
-    await expect(page.getByText("v0.39.0 · Latest release")).toBeVisible();
+    await expect(page.getByText("v0.40.0 · Latest release")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Command, then watch" })).toBeVisible();
     await expect(page.getByRole("link", { name: /Open inspector guide/ })).toHaveAttribute("href", "/docs/dev-toolbar");
     const root = toolbar(page);
@@ -116,16 +116,21 @@ test.describe.serial("HyperDjango request inspector", () => {
     await page.addInitScript(() => {
       localStorage.setItem("hyperdjango.debug.open", "true");
       localStorage.setItem("hyperdjango.debug.tab", "timeline");
-      window.__toolbarVisibleBeforeLoad = false;
+      window.__toolbarVisibleBeforeDOMContentLoaded = false;
+      window.__toolbarDOMContentLoaded = false;
+      document.addEventListener("DOMContentLoaded", () => {
+        window.__toolbarDOMContentLoaded = true;
+      }, { once: true });
       const hostObserver = new MutationObserver(() => {
         const toolbarHost = document.querySelector("hyperdjango-debug-toolbar");
         if (!toolbarHost) return;
         const recordVisibility = () => {
           if (
-            document.readyState !== "complete" &&
-            getComputedStyle(toolbarHost).visibility === "visible"
+            !window.__toolbarDOMContentLoaded &&
+            getComputedStyle(toolbarHost).visibility === "visible" &&
+            getComputedStyle(toolbarHost).opacity !== "0"
           ) {
-            window.__toolbarVisibleBeforeLoad = true;
+            window.__toolbarVisibleBeforeDOMContentLoaded = true;
           }
         };
         new MutationObserver(recordVisibility).observe(toolbarHost, {
@@ -140,7 +145,7 @@ test.describe.serial("HyperDjango request inspector", () => {
     await page.goto("/", { waitUntil: "networkidle" });
     await expect(host(page)).toHaveCSS("visibility", "visible");
     await expect(toolbar(page)).toHaveClass(/is-open/);
-    expect(await page.evaluate(() => window.__toolbarVisibleBeforeLoad)).toBe(false);
+    expect(await page.evaluate(() => window.__toolbarVisibleBeforeDOMContentLoaded)).toBe(false);
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
 
     await page.reload({ waitUntil: "networkidle" });
@@ -166,7 +171,7 @@ test.describe.serial("HyperDjango request inspector", () => {
     expect(llms).toContain("## Request Inspector");
     expect(llms).toContain("authoritative enablement switch");
     expect(llms).toContain("## Django Debug Toolbar");
-    expect(llms).toContain("## Current Release: 0.39.0");
+    expect(llms).toContain("## Current Release: 0.40.0");
     for (const path of [
       "/docs/history",
       "/docs/cookbook",

@@ -62,20 +62,24 @@
   host.style.setProperty("all", "initial", "important");
   host.style.setProperty("contain", "style", "important");
   host.style.setProperty("visibility", "hidden", "important");
+  host.style.setProperty("opacity", "0", "important");
+  host.style.setProperty("pointer-events", "none", "important");
   let stylesheetReady = false;
-  let pageReady = document.readyState === "complete";
+  let domReady = document.readyState !== "loading";
   let toolbarReady = false;
   const revealHostWhenReady = () => {
-    if (!stylesheetReady || !pageReady || !toolbarReady) return;
+    if (!stylesheetReady || !domReady || !toolbarReady) return;
     requestAnimationFrame(() => {
       host.style.setProperty("visibility", "visible", "important");
+      host.style.setProperty("opacity", "1", "important");
+      host.style.removeProperty("pointer-events");
     });
   };
-  if (!pageReady) {
-    window.addEventListener(
-      "load",
+  if (!domReady) {
+    document.addEventListener(
+      "DOMContentLoaded",
       () => {
-        pageReady = true;
+        domReady = true;
         revealHostWhenReady();
       },
       { once: true },
