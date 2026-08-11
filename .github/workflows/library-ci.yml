@@ -109,6 +109,7 @@ jobs:
           uv pip install --system
           -e .
           "django==${{ matrix.django-version }}"
+          "django-debug-toolbar>=6.2,<8"
           "pytest>=9"
 
       - name: Run tests

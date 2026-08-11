@@ -50,7 +50,8 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 # ── Production dependencies ─────────────────────────────────────────────
 FROM builder-base AS production-deps
 
-COPY pyproject.toml README.md "${REPO_HOME}/"
+COPY pyproject.toml "${REPO_HOME}/pyproject.toml"
+COPY README.md "${REPO_HOME}/README.md"
 COPY hyperdjango/ "${REPO_HOME}/hyperdjango/"
 COPY website/pyproject.toml website/uv.lock ./
 
