@@ -84,6 +84,104 @@ class PageView(HyperView):
 
 Treat `Redirect(...)` as the last action item. Once the runtime sends a redirect, later items are not delivered.
 
+## Adopting Reliable Streams in an Existing Project
+
+After upgrading HyperDjango, deploy the updated `hyper.js` with the Python package. Run
+`collectstatic` again in production and invalidate any CDN or long-lived static asset
+cache that could keep serving the previous runtime. Projects that copied `hyper.js` into
+their own source tree must replace that copy or switch back to the packaged static file.
+
+No action signature or return type needs to change. The client adds a stable
+`X-Hyper-Request-ID`, the server assigns ordered event IDs, and a reconnect sends
+`Last-Event-ID` so events already applied in the browser are skipped.
+
+This automatic behavior applies to responses produced through HyperDjango's action
+response pipeline. A view that returns a hand-built `StreamingHttpResponse` must assign
+stable event IDs and honor `Last-Event-ID` itself, or explicitly disable retries for the
+client call.
+
+### Make side effects idempotent
+
+A reconnect is a new HTTP request and can execute the action again. Event resumption
+prevents duplicate DOM patches, but it does not by itself prevent duplicate database
+writes, emails, payments, jobs, or calls to another service.
+
+For an action with non-idempotent side effects:
+
+1. Read `X-Hyper-Request-ID` from the request.
+2. Store it with a unique constraint in shared, durable storage.
+3. Reuse the stored outcome when the same ID appears again.
+4. Yield events in the same order when replaying the outcome, allowing
+   `Last-Event-ID` to resume at the correct position.
+
+```python
+from django.db import transaction
+
+
+@action
+def charge(self, request):
+    request_id = request.headers["X-Hyper-Request-ID"]
+
+    with transaction.atomic():
+        attempt, created = PaymentAttempt.objects.get_or_create(
+            request_id=request_id,
+            defaults={"status": "pending"},
+        )
+        if created:
+            attempt.complete_once()
+
+    yield HTML(
+        content=self.render_payment(attempt),
+        target="#payment-status",
+        swap="inner",
+    )
+```
+
+Use the same request ID as the idempotency key when calling a downstream service that
+supports one. Do not rely on a process-local dictionary or cache for correctness: a
+reconnect may reach another application worker. Treat the header as an opaque correlation
+value, not as authentication or authorization.
+
+If an action cannot safely be retried yet, opt out while migrating it:
+
+```html
+<button @click="$action('charge', {}, { retry: false })">Pay</button>
+```
+
+The plain JavaScript equivalent is `action("charge", {}, { retry: false })`. To opt out
+for the whole application, use `Hyper.configure({ sseRetry: false })`.
+
+### Check the streaming path
+
+Every proxy and middleware layer must pass event-stream chunks through promptly. In
+particular:
+
+- keep proxy buffering and caching disabled for action streams;
+- exclude `text/event-stream` responses from middleware that buffers compression output;
+- set the upstream read timeout longer than the longest expected pause between events;
+- preserve `X-Hyper-Request-ID` and `Last-Event-ID` request headers;
+- preserve `Content-Type: text/event-stream`, `Cache-Control`, and
+  `X-Accel-Buffering: no` response headers.
+
+HyperDjango emits `end` automatically for normal action streams and treats `redirect` as
+terminal. A custom event-stream response must also finish with an `end` or `redirect`
+event; otherwise the client correctly treats the close as an interruption and retries.
+
+### Rollout checklist
+
+- Verify a normal streamed action reaches its terminal event.
+- Interrupt a stream after one event and confirm the next request includes
+  `Last-Event-ID`.
+- Confirm the first event is not applied twice after reconnecting.
+- Confirm a `retry: false` action makes only one request when interrupted.
+- Test through the same reverse proxy, CDN, and worker topology used in production.
+- Monitor `hyper:requestRetry`, `hyper:requestRetriesFailed`, and
+  `hyper:requestException` during rollout.
+
+See [Runtime Events and SSE Payload](reference/sse-payloads.md) for the wire format and
+[Client Runtime Reference](reference/client-runtime.md) for retry configuration and
+lifecycle events.
+
 ## Other Supported Return Shapes
 
 The current runtime also accepts a few other return forms.
