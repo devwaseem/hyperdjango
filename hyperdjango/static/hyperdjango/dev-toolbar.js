@@ -796,7 +796,7 @@
     const streaming = (record.results || []).find((result) => result.streaming);
     if (streaming) {
       if (["closed", "failed"].includes(streaming.iteration_status)) add("error", "STREAM_INCOMPLETE", `Stream ${streaming.iteration_status}`, streaming.note || "Stream did not complete normally.");
-      const terminal = streamEvents.some((item) => ["end", "redirect"].includes(item.event));
+      const terminal = streamEvents.some((item) => ["end", "redirect", "switch_action"].includes(item.event));
       if (record.client?.summary && !terminal) add("error", "TERMINAL_EVENT_MISSING", "Client did not observe an SSE terminal event", "Expected end or redirect before stream completion.");
       const ids = (streaming.items || []).map((item) => item.event_id).filter(Boolean);
       if (new Set(ids).size !== ids.length) add("error", "DUPLICATE_EVENT_ID", "Duplicate SSE event IDs detected", ids.join(", "));
@@ -1586,6 +1586,7 @@
   });
 
   const clientRequests = new Map();
+  const actionSwitchLinks = new Map();
 
   function activeClientRequest(action = null) {
     const requests = [...clientRequests.values()].reverse();
@@ -1843,6 +1844,7 @@
       initialFocus: focusLabel(),
       initialFocusSelector: focusSelector(),
       initialTargetSnapshot: detail.target ? targetSnapshot(detail.target) : null,
+      action_chain: actionSwitchLinks.get(detail.id) || null,
     };
     const reactiveRoot = detail.sourceEl?.closest?.("[x-data]");
     request.scopeElement = reactiveRoot?.parentElement || detail.sourceEl?.closest?.("section, form, li") || document.body;
@@ -1861,7 +1863,7 @@
 
   window.addEventListener("hyper:streamEvent", (event) => {
     const detail = event.detail || {};
-    const request = activeClientRequest(detail.action);
+    const request = clientRequests.get(detail.requestId) || activeClientRequest(detail.action);
     if (!request) return;
     request.streamSequence += 1;
     request.lastStreamSequence = request.streamSequence;
@@ -1876,6 +1878,28 @@
       url: data.url || null,
       content_bytes: typeof data.content === "string" ? new TextEncoder().encode(data.content).length : 0,
       payload_bytes: new TextEncoder().encode(JSON.stringify(data)).length,
+    });
+  });
+
+  window.addEventListener("hyper:actionSwitch", (event) => {
+    const detail = event.detail || {};
+    const link = {
+      parent_request_id: detail.originalRequestId || null,
+      request_id: detail.newRequestId || null,
+      source_action: detail.originalAction || null,
+      destination_action: detail.destinationAction || null,
+      key: detail.key || null,
+      method: detail.method || null,
+      url: detail.url || null,
+      retry: Boolean(detail.retry),
+      switch_depth: detail.depth || 0,
+    };
+    if (link.request_id) actionSwitchLinks.set(link.request_id, link);
+    const request = clientRequests.get(link.parent_request_id);
+    pushClientEvent(request, {
+      kind: "action switch",
+      event: `${link.source_action || "?"} → ${link.destination_action || "?"} · ${link.parent_request_id || "?"} → ${link.request_id || "?"}`,
+      ...link,
     });
   });
 
@@ -2054,6 +2078,7 @@
             trigger_target: request.target,
             request_method: request.method,
             request_url: request.url,
+            action_chain: request.action_chain,
           },
         });
       } catch (error) {

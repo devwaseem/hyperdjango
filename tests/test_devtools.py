@@ -301,7 +301,9 @@ def test_devtools_assets_expose_rich_brutalist_inspector() -> None:
     styles = (root / "hyperdjango/static/hyperdjango/dev-toolbar.css").read_text()
     fonts = root / "hyperdjango/static/hyperdjango/fonts"
 
-    tab_block = runtime[runtime.index("const tabs = [") : runtime.index("const legacyTabs")]
+    tab_block = runtime[
+        runtime.index("const tabs = [") : runtime.index("const legacyTabs")
+    ]
     overview_block = runtime[
         runtime.index("function renderOverview(record)") : runtime.index(
             "function observedAssetState"
@@ -359,8 +361,8 @@ def test_devtools_assets_expose_rich_brutalist_inspector() -> None:
     assert 'data-action="pin" data-slot="pin"' not in runtime
     assert 'data-action="pin-request" data-pin-request-id=' in runtime
     assert 'class="hdd-history-entry' in runtime
-    assert 'record.pinned = !previous' in runtime
-    assert 'HyperDjango trace pin failed' in runtime
+    assert "record.pinned = !previous" in runtime
+    assert "HyperDjango trace pin failed" in runtime
     trace_actions = runtime[
         runtime.index("function traceActions(record)") : runtime.index(
             "function updatePanel"
@@ -390,8 +392,8 @@ def test_devtools_assets_expose_rich_brutalist_inspector() -> None:
     assert 'aria-selected="${active}"' in runtime
     assert 'slots.tabs.addEventListener("keydown"' in runtime
     assert "setToolbarOpen(false, { instant: true })" not in runtime
-    assert 'transition: transform 240ms var(--hdd-ease-out)' in styles
-    assert 'closeDuration' in runtime
+    assert "transition: transform 240ms var(--hdd-ease-out)" in styles
+    assert "closeDuration" in runtime
     assert "state.tabsMarkup !== markup" in runtime
     assert "state.panelMarkup === markup" in runtime
     assert "preservePanelState: background" in runtime
@@ -400,7 +402,7 @@ def test_devtools_assets_expose_rich_brutalist_inspector() -> None:
     assert 'data-action="tab-next"' in runtime
     assert 'data-slot="tab-select"' in runtime
     assert 'slots["tab-select"].value = state.activeTab' in runtime
-    assert 'activateTab(event.target.value, { focus: false })' in runtime
+    assert "activateTab(event.target.value, { focus: false })" in runtime
     assert ".hdd-tab-picker" in styles
     assert ".hdd-tabbar.has-overflow .hdd-tab-scroll," in styles
     assert 'window.addEventListener("hyper:swap:start"' in runtime
@@ -420,7 +422,7 @@ def test_devtools_assets_expose_rich_brutalist_inspector() -> None:
     assert "highlightDomElement" in runtime
     assert "scrollIntoView" in runtime
     assert "data-hyperdjango-dom-highlight" in runtime
-    assert '0 0 0 9999px rgba(0, 0, 0, 0.58)' in runtime
+    assert "0 0 0 9999px rgba(0, 0, 0, 0.58)" in runtime
     assert 'background: "transparent"' in runtime
     assert ".hdd-dom-reference" in styles
     assert "observeRequestMutations" in runtime
@@ -453,6 +455,9 @@ def test_devtools_assets_expose_rich_brutalist_inspector() -> None:
     assert "record?.response?.streaming" in runtime
     assert "background: true" in runtime
     assert '"Content", "Metadata"' in runtime
+    assert 'window.addEventListener("hyper:actionSwitch"' in runtime
+    assert "parent_request_id" in runtime
+    assert "switch_depth" in runtime
     assert "hdd-content-preview" in runtime
     assert "Execution waterfall" in runtime
     assert "django request pipeline" in runtime
@@ -468,7 +473,7 @@ def test_devtools_assets_expose_rich_brutalist_inspector() -> None:
     assert "const tabStart = activeTab.offsetLeft" in runtime
     assert "slots.tabs.scrollLeft = tabStart" in runtime
     assert "slots.tabs.scrollLeft = tabEnd - slots.tabs.clientWidth" in runtime
-    assert 'focus({ preventScroll: true })' in runtime
+    assert "focus({ preventScroll: true })" in runtime
     assert ":host" in styles
     assert "all: initial" in styles
     assert 'font-family: "HyperDjango Doto"' in styles

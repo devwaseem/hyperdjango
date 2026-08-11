@@ -19,6 +19,7 @@ const Hyper = (() => {
     sseRetryScaler: 2,
     sseRetryMaxWait: 30000,
     sseRetryMaxCount: 10,
+    switchActionMaxDepth: 4,
   };
 
   function emitEvent(name, detail) {
@@ -119,6 +120,7 @@ const Hyper = (() => {
       "sseRetryScaler",
       "sseRetryMaxWait",
       "sseRetryMaxCount",
+      "switchActionMaxDepth",
     ]) {
       if (Object.prototype.hasOwnProperty.call(next, key)) {
         const value = Number(next[key]);
@@ -607,6 +609,19 @@ const Hyper = (() => {
     );
   }
 
+  function transferLoading(workflow, nextContext) {
+    const previous = workflow.loadingContext;
+    decrementMapCount(activeByKey, previous.key || "");
+    decrementMapCount(activeByAction, previous.action || "");
+    decrementMapCount(activeByTarget, previous.target || "");
+    incrementMapCount(activeByKey, nextContext.key || "");
+    incrementMapCount(activeByAction, nextContext.action || "");
+    incrementMapCount(activeByTarget, nextContext.target || "");
+    workflow.loadingContext = nextContext;
+    setTargetBusyStates();
+    setLoadingElementsVisible();
+  }
+
   function updateHistory({ pushUrl = null, replaceUrl = null } = {}) {
     if (replaceUrl) {
       history.replaceState({}, "", replaceUrl);
@@ -952,7 +967,15 @@ const Hyper = (() => {
       ...(options.headers || {}),
     };
     const hookMeta = options.hookMeta || {};
-    const requestId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const requestId = options.requestId || newRequestId();
+    const workflow = options.workflow || {
+      loadingContext: {
+        key: null,
+        action: hookMeta.action || "",
+        target: hookMeta.target || "",
+      },
+    };
+    const isHandoff = options.handoff === true;
     const syncMode = normalizeSyncMode(options.sync || "replace");
     const requestKey = resolveRequestKey({
       key: options.key || null,
@@ -960,7 +983,7 @@ const Hyper = (() => {
       url,
     });
 
-    if (syncMode !== "none") {
+    if (syncMode !== "none" && !isHandoff) {
       const active = inFlightRequests.get(requestKey);
       if (active) {
         if (syncMode === "block") {
@@ -1015,11 +1038,17 @@ const Hyper = (() => {
       inFlightRequests.set(requestKey, { id: requestId, controller: requestControl });
     }
 
-    setLoading(true, {
+    const loadingContext = {
       key: requestKey,
       action: hookMeta.action || "",
       target: hookMeta.target || "",
-    });
+    };
+    if (isHandoff) {
+      transferLoading(workflow, loadingContext);
+    } else {
+      workflow.loadingContext = loadingContext;
+      setLoading(true, loadingContext);
+    }
     emitEvent("hyper:beforeRequest", {
       id: requestId,
       url,
@@ -1060,7 +1089,7 @@ const Hyper = (() => {
           if (Number.isFinite(event.retry) && event.retry >= 0) {
             retryInterval = event.retry;
           }
-          if (event.event === "end" || event.event === "redirect") {
+          if (event.event === "end" || event.event === "redirect" || event.event === "switch_action") {
             terminalEventSeen = true;
           }
           if (event.controlOnly) {
@@ -1239,12 +1268,81 @@ const Hyper = (() => {
         response: response || null,
         ...hookMeta,
       });
-      setLoading(false, {
-        key: requestKey,
-        action: hookMeta.action || "",
-        target: hookMeta.target || "",
-      });
+      if (!isHandoff) {
+        setLoading(false, workflow.loadingContext);
+      }
     }
+  }
+
+  function newRequestId() {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+      return crypto.randomUUID();
+    }
+    return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+
+  function switchError(message, context) {
+    const error = new Error(message);
+    error.name = "SwitchActionError";
+    emitEvent("hyper:requestError", {
+      id: context.requestId,
+      key: context.key || null,
+      url: context.url,
+      method: context.method,
+      status: 400,
+      ok: false,
+      response: null,
+      kind: "switch_action",
+      action: context.action,
+      target: context.target || null,
+      message,
+      error,
+    });
+    return error;
+  }
+
+  function normalizeSwitchPayload(payload, context) {
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      throw switchError("Malformed SwitchAction payload: expected an object.", context);
+    }
+    const name = typeof payload.name === "string" ? payload.name.trim() : "";
+    if (!name) {
+      throw switchError("Malformed SwitchAction payload: name is required.", context);
+    }
+    if (payload.data !== undefined && (
+      payload.data === null || typeof payload.data !== "object" || Array.isArray(payload.data)
+    )) {
+      throw switchError("Malformed SwitchAction payload: data must be an object.", context);
+    }
+    const method = String(payload.method || "GET").toUpperCase();
+    if (method !== "GET" && method !== "POST") {
+      throw switchError("Malformed SwitchAction payload: method must be GET or POST.", context);
+    }
+    if (payload.retry !== undefined && typeof payload.retry !== "boolean") {
+      throw switchError("Malformed SwitchAction payload: retry must be a boolean.", context);
+    }
+    if (payload.key !== undefined && payload.key !== null && typeof payload.key !== "string") {
+      throw switchError("Malformed SwitchAction payload: key must be a string.", context);
+    }
+    let url = context.url;
+    if (payload.url !== undefined && payload.url !== null) {
+      if (typeof payload.url !== "string" || !payload.url.trim()) {
+        throw switchError("Malformed SwitchAction payload: url must be a non-empty string.", context);
+      }
+      const parsed = new URL(payload.url, window.location.href);
+      if (parsed.origin !== window.location.origin) {
+        throw switchError("SwitchAction URL must use the current origin.", context);
+      }
+      url = `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    }
+    return {
+      name,
+      data: payload.data || {},
+      method,
+      url,
+      retry: payload.retry === undefined ? true : payload.retry,
+      key: payload.key == null || payload.key === "" ? context.key : payload.key,
+    };
   }
 
   function canUseXHRResponse(response) {
@@ -1258,6 +1356,8 @@ const Hyper = (() => {
         data: event.data || {},
         action: context.action || null,
         key: context.key || null,
+        requestId: context.requestId || null,
+        switchDepth: context.switchDepth || 0,
         sourceEl: context.sourceEl || null,
       },
     });
@@ -1941,12 +2041,27 @@ const Hyper = (() => {
     focus = "preserve",
     onUploadProgress = null,
     retry = undefined,
+    requestId = null,
+    switchDepth = 0,
+    workflow = null,
+    handoff = false,
   }) {
     const resolvedUrl = url || window.location.pathname;
+    const resolvedRequestId = requestId || newRequestId();
+    const resolvedWorkflow = workflow || { loadingContext: {} };
+    const resolvedKey = key || resolveRequestKey({
+      key: null,
+      hookMeta: { kind: "action", action, sourceEl },
+      url: resolvedUrl,
+    });
     const streamedEvents = [];
+    let switchedAction = null;
     const headers = {
       "X-Hyper-Action": action,
     };
+    if (switchDepth > 0) {
+      headers["X-Hyper-Switch-Depth"] = String(switchDepth);
+    }
     if (kwargs && typeof kwargs === "object") {
       headers["X-Hyper-Data"] = JSON.stringify(kwargs);
     }
@@ -1962,9 +2077,29 @@ const Hyper = (() => {
       onUploadProgress,
       onSSEEvent: async (event) => {
         streamedEvents.push(event);
+        if (event.event === "switch_action") {
+          if (switchedAction) {
+            throw switchError("Malformed action stream: more than one SwitchAction was received.", {
+              requestId: resolvedRequestId,
+              action,
+              key: resolvedKey,
+              url: resolvedUrl,
+              method,
+              target,
+            });
+          }
+          switchedAction = normalizeSwitchPayload(event.data, {
+            requestId: resolvedRequestId,
+            action,
+            key: resolvedKey,
+            url: resolvedUrl,
+            method,
+            target,
+          });
+        }
         await handleActionStreamEvent(event, {
           action,
-          key,
+          key: resolvedKey,
           url: resolvedUrl,
           method,
           target,
@@ -1975,6 +2110,8 @@ const Hyper = (() => {
           settleDelay,
           strictTargets,
           sourceEl,
+          requestId: resolvedRequestId,
+          switchDepth,
         });
       },
       hookMeta: {
@@ -1984,23 +2121,81 @@ const Hyper = (() => {
         sourceEl,
       },
       sync,
-      key,
-      afterResponse: async (result) => handleActionResult(result, {
-        action,
-        key,
-        resolvedUrl,
-        target,
-        swap,
-        transition,
-        push,
-        replace,
-        strictTargets,
-        swapDelay,
-        settleDelay,
-        focus,
-        sourceEl,
-        streamedEvents,
-      }),
+      key: resolvedKey,
+      requestId: resolvedRequestId,
+      workflow: resolvedWorkflow,
+      handoff,
+      afterResponse: async (result) => {
+        const handled = await handleActionResult(result, {
+          action,
+          key: resolvedKey,
+          resolvedUrl,
+          target,
+          swap,
+          transition,
+          push,
+          replace,
+          strictTargets,
+          swapDelay,
+          settleDelay,
+          focus,
+          sourceEl,
+          streamedEvents,
+        });
+        if (!switchedAction || result.blocked || result.aborted) {
+          return handled;
+        }
+
+        const nextDepth = switchDepth + 1;
+        if (nextDepth > config.switchActionMaxDepth) {
+          throw switchError("Hyper action switch depth limit exceeded.", {
+            requestId: resolvedRequestId,
+            action,
+            key: resolvedKey,
+            url: resolvedUrl,
+            method,
+            target,
+          });
+        }
+        const nextRequestId = newRequestId();
+        emitEvent("hyper:actionSwitch", {
+          originalAction: action,
+          destinationAction: switchedAction.name,
+          originalRequestId: resolvedRequestId,
+          newRequestId: nextRequestId,
+          key: switchedAction.key || null,
+          method: switchedAction.method,
+          url: switchedAction.url,
+          retry: switchedAction.retry,
+          depth: nextDepth,
+        });
+        return runAction({
+          url: switchedAction.url,
+          action: switchedAction.name,
+          method: switchedAction.method,
+          kwargs: switchedAction.data,
+          body: switchedAction.method === "POST"
+            ? buildActionSearchParams(switchedAction.name, switchedAction.data)
+            : null,
+          sourceEl,
+          target,
+          swap,
+          transition,
+          push: false,
+          replace: false,
+          sync,
+          key: switchedAction.key,
+          strictTargets,
+          swapDelay,
+          settleDelay,
+          focus,
+          retry: switchedAction.retry,
+          requestId: nextRequestId,
+          switchDepth: nextDepth,
+          workflow: resolvedWorkflow,
+          handoff: true,
+        });
+      },
     });
   }
 

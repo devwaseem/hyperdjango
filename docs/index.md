@@ -4,18 +4,26 @@ HyperDjango gives Django a server-first workflow with file routing, colocated as
 
 Use it when you want interactive UX without splitting your app into separate backend API and SPA frontend codebases.
 
-## Current Release: 0.38.1
+## Current Release: 0.39.0
 
-HyperDjango 0.38 focuses on a faster and more observable development loop:
+HyperDjango 0.39 adds a native command-to-query handoff for safely combining short
+mutating commands with long-running, retryable read streams:
 
-- run Django and Vite together with [`hyper_runserver`](reference/commands.md)
-- inspect routes, actions, output, browser swaps, timings, SQL, and errors with the optional [Request Inspector](dev-toolbar.md)
-- resume interrupted SSE action streams with event IDs, bounded retries, and offline awareness in the [client runtime](reference/client-runtime.md)
-- catch route, frontend-entry, Vite, and production-manifest drift through Django system checks
+- build terminal handoffs with a typed Python action reference and
+  [`action.switch_to(...)`](actions.md#command-to-query-handoff-with-switch_to)
+- derive the destination name, method, retry policy, and endpoint from declared action
+  metadata instead of duplicating transport details at each call site
+- preserve keyed loading state while assigning the watcher a fresh request ID and SSE
+  resume sequence
+- inspect linked command/watcher requests and switch diagnostics in the
+  [Request Inspector](dev-toolbar.md)
+- try the intentionally interrupted [live SwitchAction demo](/#switch-action-demo)
 
-The 0.38.1 patch prevents the Request Inspector from moving long pages during initialization and keeps it hidden until the page and inspector state are ready.
+`SwitchAction` does not make a mutation idempotent. Non-idempotent commands must still
+use `retry: false`, commit durable queryable state before switching, and use a
+side-effect-free destination that is safe to execute again.
 
-Existing projects should review the [0.38.0 project upgrade notes](https://github.com/devwaseem/hyperdjango/blob/main/CHANGELOG.md#project-upgrade-notes), especially the Vite 8 and Node.js requirements. The [production checklist](production-checklist.md) covers the final validation steps.
+Existing projects should also review the [0.38.0 project upgrade notes](https://github.com/devwaseem/hyperdjango/blob/main/CHANGELOG.md#project-upgrade-notes), especially the Vite 8 and Node.js requirements. The [production checklist](production-checklist.md) covers the final validation steps.
 
 ## Core Ideas
 

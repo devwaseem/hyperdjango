@@ -8,6 +8,8 @@ from hyperdjango.actions import HTML, Signal, Toast, action
 
 
 class PageView(BaseLayout):
+    package_builds_started = 0
+
     async def get(self, request, **params):
         return {
             "stream": {
@@ -87,5 +89,31 @@ class PageView(BaseLayout):
         yield HTML(
             content="<div data-retry-resumed>Stream resumed.</div>",
             target="#stream-log",
+            swap="append",
+        )
+
+    @action(method="POST", retry=False)
+    def start_package_build(self, request, package_id="demo", **params):
+        type(self).package_builds_started += 1
+        job_id = f"{package_id}-{type(self).package_builds_started}"
+        return self.watch_package_build.switch_to(job_id=job_id)
+
+    @action(method="GET", retry=True)
+    async def watch_package_build(self, request, job_id, **params):
+        yield HTML(
+            content=(
+                f'<div data-build-first data-job-id="{job_id}">Watcher connected.</div>'
+            ),
+            target="#package-build-status",
+            swap="inner",
+        )
+        if not request.headers.get("Last-Event-ID"):
+            raise ConnectionResetError("Intentional switched-watcher interruption")
+        yield HTML(
+            content=(
+                f'<div data-build-resumed data-mutation-count="{type(self).package_builds_started}">'
+                "Watcher resumed.</div>"
+            ),
+            target="#package-build-status",
             swap="append",
         )

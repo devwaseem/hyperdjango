@@ -68,3 +68,12 @@ def get_append_slash() -> bool:
         return bool(getattr(settings, "APPEND_SLASH", True))
     except ImproperlyConfigured:
         return True
+
+
+def get_switch_action_max_depth() -> int:
+    """Return the maximum number of command-to-query handoffs in one chain."""
+    try:
+        value = int(getattr(settings, "HYPER_SWITCH_ACTION_MAX_DEPTH", 4))
+    except (ImproperlyConfigured, TypeError, ValueError):
+        return 4
+    return max(0, value)

@@ -15,7 +15,13 @@ from django.http import HttpResponse
 from django.template import Context, Engine
 from django.test import RequestFactory
 
-from hyperdjango.actions import ActionResult, History, HTML, Redirect, action
+from hyperdjango.actions import (
+    ActionResult,
+    History,
+    HTML,
+    Redirect,
+    action,
+)
 from hyperdjango.page import HyperView
 from hyperdjango.runtime.dispatcher import dispatch_page, dispatch_page_async
 
@@ -291,6 +297,25 @@ def test_result_metadata_and_value_caps_are_bounded() -> None:
     long_html = describe_result(HTML(content="x" * 2000))
     assert len(long_html["items"][0]["content"]) == 1000
     assert long_html["items"][0]["content"].endswith("…")
+
+    switch = describe_result(
+        type(
+            "SwitchPage",
+            (HyperView,),
+            {
+                "watch_build": action("watch_build", method="GET", retry=True)(
+                    lambda self, request, token: None
+                )
+            },
+        )().watch_build.switch_to(token="not exposed in item metadata")
+    )
+    assert switch["item_types"] == ["SwitchAction"]
+    assert switch["items"][0]["details"] == [
+        {"label": "destination action", "value": "watch_build"},
+        {"label": "method", "value": "GET"},
+        {"label": "retry", "value": True},
+    ]
+    assert "data" not in switch["items"][0]
 
     enriched = describe_result(
         [

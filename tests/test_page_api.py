@@ -76,9 +76,7 @@ def test_page_template_get_context_accepts_request() -> None:
 
 
 def test_hyper_csp_nonce_template_tag_reads_request_nonce() -> None:
-    engine = Engine(
-        libraries={"hyper_tags": "hyperdjango.templatetags.hyper_tags"}
-    )
+    engine = Engine(libraries={"hyper_tags": "hyperdjango.templatetags.hyper_tags"})
     template = engine.from_string("{% load hyper_tags %}{% hyper_csp_nonce %}")
     request = RequestFactory().get("/demo")
     setattr(request, "_csp_nonce", "test-nonce")
@@ -93,7 +91,9 @@ def test_asset_tags_escape_attribute_values() -> None:
         )
     )
 
-    assert 'src="https://assets.example/app.js&quot; onerror=&quot;alert(1)"' in rendered
+    assert (
+        'src="https://assets.example/app.js&quot; onerror=&quot;alert(1)"' in rendered
+    )
     assert 'nonce="safe&quot; onclick=&quot;alert(1)"' in rendered
     assert '" onerror="' not in rendered
     assert '" onclick="' not in rendered
@@ -110,16 +110,16 @@ def test_base_template_adds_nonce_to_runtime_scripts() -> None:
 
     assert "{% hyper_csp_nonce as hyper_nonce %}" in template
     assert (
-        '<script src="{% static \'hyperdjango/hyper.js\' %}"'
-        "{% if hyper_nonce %} nonce=\"{{ hyper_nonce }}\"{% endif %}>"
+        "<script src=\"{% static 'hyperdjango/hyper.js' %}\""
+        '{% if hyper_nonce %} nonce="{{ hyper_nonce }}"{% endif %}>'
     ) in template
     assert (
-        '<script src="{% static \'hyperdjango/hyper-alpine.js\' %}"'
-        "{% if hyper_nonce %} nonce=\"{{ hyper_nonce }}\"{% endif %}>"
+        "<script src=\"{% static 'hyperdjango/hyper-alpine.js' %}\""
+        '{% if hyper_nonce %} nonce="{{ hyper_nonce }}"{% endif %}>'
     ) in template
     assert (
-        '<script src="{% static \'hyperdjango/hyper-debug-toolbar.js\' %}"'
-        "{% if hyper_nonce %} nonce=\"{{ hyper_nonce }}\"{% endif %}>"
+        "<script src=\"{% static 'hyperdjango/hyper-debug-toolbar.js' %}\""
+        '{% if hyper_nonce %} nonce="{{ hyper_nonce }}"{% endif %}>'
     ) in template
 
 
@@ -350,8 +350,8 @@ def test_action_sse_ids_allow_an_interrupted_stream_to_resume() -> None:
     )
 
     assert _read_streaming_response(response) == (
-        b"event: patch_signals\nid: request-123:1\ndata: {\"count\": 1}\n\n"
-        b"event: patch_html\nid: request-123:2\ndata: {\"content\": \"<div>Done</div>\", \"swap\": \"outer\"}\n\n"
+        b'event: patch_signals\nid: request-123:1\ndata: {"count": 1}\n\n'
+        b'event: patch_html\nid: request-123:2\ndata: {"content": "<div>Done</div>", "swap": "outer"}\n\n'
         b"event: end\nid: request-123:3\ndata: {}\n\n"
     )
 
@@ -368,7 +368,7 @@ def test_action_sse_ids_allow_an_interrupted_stream_to_resume() -> None:
     )
 
     assert _read_streaming_response(resumed_response) == (
-        b"event: patch_html\nid: request-123:2\ndata: {\"content\": \"<div>Done</div>\", \"swap\": \"outer\"}\n\n"
+        b'event: patch_html\nid: request-123:2\ndata: {"content": "<div>Done</div>", "swap": "outer"}\n\n'
         b"event: end\nid: request-123:3\ndata: {}\n\n"
     )
 
@@ -590,6 +590,76 @@ def test_dispatch_page_supports_generator_actions() -> None:
     assert _read_streaming_response(response) == (
         b'event: patch_signals\ndata: {"phase": "starting"}\n\n'
         b'event: redirect\ndata: {"url": "/done/"}\n\n'
+    )
+
+
+def test_switch_action_is_typed_serialized_and_terminal_for_sync_streams() -> None:
+    seen: list[str] = []
+
+    class DemoPage(HyperView):
+        @action(method="GET", retry=True)
+        def watch(self, request, job_id):
+            return HTML(content=job_id)
+
+    def items():
+        yield HTML(content="before")
+        yield DemoPage().watch.switch_to(job_id="42")
+        seen.append("continued")
+        yield HTML(content="after")
+
+    response = to_action_http_response(items())
+
+    assert _read_streaming_response(response) == (
+        b'event: patch_html\ndata: {"content": "before", "swap": "outer"}\n\n'
+        b'event: switch_action\ndata: {"name": "watch", "data": {"job_id": "42"}, '
+        b'"method": "GET", "retry": true}\n\n'
+    )
+    assert seen == []
+
+
+def test_switch_action_is_terminal_for_async_streams() -> None:
+    seen: list[str] = []
+
+    class DemoPage(HyperView):
+        @action(method="GET", retry=False)
+        def watch(self, request):
+            return HTML(content="watching")
+
+    async def items():
+        yield DemoPage().watch.switch_to()
+        seen.append("continued")
+        yield HTML(content="after")
+
+    response = to_action_http_response(items())
+
+    assert _read_streaming_response(response) == (
+        b'event: switch_action\ndata: {"name": "watch", "data": {}, "method": "GET", '
+        b'"retry": false}\n\n'
+    )
+    assert seen == []
+
+
+def test_switch_depth_limit_returns_structured_action_error() -> None:
+    _ensure_settings()
+
+    class DemoPage(HyperView):
+        @action
+        def watch(self, request):
+            return HTML(content="unreachable")
+
+    request = RequestFactory().get(
+        "/demo",
+        HTTP_X_HYPER_ACTION="watch",
+        HTTP_X_HYPER_SWITCH_DEPTH="3",
+    )
+    with override_settings(HYPER_SWITCH_ACTION_MAX_DEPTH=2):
+        response = dispatch_page(DemoPage(), request)
+
+    assert response.status_code == 409
+    assert _read_streaming_response(response) == (
+        b'event: error\ndata: {"status": 409, "message": '
+        b'"Hyper action switch depth limit exceeded"}\n\n'
+        b"event: end\ndata: {}\n\n"
     )
 
 

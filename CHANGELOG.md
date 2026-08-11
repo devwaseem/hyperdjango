@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## 0.39.0 - 2026-08-11
+
+- Added the terminal `SwitchAction` typed item for coordinated command-to-query handoffs: a non-retried short command can transfer its request lane and uninterrupted loading lifecycle to a separately identified, retryable read-only action without navigation or inherited SSE resume state.
+- Added fluent `action.switch_to(...)` construction with Python-signature validation and decorator-derived action name, HTTP method, and retry policy. Added `action.at(route, route_kwargs=..., query=...).switch_to(...)` for ownership-checked cross-endpoint handoffs resolved through Django URL names without raw URLs.
+- Added same-origin switch URL validation, structured malformed-payload errors, configurable switch-depth loop protection, `hyper:actionSwitch` lifecycle metadata, Request Inspector chain correlation, Python/browser coverage, and an interrupted-watcher example.
+- Added a live `SwitchAction` demonstration to the website showing a `POST retry:false` command handing its loading lane to a retryable read-only `GET` watcher. The watcher deliberately disconnects so the page and its Playwright coverage prove that the mutation executes once, the watcher reconnects with its own request ID and `Last-Event-ID`, and loading remains continuous through the handoff.
+
 ## 0.38.1 - 2026-08-11
 
 - Fixed the standalone request inspector scrolling long pages to the bottom while rendering its tab strip or restoring an open drawer after refresh.

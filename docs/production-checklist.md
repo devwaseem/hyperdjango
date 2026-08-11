@@ -17,6 +17,13 @@ Action responses include no-store/no-cache and `Vary` headers for Hyper request 
 
 - keep reverse proxies from overriding these headers on action endpoints
 - avoid caching action JSON/partial responses in CDN edge caches
+- preserve `X-Hyper-Request-ID`, `Last-Event-ID`, and `X-Hyper-Switch-Depth`
+
+For command-to-query handoffs, verify the originating mutation uses `retry: false`,
+commits durable state before returning `action.switch_to(...)`, and can be recovered by refresh if
+the response is lost. Audit destination watchers as genuinely side-effect-free and test
+their ordered replay or idempotent replacement-patch contract under reconnection. Set
+`HYPER_SWITCH_ACTION_MAX_DEPTH` only if the default four-switch loop bound is too small.
 
 ## Security
 
@@ -47,6 +54,12 @@ Action responses include no-store/no-cache and `Vary` headers for Hyper request 
 - add tests for route conflict cases and action response contracts
 - test back/forward navigation with enhanced links/forms
 - verify 422 validation flows for form-driven `$action(..., {}, { form })` submits
+- for every command-to-query handoff, interrupt the watcher in an E2E test and assert:
+  the command was sent once, the watcher reconnected with a distinct command/watcher
+  request ID pair, only the watcher inherited its own `Last-Event-ID`, and keyed loading
+  remained active until the final watcher completed
+- test configured switch-depth rejection and external abort/replacement of the complete
+  chain when an application uses multi-switch workflows
 
 ## Deployment Validation
 

@@ -3,7 +3,6 @@ from __future__ import annotations
 import inspect
 import json
 import logging
-from collections.abc import Iterable
 from typing import Any
 
 from asgiref.sync import async_to_sync
@@ -12,6 +11,7 @@ from django.http import HttpRequest, HttpResponse
 from django.http import Http404
 
 from hyperdjango.actions import ActionResult
+from hyperdjango.conf import get_switch_action_max_depth
 from hyperdjango.integrations.debug_toolbar.tracing import (
     operation as debug_operation,
     record_action as debug_record_action,
@@ -45,6 +45,10 @@ _NO_PAGE_RESULT = object()
 logger = logging.getLogger("django.request")
 
 
+async def _await_result(result: Any) -> Any:
+    return await result
+
+
 def dispatch_page(page: Any, request: HttpRequest, **params: Any) -> HttpResponse:
     return dispatch_page_sync(page, request, **params)
 
@@ -53,9 +57,7 @@ def dispatch_page_sync(page: Any, request: HttpRequest, **params: Any) -> HttpRe
     action_name = get_action_name(request) if is_action_request(request) else ""
     method = request.method if isinstance(request.method, str) else "GET"
     handler_name = f"action:{action_name}" if action_name else method.lower()
-    debug_record_dispatch(
-        request, page, handler=handler_name, route_params=params
-    )
+    debug_record_dispatch(request, page, handler=handler_name, route_params=params)
     try:
         with debug_operation(request, "dispatch"):
             return _dispatch_page_sync(page, request, **params)
@@ -91,9 +93,7 @@ async def dispatch_page_async(
     action_name = get_action_name(request) if is_action_request(request) else ""
     method = request.method if isinstance(request.method, str) else "GET"
     handler_name = f"action:{action_name}" if action_name else method.lower()
-    debug_record_dispatch(
-        request, page, handler=handler_name, route_params=params
-    )
+    debug_record_dispatch(request, page, handler=handler_name, route_params=params)
     try:
         with debug_operation(request, "dispatch"):
             return await _dispatch_page_async(page, request, **params)
@@ -130,11 +130,24 @@ async def _dispatch_page_async(
 def _dispatch_action_sync(
     page: Any, request: HttpRequest, action_name: str, **params: Any
 ) -> HttpResponse:
+    setattr(page, "_hyper_action_route_params", dict(params))
+    depth_error = _switch_depth_error(request)
+    if depth_error is not None:
+        return depth_error
     action_method = page.get_action(action_name)
     if action_method is None:
+        if request.headers.get("X-Hyper-Switch-Depth"):
+            return _prepare_action_exception_response(
+                request,
+                status=404,
+                message=f"Switched action '{action_name}' not found",
+            )
         raise DispatchError(
             f"Action '{action_name}' not found on page {page.__class__.__name__}"
         )
+    method_error = _action_method_error(request, action_method)
+    if method_error is not None:
+        return method_error
 
     action_kwargs = {**_extract_action_kwargs(request), **params}
     debug_record_action(
@@ -159,9 +172,7 @@ def _dispatch_action_sync(
             message,
             exc_info=True,
         )
-        return _prepare_action_exception_response(
-            request, status=403, message=message
-        )
+        return _prepare_action_exception_response(request, status=403, message=message)
     except Http404 as exc:
         debug_record_exception(request, exc, phase="action")
         message = str(exc).strip() or "Not found"
@@ -172,9 +183,7 @@ def _dispatch_action_sync(
             message,
             exc_info=True,
         )
-        return _prepare_action_exception_response(
-            request, status=404, message=message
-        )
+        return _prepare_action_exception_response(request, status=404, message=message)
     except Exception as exc:
         debug_record_exception(request, exc, phase="action")
         logger.exception(
@@ -192,11 +201,24 @@ def _dispatch_action_sync(
 async def _dispatch_action_async(
     page: Any, request: HttpRequest, action_name: str, **params: Any
 ) -> HttpResponse:
+    setattr(page, "_hyper_action_route_params", dict(params))
+    depth_error = _switch_depth_error(request)
+    if depth_error is not None:
+        return depth_error
     action_method = page.get_action(action_name)
     if action_method is None:
+        if request.headers.get("X-Hyper-Switch-Depth"):
+            return _prepare_action_exception_response(
+                request,
+                status=404,
+                message=f"Switched action '{action_name}' not found",
+            )
         raise DispatchError(
             f"Action '{action_name}' not found on page {page.__class__.__name__}"
         )
+    method_error = _action_method_error(request, action_method)
+    if method_error is not None:
+        return method_error
 
     action_kwargs = {**_extract_action_kwargs(request), **params}
     debug_record_action(
@@ -221,9 +243,7 @@ async def _dispatch_action_async(
             message,
             exc_info=True,
         )
-        return _prepare_action_exception_response(
-            request, status=403, message=message
-        )
+        return _prepare_action_exception_response(request, status=403, message=message)
     except Http404 as exc:
         debug_record_exception(request, exc, phase="action")
         message = str(exc).strip() or "Not found"
@@ -234,9 +254,7 @@ async def _dispatch_action_async(
             message,
             exc_info=True,
         )
-        return _prepare_action_exception_response(
-            request, status=404, message=message
-        )
+        return _prepare_action_exception_response(request, status=404, message=message)
     except Exception as exc:
         debug_record_exception(request, exc, phase="action")
         logger.exception(
@@ -258,6 +276,45 @@ def _prepare_action_exception_response(
         return to_action_exception_response(
             status=status, message=message, request=request
         )
+
+
+def _switch_depth_error(request: HttpRequest) -> HttpResponse | None:
+    raw_depth = request.headers.get("X-Hyper-Switch-Depth", "0").strip()
+    if not raw_depth:
+        return None
+    try:
+        depth = int(raw_depth)
+    except ValueError:
+        return _prepare_action_exception_response(
+            request, status=400, message="Invalid Hyper action switch depth"
+        )
+    if depth < 0:
+        return _prepare_action_exception_response(
+            request, status=400, message="Invalid Hyper action switch depth"
+        )
+    if depth > get_switch_action_max_depth():
+        return _prepare_action_exception_response(
+            request,
+            status=409,
+            message="Hyper action switch depth limit exceeded",
+        )
+    return None
+
+
+def _action_method_error(
+    request: HttpRequest, action_method: Any
+) -> HttpResponse | None:
+    declared_method = getattr(action_method, "_hyper_action_method", None)
+    if not declared_method or request.method.upper() == declared_method:
+        return None
+    return _prepare_action_exception_response(
+        request,
+        status=405,
+        message=(
+            f"Action '{getattr(action_method, '_hyper_action_name', 'unknown')}' "
+            f"requires {declared_method}"
+        ),
+    )
 
 
 def _dispatch_action_result(

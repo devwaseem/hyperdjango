@@ -154,13 +154,21 @@ state may belong to a page that is no longer open.
 
 - action name, requested target, and merged arguments
 - typed `HTML`, `Delete`, `Signal`, `Signals`, `Toast`, `Event`, `History`,
-  `Redirect`, and `LoadJS` results
+  `Redirect`, `SwitchAction`, and `LoadJS` results
 - target and swap behavior
 - focus, transition, strict-target, swap-delay, and settle-delay options
 - history/redirect URLs, event names, script sources, statuses, and headers
 - sanitized signal values and event/toast payloads
 - per-item sequence, event name, request-relative timestamp, gap, and payload bytes
 - client-observed reconnect, cancellation, terminal-event, and target-outcome health
+- command/query chain links with source and destination actions, separate request IDs,
+  retry configuration, and switch depth; malformed handoffs and depth-limit failures
+  appear in request diagnostics
+- cross-endpoint destination route names and reversed URLs without exposing action data
+
+The website's [live command-to-query demo](/#switch-action-demo) is an immediately
+available trace source: running it creates linked command, destination, and reconnect
+requests with separate IDs for inspection.
 
 ### Output and browser outcomes
 

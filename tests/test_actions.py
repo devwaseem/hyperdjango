@@ -1,4 +1,6 @@
-from hyperdjango.actions import action
+import inspect
+
+from hyperdjango.actions import Action, action
 from hyperdjango.page import HyperView
 
 
@@ -17,3 +19,6 @@ def test_action_registration() -> None:
     action_method = page.get_action("save")
     assert action_method is not None
     assert action_method.__name__ == "save"
+    assert isinstance(DemoPage.save, Action)
+    assert list(inspect.signature(action_method).parameters) == ["request"]
+    assert inspect.unwrap(action_method) is DemoPage.save.__wrapped__

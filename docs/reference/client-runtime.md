@@ -21,11 +21,12 @@ Request metadata sent by the runtime can include:
 - `X-Requested-With`
 - `X-Hyper-Request-ID`
 - `Last-Event-ID` on an SSE reconnect
+- `X-Hyper-Switch-Depth` on a `SwitchAction` destination
 
 ## SSE Reconnection
 
 Action streams reconnect automatically after a network or response-body read failure,
-or when the connection closes before an `end` or `redirect` event. While the browser is
+or when the connection closes before an `end`, `redirect`, or `switch_action` event. While the browser is
 offline, the stream pauses without consuming retry attempts and reconnects immediately
 after `hyper:network:online`. Other failures use bounded exponential backoff: 1 second
 initially, doubling to a maximum of 30 seconds, with at most 10 reconnect attempts. A
@@ -46,6 +47,7 @@ Hyper.configure({
   sseRetryScaler: 2,
   sseRetryMaxWait: 30000,
   sseRetryMaxCount: 10,
+  switchActionMaxDepth: 4,
 });
 ```
 
@@ -56,6 +58,29 @@ action("save", data, { retry: false });
 ```
 
 To disable them globally, call `Hyper.configure({ sseRetry: false })`.
+
+For a server-driven handoff, the destination's method and retry policy come from its
+Python declaration rather than client inference or switch-payload overrides:
+
+```python
+@action(method="GET", retry=True)
+def watch_build(self, request, job_id):
+    ...
+
+return self.watch_build.switch_to(job_id=job.pk)
+```
+
+For another page endpoint, use the action reference's `at()` builder with a Django route
+name. The browser still receives an ordinary `switch_action` event and runs the resolved
+destination through this same client pipeline.
+
+The source and destination are separate HTTP requests but one coordinated client
+workflow. Lane ownership and matching loading/disabled state transfer before the source
+releases them, preventing flicker and preventing a shared `key` from blocking or
+replacing its own destination. An unrelated request using replacement synchronization,
+or an explicit abort, still cancels the entire active chain. `hyper:actionSwitch`
+provides the two action names and request IDs for instrumentation without exposing the
+destination action data.
 
 ## `window.action(name, data, options)`
 
@@ -155,6 +180,7 @@ The HyperDjango client runtime dispatches events to `window` for lifecycle monit
 | `hyper:requestRetriesFailed` | When an SSE stream exhausts its reconnect attempts. | `key`, `attempts`, `error` |
 | `hyper:uploadProgress` | During file upload progress tracking. | `key`, `progress` (0-1) |
 | `hyper:streamEvent` | When a new SSE event is received from the server. | `event` (type), `data` (payload) |
+| `hyper:actionSwitch` | After a valid switch is received and before its destination request starts. | `originalAction`, `destinationAction`, `originalRequestId`, `newRequestId`, `key`, `method`, `url`, `retry`, `depth` |
 | `hyper:toast` | When a `Toast` action is received. | `value` |
 | `hyper:network:change` | When browser network availability changes. | `online`, `offline` |
 | `hyper:network:online` | When the browser regains network availability. | `online`, `offline` |

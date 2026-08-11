@@ -1,4 +1,4 @@
-from hyperdjango.actions import Actions, Event, action
+from hyperdjango.actions import Actions, Event, SwitchAction, action
 from hyperdjango.page import HyperActionMixin, HyperPageTemplate, HyperView, Page
 from hyperdjango.shortcuts import render_template_block, render_template_page
 
@@ -11,6 +11,7 @@ __all__ = [
     "Page",
     "Actions",
     "Event",
+    "SwitchAction",
     "action",
     "render_template_page",
     "render_template_block",

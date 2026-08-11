@@ -128,6 +128,14 @@ HYPER_DEBUG_TOOLBAR_CONFIG = {
 }
 ```
 
+## `HYPER_SWITCH_ACTION_MAX_DEPTH`
+
+Type: `int`. Default: `4`.
+
+Maximum accepted `SwitchAction` depth. Requests beyond the limit receive a structured
+409 action error. Keep this aligned with the client runtime's `switchActionMaxDepth`
+configuration. Increase it only for an intentional longer command/query chain.
+
 ## `HYPER_DEV`
 
 Type:

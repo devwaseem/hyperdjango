@@ -1,0 +1,173 @@
+<section id="switch-action-demo" class="max-w-6xl mx-auto px-6 py-24 border-t border-black/10">
+    <div class="flex flex-col mb-12">
+        <div class="flex flex-wrap items-center gap-3 mb-2">
+            <h2 class="font-doto text-4xl font-black uppercase">Command → Query</h2>
+            <span class="border border-black px-2 py-1 font-mono text-[10px] font-black uppercase tracking-[0.16em]">SwitchAction</span>
+        </div>
+        <p class="font-mono text-gray-500 max-w-3xl">Run a short, non-retried POST once, then hand the same loading workflow to a retryable, read-only GET stream.</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 border-2 border-black divide-y-2 lg:divide-y-0 lg:divide-x-2 divide-black font-mono">
+        <div class="bg-gray-50 min-h-0 overflow-hidden">
+            <div class="flex flex-col gap-6 p-6 pb-10 box-border overflow-y-auto overflow-x-hidden lg:h-[80vh]">
+                <div>
+                    <div class="flex items-center gap-2 mb-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                        <span class="w-1.5 h-1.5 bg-black/20"></span>
+                        +page.py
+                    </div>
+                    <pre class="text-[12px] leading-relaxed overflow-x-auto"><code class="language-python">from hyperdjango.actions import Signal, action
+
+
+class PageView(HyperView):
+    @action(method="POST", retry=False)
+    def start_build(self, request, package_id: str):
+        # Commit a bounded transaction or durably enqueue work.
+        job = start_package_build(package_id=package_id)
+
+        # The Python reference supplies the action name, GET method,
+        # retry policy, and current endpoint automatically.
+        return self.watch_build.switch_to(job_id=str(job.pk))
+
+    @action(method="GET", retry=True)
+    def watch_build(self, request, job_id: str):
+        # Read-only and safe to execute again after reconnecting.
+        for snapshot in watch_job(job_id):
+            yield Signal(name="build", value=snapshot)</code></pre>
+                </div>
+
+                <div class="border-t border-black/5 pt-6">
+                    <div class="flex items-center gap-2 mb-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                        <span class="w-1.5 h-1.5 bg-black/20"></span>
+                        template.html
+                    </div>
+                    <pre class="text-[12px] leading-relaxed overflow-x-auto"><code class="language-html">{% verbatim %}&lt;button
+  hyper-loading-disable="package-build"
+  @click="$action(
+    'start_build',
+    { package_id },
+    {
+      method: 'POST',
+      retry: false,
+      key: 'package-build'
+    }
+  )"
+&gt;
+  Build package
+&lt;/button&gt;
+
+&lt;div hyper-loading-key="package-build"&gt;
+  &lt;progress :value="build.progress" max="100"&gt;&lt;/progress&gt;
+&lt;/div&gt;{% endverbatim %}</code></pre>
+                </div>
+
+                <div class="border-2 border-black bg-white p-4 text-xs leading-relaxed">
+                    <strong class="block uppercase tracking-[0.14em] mb-2">Safety boundary</strong>
+                    <p><code>switch_to()</code> does not make the POST idempotent. Disable retry on the command, persist a discoverable outcome before switching, and keep the destination strictly read-only and replay-safe.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white min-h-0 overflow-hidden">
+            <div class="p-8 pb-10 flex flex-col box-border overflow-y-auto overflow-x-hidden lg:h-[80vh]">
+                <div class="flex items-center gap-2 mb-6 text-[10px] font-black text-black uppercase tracking-[0.2em]">
+                    <span class="w-1.5 h-1.5 bg-black"></span>
+                    Live interrupted-stream demo
+                </div>
+
+                <section
+                    x-data="{
+                        switchBuild: {
+                            phase: 'Ready to build',
+                            progress: 0,
+                            jobId: '—',
+                            requestId: '—',
+                            mutationCount: 0,
+                            resumed: false,
+                        },
+                        originalRequestId: '—',
+                        destinationRequestId: '—',
+                        switched: false,
+                    }"
+                    @hyper:action-switch.camel.window="
+                        if ($event.detail.destinationAction !== 'watch_switch_build') return;
+                        switched = true;
+                        originalRequestId = $event.detail.originalRequestId;
+                        destinationRequestId = $event.detail.newRequestId;
+                    "
+                    class="space-y-6"
+                    data-switch-action-demo
+                >
+                    <div class="grid grid-cols-[auto_1fr_auto_1fr_auto] items-center gap-2 text-[10px] font-black uppercase tracking-[0.14em]" aria-label="Action handoff">
+                        <span class="border-2 border-black bg-black text-white px-3 py-2">POST</span>
+                        <span class="h-0.5 bg-black"></span>
+                        <span class="border-2 border-black px-3 py-2" :class="switched ? 'bg-black text-white' : 'bg-white'">Switch</span>
+                        <span class="h-0.5 bg-black"></span>
+                        <span class="border-2 border-black px-3 py-2" :class="switchBuild.progress > 0 ? 'bg-black text-white' : 'bg-white'">GET</span>
+                    </div>
+
+                    <div class="border-2 border-black p-5 space-y-5">
+                        <div class="flex items-start justify-between gap-4">
+                            <div>
+                                <div class="text-[10px] uppercase tracking-[0.2em] text-gray-400 mb-2">Current phase</div>
+                                <p class="font-bold" x-text="switchBuild.phase" data-switch-phase>Ready to build</p>
+                            </div>
+                            <span
+                                class="shrink-0 border px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em]"
+                                :class="switchBuild.resumed ? 'border-black bg-black text-white' : 'border-black/20 text-gray-400'"
+                                x-text="switchBuild.resumed ? 'reconnected' : 'not connected'"
+                                data-switch-reconnect
+                            >not connected</span>
+                        </div>
+
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-[10px] uppercase tracking-[0.14em]">
+                                <span>Watcher progress</span>
+                                <span x-text="`${switchBuild.progress}%`">0%</span>
+                            </div>
+                            <div class="h-4 border-2 border-black bg-white p-0.5">
+                                <div class="h-full bg-black transition-[width] duration-300" :style="`width: ${switchBuild.progress}%`" data-switch-progress></div>
+                            </div>
+                        </div>
+
+                        <dl class="grid grid-cols-1 sm:grid-cols-2 gap-px bg-black border border-black text-xs">
+                            <div class="bg-white p-3">
+                                <dt class="text-[9px] uppercase tracking-[0.16em] text-gray-400 mb-1">Mutation executions</dt>
+                                <dd class="text-lg font-black" x-text="switchBuild.mutationCount" data-switch-mutations>0</dd>
+                            </div>
+                            <div class="bg-white p-3 min-w-0">
+                                <dt class="text-[9px] uppercase tracking-[0.16em] text-gray-400 mb-1">Job</dt>
+                                <dd class="truncate" x-text="switchBuild.jobId" data-switch-job>—</dd>
+                            </div>
+                            <div class="bg-white p-3 min-w-0">
+                                <dt class="text-[9px] uppercase tracking-[0.16em] text-gray-400 mb-1">Command request ID</dt>
+                                <dd class="truncate" x-text="originalRequestId" data-switch-original-id>—</dd>
+                            </div>
+                            <div class="bg-white p-3 min-w-0">
+                                <dt class="text-[9px] uppercase tracking-[0.16em] text-gray-400 mb-1">Watcher request ID</dt>
+                                <dd class="truncate" x-text="destinationRequestId" data-switch-destination-id>—</dd>
+                            </div>
+                        </dl>
+                    </div>
+
+                    <button
+                        type="button"
+                        hyper-loading-disable="switch-action-demo"
+                        @click="
+                            switchBuild = { phase: 'Running command…', progress: 5, jobId: '—', requestId: '—', mutationCount: switchBuild.mutationCount, resumed: false };
+                            switched = false;
+                            originalRequestId = '—';
+                            destinationRequestId = '—';
+                            $action('start_switch_build', { package: 'hyperdjango' }, { method: 'POST', retry: false, key: 'switch-action-demo' });
+                        "
+                        class="w-full bg-black text-white px-5 py-3 text-sm font-bold uppercase hover:bg-white hover:text-black hover:ring-2 hover:ring-black transition-all disabled:cursor-wait disabled:opacity-60"
+                    >
+                        <span hyper-loading-hide="switch-action-demo">Build package</span>
+                        <span hyper-loading-show="switch-action-demo">Command handed off · watching…</span>
+                    </button>
+
+                    <p class="text-[11px] leading-relaxed text-gray-500">This demo deliberately drops the watcher after its first event. HyperDjango reconnects the GET with the same watcher request ID and <code>Last-Event-ID</code>; the POST remains at exactly one execution.</p>
+                </section>
+            </div>
+        </div>
+    </div>
+</section>

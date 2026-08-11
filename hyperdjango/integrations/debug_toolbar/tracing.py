@@ -39,11 +39,12 @@ def _qualified_name(value: type[Any] | Any) -> str:
 
 
 def _callable_mode(value: Any) -> str:
-    if inspect.isasyncgenfunction(value):
+    inspected = inspect.unwrap(value)
+    if inspect.isasyncgenfunction(inspected):
         return "async stream"
-    if inspect.isgeneratorfunction(value):
+    if inspect.isgeneratorfunction(inspected):
         return "stream"
-    if inspect.iscoroutinefunction(value):
+    if inspect.iscoroutinefunction(inspected):
         return "async"
     return "sync"
 
@@ -77,6 +78,7 @@ def display_path(file_name: str | Path) -> str:
 
 def _source_location(value: Any) -> dict[str, Any] | None:
     try:
+        value = inspect.unwrap(value)
         file_name = inspect.getsourcefile(value) or inspect.getfile(value)
         _, line = inspect.getsourcelines(value)
     except (OSError, TypeError):
@@ -143,7 +145,9 @@ def _route_details(page: Any) -> dict[str, Any]:
         if cls.__module__.startswith(("hyperdjango.", "django.")):
             continue
         source = _source_location(cls)
-        if source is None or (page_file and Path(source["file"]).resolve() == page_file):
+        if source is None or (
+            page_file and Path(source["file"]).resolve() == page_file
+        ):
             continue
         layouts.append(
             {
@@ -420,7 +424,9 @@ def record_dispatch(
         "source": _source_location(page.__class__),
         "details": _route_details(page),
     }
-    method_name = handler.split(":", 1)[-1] if handler.startswith("action:") else handler
+    method_name = (
+        handler.split(":", 1)[-1] if handler.startswith("action:") else handler
+    )
     method = getattr(page, method_name, None)
     if method is not None:
         trace.route["handler_source"] = _source_location(method)
@@ -545,6 +551,23 @@ def _exception_frames(exc: BaseException) -> list[dict[str, Any]]:
 
 def _item_metadata(item: Any) -> dict[str, Any]:
     metadata: dict[str, Any] = {"type": item.__class__.__name__}
+    if item.__class__.__name__ == "SwitchAction":
+        try:
+            name, _, method, url, retry = item.resolve()
+            metadata.update(
+                {
+                    "destination_action": name,
+                    "method": method,
+                    "retry": retry,
+                }
+            )
+            endpoint = getattr(item, "endpoint", None)
+            if endpoint is not None:
+                metadata["route"] = endpoint.route
+            if url is not None:
+                metadata["url"] = url
+        except (TypeError, ValueError) as exc:
+            metadata["resolution_error"] = str(exc)
     for attribute in (
         "target",
         "swap",
@@ -560,6 +583,9 @@ def _item_metadata(item: Any) -> dict[str, Any]:
         "transition",
         "redirect_to",
         "status",
+        "method",
+        "retry",
+        "key",
     ):
         value = getattr(item, attribute, None)
         if attribute == "transition" and value is False:
@@ -592,6 +618,7 @@ def _item_metadata(item: Any) -> dict[str, Any]:
         "swap_delay": "swap delay",
         "settle_delay": "settle delay",
         "strict_targets": "strict targets",
+        "destination_action": "destination action",
     }
     metadata["details"] = [
         {"label": labels.get(key, key.replace("_", " ")), "value": value}
@@ -613,6 +640,7 @@ def describe_result(result: Any) -> dict[str, Any]:
         HTML,
         LoadJS,
         Redirect,
+        SwitchAction,
         Toast,
     )
     from hyperdjango.integrations.alpine.actions import Signal, Signals
@@ -659,7 +687,18 @@ def describe_result(result: Any) -> dict[str, Any]:
         }
     if isinstance(
         result,
-        (Signal, Signals, HTML, Toast, Event, Delete, Redirect, History, LoadJS),
+        (
+            Signal,
+            Signals,
+            HTML,
+            Toast,
+            Event,
+            Delete,
+            Redirect,
+            SwitchAction,
+            History,
+            LoadJS,
+        ),
     ):
         return {
             "kind": result.__class__.__name__,

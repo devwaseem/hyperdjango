@@ -32,5 +32,16 @@
                 </div>
             </div>
         </div>
+
+        <div style="display: grid; gap: 0.6rem; padding: 1rem; border: 1px solid #e2e8f0; border-radius: 12px;">
+            <h2 style="margin: 0;">Command → query handoff</h2>
+            <p style="margin: 0;">The short POST is never retried. It switches to a retryable, read-only GET watcher.</p>
+            <button type="button"
+                    hyper-loading-disable="package-build"
+                    x-on:click="$action('start_package_build', { package_id: 'example' }, { method: 'POST', retry: false, key: 'package-build' })">
+                Build package
+            </button>
+            <div id="package-build-status" hyper-loading-key="package-build">Waiting to start.</div>
+        </div>
     </section>
 {% endblock page %}

@@ -84,6 +84,119 @@ class PageView(HyperView):
 
 Treat `Redirect(...)` as the last action item. Once the runtime sends a redirect, later items are not delivered.
 
+## Command-to-query handoff with `switch_to()`
+
+An action reference's `switch_to()` method builds a terminal `SwitchAction` internally,
+ending a short command stream and starting a separate action through the normal client
+pipeline. Use it when a bounded transaction or durable enqueue should not be retried,
+but the resulting durable state needs a long-lived, retryable watcher.
+
+```python
+from hyperdjango.actions import HTML, action
+
+@action(method="POST", retry=False)
+def start_package_build(self, request, package_id):
+    job = start_package_build(package_id=package_id)
+    return self.watch_package_build.switch_to(job_id=str(job.pk))
+
+@action(method="GET", retry=True)
+def watch_package_build(self, request, job_id):
+    for snapshot in watch_job(job_id):
+        yield HTML(self.render_job(snapshot), target="#package-build-status")
+```
+
+```html
+<button @click="$action('start_package_build', { package_id }, {
+  method: 'POST', retry: false, key: 'package-build'
+})">Build</button>
+```
+
+`switch_to()` validates the destination's Python signature and returns a `SwitchAction`.
+Use keyword arguments for clarity; they become destination action data. Parameters
+already supplied by the current route are validated but are not duplicated in action
+data. Missing, unknown, duplicated, and unsupported variadic positional arguments fail
+on the server before a switch payload is emitted.
+
+`SwitchAction` is terminal, like `Redirect`; later yielded items are not delivered. It
+does not navigate. The runtime transfers the request lane and loading lifecycle, emits
+`hyper:actionSwitch`, and starts the destination with a new `X-Hyper-Request-ID`, no
+inherited `Last-Event-ID`, and the destination's own retry policy. `url` defaults to the
+current action URL; `at()` can replace it only with a locally reversed Django route. Chains are limited to four
+switches by default; configure the browser with `switchActionMaxDepth` and Django with
+`HYPER_SWITCH_ACTION_MAX_DEPTH` when a longer legitimate chain is required. Application
+code should normally use `switch_to()` rather than instantiate `SwitchAction` directly.
+
+The [live command-to-query demo](/#switch-action-demo) deliberately interrupts its
+destination watcher. It displays both request IDs, the reconnect state, and the command
+execution count while keeping one loading indicator active across the handoff.
+
+### Cross-endpoint handoffs
+
+Use `at()` with a Django route name when the destination action belongs to another page:
+
+```python
+return BuildDetailPage.watch_package_build.at(
+    "packages:build-detail",
+    route_kwargs={
+        "tenant_slug": tenant.slug,
+        "package_id": package.pk,
+    },
+    query={"panel": "status"},
+).switch_to(job_id=str(job.pk))
+```
+
+The action reference still supplies the wire name, HTTP method, and retry policy. `at()`
+supplies only URL routing. HyperDjango resolves the route with Django `reverse()`, checks
+that the referenced action belongs to the resolved page, rejects absolute/external
+URLs, and keeps route kwargs separate from action data. This respects namespaces,
+mount prefixes, converters, and normal Django URL escaping. Raw destination URLs are
+not accepted.
+
+For a different route handled by the same page class, the bound form is also valid:
+
+```python
+return self.watch_package_build.at(
+    "packages:build-detail",
+    route_kwargs={"package_id": package.pk},
+).switch_to(job_id=str(job.pk))
+```
+
+Actions used as switch destinations must explicitly declare both transport properties:
+
+```python
+@action(method="GET", retry=True)
+```
+
+Declared methods are enforced by server dispatch. Legacy `@action` declarations remain
+valid for ordinary calls, but cannot be switch destinations until `method` and `retry`
+are declared. There is no per-switch override, preventing a call site from weakening
+the destination action's transport contract. The declared retry value controls
+server-driven switches only; direct JavaScript or Alpine calls still use their own
+`retry` option. The originating command must therefore still be invoked with
+`retry: false` as shown above.
+
+Important safety constraints:
+
+- `switch_to()` does not make the command idempotent. Invoke a non-idempotent command
+  with `retry: false`.
+- If the command response is lost before the switch reaches the browser, the watcher
+  cannot start. The command must leave durable, queryable state so refresh can discover
+  its outcome.
+- The destination must be safe to execute again. A read-only watcher must not write
+  database state, enqueue work, initialize a workflow, send messages, or call mutating
+  external APIs.
+- Read-only is not the same as deterministic. Sequence-based `Last-Event-ID` resumption
+  assumes a reconnect can reproduce the same ordered events. If a changing read model
+  cannot do that, emit idempotent replacement patches (for example, replace one status
+  node with the latest snapshot) or set `retry=False` and implement an explicit fresh
+  snapshot/reconnect policy by declaring `@action(..., retry=False)` on the destination.
+- HyperDjango never infers mutation safety from the HTTP method and never silently
+  changes retry behavior.
+
+Use a durable idempotency ledger when the command itself must survive automatic retry,
+when losing the handoff response is unacceptable, or when an external side effect needs
+exactly-once coordination.
+
 ## Adopting Reliable Streams in an Existing Project
 
 After upgrading HyperDjango, deploy the updated `hyper.js` with the Python package. Run
@@ -163,8 +276,8 @@ particular:
 - preserve `Content-Type: text/event-stream`, `Cache-Control`, and
   `X-Accel-Buffering: no` response headers.
 
-HyperDjango emits `end` automatically for normal action streams and treats `redirect` as
-terminal. A custom event-stream response must also finish with an `end` or `redirect`
+HyperDjango emits `end` automatically for normal action streams and treats `redirect` and `switch_action` as
+terminal. A custom event-stream response must also finish with an `end`, `redirect`, or `switch_action`
 event; otherwise the client correctly treats the close as an interruption and retries.
 
 ### Rollout checklist

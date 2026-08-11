@@ -22,6 +22,7 @@ from hyperdjango.actions import (
     History,
     LoadJS,
     Redirect,
+    SwitchAction,
     Signal,
     Signals,
     Toast,
@@ -35,6 +36,7 @@ ACTION_VARY_HEADERS = [
     "X-Hyper-Data",
     "X-Requested-With",
     "X-Hyper-Request-ID",
+    "X-Hyper-Switch-Depth",
     "Last-Event-ID",
 ]
 
@@ -153,6 +155,7 @@ def is_action_item(value: Any) -> bool:
             Event,
             Delete,
             Redirect,
+            SwitchAction,
             History,
             LoadJS,
         ),
@@ -198,10 +201,14 @@ def compile_action_result(result: ActionResult) -> list[ActionItem]:
     return items
 
 
+def is_terminal_action_item(item: ActionItem) -> bool:
+    return isinstance(item, (Redirect, SwitchAction))
+
+
 def stream_action_sse(
     items: Iterable[ActionItem], *, event_id_prefix: str = "", skip_events: int = 0
 ) -> Iterator[str]:
-    redirect_seen = False
+    terminal_seen = False
     event_index = 0
     for item in items:
         event_index += 1
@@ -210,15 +217,13 @@ def stream_action_sse(
             yield _format_sse_event(
                 event_name, payload, _event_id(event_id_prefix, event_index)
             )
-        if isinstance(item, Redirect):
-            redirect_seen = True
+        if is_terminal_action_item(item):
+            terminal_seen = True
             break
-    if not redirect_seen:
+    if not terminal_seen:
         event_index += 1
         if event_index > skip_events:
-            yield _format_sse_event(
-                "end", {}, _event_id(event_id_prefix, event_index)
-            )
+            yield _format_sse_event("end", {}, _event_id(event_id_prefix, event_index))
 
 
 def stream_action_sse_sync(
@@ -242,7 +247,7 @@ async def stream_action_sse_async(
     event_id_prefix: str = "",
     skip_events: int = 0,
 ) -> AsyncIterator[str]:
-    redirect_seen = False
+    terminal_seen = False
     event_index = 0
     if isinstance(items, AsyncIterable):
         async_iterator = items.__aiter__()
@@ -256,8 +261,8 @@ async def stream_action_sse_async(
                 yield _format_sse_event(
                     event_name, payload, _event_id(event_id_prefix, event_index)
                 )
-            if isinstance(item, Redirect):
-                redirect_seen = True
+            if is_terminal_action_item(item):
+                terminal_seen = True
                 break
     else:
         iterator = iter(items)
@@ -273,16 +278,14 @@ async def stream_action_sse_async(
                 yield _format_sse_event(
                     event_name, payload, _event_id(event_id_prefix, event_index)
                 )
-            if isinstance(item, Redirect):
-                redirect_seen = True
+            if is_terminal_action_item(item):
+                terminal_seen = True
                 break
 
-    if not redirect_seen:
+    if not terminal_seen:
         event_index += 1
         if event_index > skip_events:
-            yield _format_sse_event(
-                "end", {}, _event_id(event_id_prefix, event_index)
-            )
+            yield _format_sse_event("end", {}, _event_id(event_id_prefix, event_index))
 
 
 def _stream_action_sse_sync_from_async(
@@ -330,7 +333,7 @@ async def _produce_action_sse(
     event_id_prefix: str = "",
     skip_events: int = 0,
 ) -> None:
-    redirect_seen = False
+    terminal_seen = False
     event_index = 0
     async_iterator = items.__aiter__()
     while True:
@@ -350,11 +353,11 @@ async def _produce_action_sse(
                     ),
                 )
             )
-        if isinstance(item, Redirect):
-            redirect_seen = True
+        if is_terminal_action_item(item):
+            terminal_seen = True
             break
 
-    if not redirect_seen:
+    if not terminal_seen:
         event_index += 1
         if event_index > skip_events:
             queue.put(
@@ -438,6 +441,17 @@ def serialize_action_item(item: ActionItem) -> tuple[str, dict[str, Any]]:
         }
     if isinstance(item, Redirect):
         return "redirect", {"url": item.url}
+    if isinstance(item, SwitchAction):
+        name, data, method, url, retry = item.resolve()
+        payload: dict[str, Any] = {
+            "name": name,
+            "data": data,
+            "method": method,
+            "retry": retry,
+        }
+        if url is not None:
+            payload["url"] = url
+        return "switch_action", payload
     if isinstance(item, History):
         payload: dict[str, Any] = {}
         if item.push_url:

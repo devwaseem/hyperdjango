@@ -32,6 +32,8 @@ STATE = {
 
 
 class PageView(BaseLayout):
+    switch_builds_started = 0
+
     def __init__(self) -> None:
         super().__init__(title="HyperDjango | Modern Web Apps")
 
@@ -244,6 +246,68 @@ class PageView(BaseLayout):
                 value=f"Synced from server at count {next_count}",
             ),
         ]
+
+    # -- COMMAND -> QUERY SWITCH --
+    @action(method="POST", retry=False)
+    def start_switch_build(self, request, package="hyperdjango", **kwargs):
+        """A bounded command; a real application would commit/enqueue here."""
+        type(self).switch_builds_started += 1
+        job_id = f"{package}-{type(self).switch_builds_started}"
+        return self.watch_switch_build.switch_to(job_id=job_id)
+
+    @action(method="GET", retry=True)
+    async def watch_switch_build(self, request, job_id, **kwargs):
+        """A read-only watcher whose ordered sequence is safe to replay."""
+        request_id = request.headers.get("X-Hyper-Request-ID", "")
+        mutation_count = type(self).switch_builds_started
+
+        yield Signal(
+            name="switchBuild",
+            value={
+                "phase": "Watcher connected",
+                "progress": 20,
+                "jobId": job_id,
+                "requestId": request_id,
+                "mutationCount": mutation_count,
+                "resumed": False,
+            },
+        )
+
+        # Demonstrate sequence-based Last-Event-ID replay. On reconnect the
+        # first patch is regenerated and skipped, then streaming continues.
+        if not request.headers.get("Last-Event-ID"):
+            raise ConnectionResetError(
+                "Intentional SwitchAction demo interruption"
+            )
+
+        for phase, progress in [
+            ("Watcher resumed after interruption", 45),
+            ("Reading build artifacts", 70),
+            ("Verifying package", 90),
+            ("Build complete", 100),
+        ]:
+            await asyncio.sleep(0.35)
+            yield Signal(
+                name="switchBuild",
+                value={
+                    "phase": phase,
+                    "progress": progress,
+                    "jobId": job_id,
+                    "requestId": request_id,
+                    "mutationCount": mutation_count,
+                    "resumed": True,
+                },
+            )
+
+        yield Toast(
+            payload={
+                "type": "success",
+                "title": "Build observed",
+                "message": (
+                    "The command ran once; its watcher reconnected safely."
+                ),
+            }
+        )
 
     @action
     async def run_agent_stream(self, request, prompt="", **kwargs):

@@ -28,6 +28,21 @@ Behavior:
 - stores the action name used by the runtime
 - the action becomes discoverable through `get_action(name)`
 
+Optional transport metadata:
+
+```python
+@action(method="GET", retry=True)
+def watch(self, request, job_id):
+    ...
+```
+
+- `method: Literal["GET", "POST"]` declares and enforces the accepted HTTP method
+- `retry: bool` declares the destination SSE retry policy used by `switch_to()`
+- `retry` does not override direct `$action(...)` or `window.action(...)` calls; those
+  retain their client-provided retry option
+- legacy actions may omit both values, but such actions cannot be switch destinations
+- switch call sites cannot override either value
+
 ## `Actions(*items)`
 
 Import:
@@ -172,6 +187,56 @@ Behavior:
 Event emitted to the client runtime:
 
 - `redirect`
+
+## `action.switch_to(*args, **kwargs)`
+
+Preferred API for constructing a terminal `SwitchAction`:
+
+```python
+return self.watch_build.switch_to(job_id=str(job.pk))
+```
+
+Behavior:
+
+- binds arguments against the referenced action's Python signature after `self` and
+  `request`
+- validates required, unknown, duplicated route, and positional arguments
+- derives the wire name, HTTP method, and retry policy from `@action`
+- inherits the current endpoint and client workflow lane
+- builds `SwitchAction` internally; direct construction is not normally needed
+
+## `action.at(route, *, route_kwargs=None, query=None).switch_to(...)`
+
+Cross-endpoint form:
+
+```python
+return BuildPage.watch_build.at(
+    "packages:build-detail",
+    route_kwargs={"package_id": package.pk},
+    query={"panel": "status"},
+).switch_to(job_id=str(job.pk))
+```
+
+- `route` is a Django URL-pattern name, including namespaces when applicable
+- `route_kwargs` are passed to `django.urls.reverse()` and used for signature validation
+- `query` is encoded with `doseq=True`
+- the resolved view must be the page that owns the referenced action
+- only application-local reversed paths are accepted; raw and external URLs are not
+  supported
+
+## `SwitchAction`
+
+`SwitchAction` is the typed terminal value produced by `switch_to()`. It remains part of
+`ActionItem` for normalization, inspection, typing, and custom integrations.
+
+Behavior:
+
+- terminal for the current stream; later items are not delivered
+- starts a normal action request without navigation
+- gives the destination a new request ID and a fresh SSE resume sequence
+- transfers lane/loading ownership across the logical workflow
+- emits `switch_action` on SSE and `hyper:actionSwitch` in the browser
+- does not make the originating command idempotent
 
 ## `History(push_url=None, replace_url=None)`
 
