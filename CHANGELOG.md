@@ -4,8 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-- Updated the public website for the 0.38.0 release with a version-synchronized homepage badge, a release highlights section, clearer command documentation, current upgrade guidance, complete website routes for every linked guide/reference/example page, and browser coverage that prevents future version drift.
-- Fixed the Library CI matrix to install the optional Django Debug Toolbar dependency required by its integration tests, and made the website Dockerfile pass Trivy's destination-path validation.
 - Fixed the standalone request inspector scrolling long pages to the bottom while rendering its tab strip or restoring an open drawer after refresh.
 
 ## 0.38.0

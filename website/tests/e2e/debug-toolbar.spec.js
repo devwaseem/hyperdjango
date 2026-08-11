@@ -116,10 +116,31 @@ test.describe.serial("HyperDjango request inspector", () => {
     await page.addInitScript(() => {
       localStorage.setItem("hyperdjango.debug.open", "true");
       localStorage.setItem("hyperdjango.debug.tab", "timeline");
+      window.__toolbarVisibleBeforeLoad = false;
+      const hostObserver = new MutationObserver(() => {
+        const toolbarHost = document.querySelector("hyperdjango-debug-toolbar");
+        if (!toolbarHost) return;
+        const recordVisibility = () => {
+          if (
+            document.readyState !== "complete" &&
+            getComputedStyle(toolbarHost).visibility === "visible"
+          ) {
+            window.__toolbarVisibleBeforeLoad = true;
+          }
+        };
+        new MutationObserver(recordVisibility).observe(toolbarHost, {
+          attributes: true,
+          attributeFilter: ["style"],
+        });
+        recordVisibility();
+        hostObserver.disconnect();
+      });
+      hostObserver.observe(document, { childList: true, subtree: true });
     });
     await page.goto("/", { waitUntil: "networkidle" });
     await expect(host(page)).toHaveCSS("visibility", "visible");
     await expect(toolbar(page)).toHaveClass(/is-open/);
+    expect(await page.evaluate(() => window.__toolbarVisibleBeforeLoad)).toBe(false);
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
 
     await page.reload({ waitUntil: "networkidle" });

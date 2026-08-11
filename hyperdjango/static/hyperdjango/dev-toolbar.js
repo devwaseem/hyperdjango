@@ -62,6 +62,25 @@
   host.style.setProperty("all", "initial", "important");
   host.style.setProperty("contain", "style", "important");
   host.style.setProperty("visibility", "hidden", "important");
+  let stylesheetReady = false;
+  let pageReady = document.readyState === "complete";
+  let toolbarReady = false;
+  const revealHostWhenReady = () => {
+    if (!stylesheetReady || !pageReady || !toolbarReady) return;
+    requestAnimationFrame(() => {
+      host.style.setProperty("visibility", "visible", "important");
+    });
+  };
+  if (!pageReady) {
+    window.addEventListener(
+      "load",
+      () => {
+        pageReady = true;
+        revealHostWhenReady();
+      },
+      { once: true },
+    );
+  }
   const shadow = host.attachShadow({ mode: "open" });
   const stylesheet = document.createElement("link");
   stylesheet.rel = "stylesheet";
@@ -69,7 +88,10 @@
   if (script && script.nonce) stylesheet.nonce = script.nonce;
   stylesheet.addEventListener(
     "load",
-    () => host.style.setProperty("visibility", "visible", "important"),
+    () => {
+      stylesheetReady = true;
+      revealHostWhenReady();
+    },
     { once: true },
   );
   stylesheet.addEventListener(
@@ -2043,11 +2065,19 @@
   });
 
   window.__hyperdjangoDevtools = { select, refresh: loadHistory };
-  restoreLauncherX();
-  renderShellState();
-  renderTabs();
-  renderHistory();
-  renderRecord();
-  loadHistory();
-  if (initialId) select(initialId);
+  async function initializeToolbar() {
+    restoreLauncherX();
+    renderShellState();
+    renderTabs();
+    renderHistory();
+    renderRecord();
+    if (initialId) {
+      await select(initialId);
+    } else {
+      await loadHistory();
+    }
+    toolbarReady = true;
+    revealHostWhenReady();
+  }
+  initializeToolbar();
 })();
