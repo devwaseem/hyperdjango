@@ -1,6 +1,6 @@
 import { defineConfig } from "@playwright/test";
 
-const djangoPort = 8000;
+const djangoPort = 8765;
 const vitePort = 5174;
 const viteDevUrl = `http://127.0.0.1:${vitePort}/`;
 
@@ -23,14 +23,14 @@ export default defineConfig({
     {
       command: `npm run dev -- --host 127.0.0.1 --port ${vitePort} --strictPort`,
       port: vitePort,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
       timeout: 120_000,
     },
     {
       command: `../.venv/bin/python manage.py runserver 127.0.0.1:${djangoPort} --noreload`,
       env: { HYPER_VITE_DEV_SERVER_URL: viteDevUrl },
       port: djangoPort,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
       timeout: 120_000,
     },
   ],

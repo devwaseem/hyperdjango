@@ -226,6 +226,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "bandit", specifier = ">=1.8,<2" },
     { name = "django-debug-toolbar", specifier = ">=6.2,<8" },
     { name = "pytest", specifier = ">=9.0.2" },
 ]
