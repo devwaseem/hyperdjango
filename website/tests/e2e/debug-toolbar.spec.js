@@ -112,6 +112,21 @@ test.describe.serial("HyperDjango request inspector", () => {
     await expect.poll(() => page.evaluate(() => localStorage.getItem("hyperdjango.debug.launcherX"))).toBe("32");
   });
 
+  test("does not move the document when loading or restoring an open toolbar", async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem("hyperdjango.debug.open", "true");
+      localStorage.setItem("hyperdjango.debug.tab", "timeline");
+    });
+    await page.goto("/", { waitUntil: "networkidle" });
+    await expect(host(page)).toHaveCSS("visibility", "visible");
+    await expect(toolbar(page)).toHaveClass(/is-open/);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+
+    await page.reload({ waitUntil: "networkidle" });
+    await expect(toolbar(page)).toHaveClass(/is-open/);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+  });
+
   test("navigates the focused views and exposes complete route, request, database, and copy data", async ({ page, context }) => {
     await context.grantPermissions(["clipboard-read", "clipboard-write"]);
     await context.addCookies([{

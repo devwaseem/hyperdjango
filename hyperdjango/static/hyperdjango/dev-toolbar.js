@@ -261,9 +261,9 @@
     state.open = open;
     renderShellState();
     if (state.open) {
-      slots.tabs.querySelector(".is-active")?.focus();
+      slots.tabs.querySelector(".is-active")?.focus({ preventScroll: true });
     } else if (restoreFocus) {
-      root.querySelector(".hdd-launcher-open")?.focus();
+      root.querySelector(".hdd-launcher-open")?.focus({ preventScroll: true });
     }
   }
 
@@ -299,10 +299,15 @@
       return `<option value="${esc(id)}">${esc(label)}${count ? ` (${count})` : ""}</option>`;
     }).join("");
     slots["tab-select"].value = state.activeTab;
-    slots.tabs.querySelector(".is-active")?.scrollIntoView({
-      block: "nearest",
-      inline: "nearest",
-    });
+    const activeTab = slots.tabs.querySelector(".is-active");
+    if (activeTab) {
+      const tabStart = activeTab.offsetLeft;
+      const tabEnd = tabStart + activeTab.offsetWidth;
+      const visibleStart = slots.tabs.scrollLeft;
+      const visibleEnd = visibleStart + slots.tabs.clientWidth;
+      if (tabStart < visibleStart) slots.tabs.scrollLeft = tabStart;
+      if (tabEnd > visibleEnd) slots.tabs.scrollLeft = tabEnd - slots.tabs.clientWidth;
+    }
     slots.panel.setAttribute("aria-labelledby", `hdd-tab-${state.activeTab}`);
     requestAnimationFrame(updateTabOverflow);
   }
@@ -319,7 +324,11 @@
     state.activeTab = tab;
     localStorage.setItem("hyperdjango.debug.tab", tab);
     renderRecord();
-    if (focus) slots.tabs.querySelector(`[data-tab="${tab}"]`)?.focus();
+    if (focus) {
+      slots.tabs
+        .querySelector(`[data-tab="${tab}"]`)
+        ?.focus({ preventScroll: true });
+    }
   }
 
   function tabCountValue(id) {
