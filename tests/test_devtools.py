@@ -465,7 +465,10 @@ def test_devtools_assets_expose_rich_brutalist_inspector() -> None:
     assert "hdd-parent-interval" in runtime
     assert "--hdd-left" in runtime
     assert 'slots.tabs.addEventListener("wheel"' in runtime
-    assert 'querySelector(".is-active")?.scrollIntoView' in runtime
+    assert "const tabStart = activeTab.offsetLeft" in runtime
+    assert "slots.tabs.scrollLeft = tabStart" in runtime
+    assert "slots.tabs.scrollLeft = tabEnd - slots.tabs.clientWidth" in runtime
+    assert 'focus({ preventScroll: true })' in runtime
     assert ":host" in styles
     assert "all: initial" in styles
     assert 'font-family: "HyperDjango Doto"' in styles

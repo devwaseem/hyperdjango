@@ -4,7 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## 0.38.1 - 2026-08-11
+
 - Fixed the standalone request inspector scrolling long pages to the bottom while rendering its tab strip or restoring an open drawer after refresh.
+- Prevented the standalone request inspector from flashing briefly during page refresh by revealing it only after the page and initial inspector state are ready.
 
 ## 0.38.0
 
