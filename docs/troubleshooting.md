@@ -71,6 +71,20 @@ Checks:
 - restart `runserver` once after changing settings
 - verify you are using Django `runserver` autoreload (not a custom process manager without reload)
 
+## HyperDjango Debug Toolbar is missing or stale
+
+See the [HyperDjango Debug Toolbar guide](dev-toolbar.md) for middleware, URL,
+static-asset, bounded-history, and SSE diagnostics.
+
+Checks:
+
+- confirm `HYPER_DEBUG_TOOLBAR=True`; it is independent of Django's `DEBUG` value
+- register `hyperdjango.integrations.devtools` and its middleware
+- mount `hyperdjango.integrations.devtools.urls` before broad file routes
+- ensure `HYPER_DEBUG_TOOLBAR_CONFIG["URL_PREFIX"]` matches the mounted prefix
+- when running with `DEBUG=False`, serve the packaged toolbar static assets through
+  the application's normal production static-file path
+
 ## Django Debug Toolbar panel is missing or stale
 
 See the [Django Debug Toolbar guide](debug-toolbar.md) for setup checks,

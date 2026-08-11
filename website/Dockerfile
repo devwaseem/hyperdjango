@@ -1,5 +1,6 @@
 ARG PYTHON_VERSION=3.14
-ARG APP_HOME="/app"
+ARG REPO_HOME="/app"
+ARG APP_HOME="/app/website"
 
 # --------------------------------------------------------------
 # Build frontend asset files
@@ -13,10 +14,10 @@ ENV VITE_APP_OUTPUT_DIR="dist"
 
 WORKDIR "$APP_HOME"
 
-COPY package.json package-lock.json ./
+COPY website/package.json website/package-lock.json ./
 RUN npm ci
 
-COPY . .
+COPY website/ .
 
 RUN npm run build
 
@@ -26,8 +27,10 @@ RUN npm run build
 FROM python:${PYTHON_VERSION}-slim-trixie AS builder-base
 
 ARG PYTHON_VERSION
+ARG REPO_HOME
 ARG APP_HOME
 
+ENV REPO_HOME="$REPO_HOME"
 ENV APP_HOME="$APP_HOME"
 ENV VIRTUAL_ENV_PATH="$APP_HOME/.venv"
 ENV DIST_DIR="$APP_HOME/dist/"
@@ -47,10 +50,12 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 # ── Production dependencies ─────────────────────────────────────────────
 FROM builder-base AS production-deps
 
-COPY pyproject.toml uv.lock ./
+COPY pyproject.toml README.md "${REPO_HOME}/"
+COPY hyperdjango/ "${REPO_HOME}/hyperdjango/"
+COPY website/pyproject.toml website/uv.lock ./
 
 RUN --mount=type=cache,target=/root/.cache/uv \
-  uv sync --frozen --no-dev --no-install-project --compile-bytecode
+  uv sync --frozen --no-dev --no-editable --no-install-project --compile-bytecode
 
 # ── CI dependencies ─────────────────────────────────────────────────────
 FROM production-deps AS ci-deps
@@ -58,7 +63,7 @@ FROM production-deps AS ci-deps
 RUN --mount=type=cache,target=/root/.cache/uv \
   uv sync --frozen --no-dev \
     --group test --group code-checks --group types \
-    --no-install-project --compile-bytecode
+    --no-editable --no-install-project --compile-bytecode
 
 
 # ── Production Base ─────────────────────────────────────────────────────
@@ -79,7 +84,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 
-COPY . .
+COPY website/ .
 
 COPY --from=production-deps ${VIRTUAL_ENV_PATH} ${VIRTUAL_ENV_PATH}
 

@@ -3,9 +3,93 @@
 All notable changes to this project will be documented in this file.
 
 ## Unreleased
+
+- No changes yet.
+
+## 0.38.0
+
+- Added `hyper_runserver`, a single Django development command that supervises Django and Vite, preserves Django autoreloading, automatically assigns a free Vite port, accepts normal `runserver` host/port arguments, and supports automatic Django port selection.
+- Added unified development output with a compact URL/readiness banner, `[django]` and `[vite]` log prefixes, preserved ANSI colors, package-manager detection, Vite readiness checks, coordinated process shutdown, and actionable startup failures.
+- Added `hyper_runserver` options for fixed or public Vite hosts and ports, Bun/pnpm/Yarn/npm selection, browser opening, verbose Vite output, and Django-only operation.
+- Added Django system checks for route compilation, frontend configuration, colocated Vite entries, and missing or stale production manifests.
+- Updated new scaffolds and the bundled example projects to Vite 8, and documented its Node.js `>=20.19` requirement.
+- Updated the website Docker and publishing workflow to build from the repository context and install the local HyperDjango package without relying on an editable parent-directory dependency in the deployed image.
+- Corrected the client runtime reference to reflect that `_action` is accepted from POST form data but intentionally ignored in GET query strings.
+- Added a standalone HyperDjango Request Inspector with independent assets, bounded request history, route/action/output inspection, execution and SSE waterfalls, sanitized request/response data, exception tracebacks, and final sync/async stream metadata.
+- Expanded the inspector with actual browser swap outcomes, exact DOM locating, explicit added/removed/changed diffs, per-item SSE content and pacing, SQL/N+1 diagnostics, request-scoped logs, payload costs, action replay, contextual copy controls, and per-trace pinning alongside pause, clear, search, and filters.
+- Added contract and stream-health diagnostics, Python/template source navigation, SSE retry, stall, cancellation, terminal-event and target-outcome analysis, responsive bottom-drawer/fullscreen layouts, and a simplified eight-tab information architecture.
+- Added a dedicated file-route inspector with URL-to-directory resolution, page/template/layout sources, HTTP handlers, route action inventory, Vite entry files, resolved assets, and current-document load status; the Overview now shows the human route identity instead of its generated class name.
+- Made `HYPER_DEBUG_TOOLBAR` the authoritative inspector enablement switch independently of Django's `DEBUG` setting, while retaining `DEBUG`-guarded setup as the recommended development convention.
+- Enabled the Request Inspector on the HyperDjango website as a live demonstration and added eight Playwright scenarios covering the complete toolbar, real actions, exceptions, completed SSE streams, DOM outcomes, controls, independent assets, and responsive layouts with `DEBUG=False`.
+- Added the standalone and Django Debug Toolbar guides to the website documentation registry and generated `/llms.txt` corpus.
+- Updated the Django Debug Toolbar panel after SSE iteration completes so sync and async generator actions report their yielded item types and sanitized metadata without being consumed early.
 - Made interrupted SSE action streams reconnect with bounded exponential backoff, `retry:` support, event IDs, and `Last-Event-ID` resume semantics.
 - Added per-action `retry: false` and global `sseRetry: false` options for disabling automatic SSE reconnect attempts.
+- Added native browser connectivity state, network lifecycle events, declarative online/offline class toggles, and offline-aware SSE reconnection.
 - Fixed SSE parsing for CRLF and CR line endings in addition to LF.
+
+### Project upgrade notes
+
+- Existing projects are not rewritten automatically by `hyper_scaffold`. Update the project's `package.json` to use `"vite": "^8.0.0"`, use Node.js `>=20.19` (or `>=22.12`), and regenerate the package-manager lockfile before committing the upgrade. For npm projects, run `npm install` and verify `npm run build`.
+- Replace separate Django and Vite development terminals with `python manage.py hyper_runserver`. Keep a project-local `package.json` with a `dev` script that starts Vite. Existing `runserver` addresses remain valid, including `0.0.0.0:8000`; use `--vite-public-host` when browsers must reach Vite through a different LAN, container, or remote-development hostname.
+- Existing fixed `HYPER_VITE_DEV_SERVER_URL` settings may remain for developers who still use Django's ordinary `runserver`. While `hyper_runserver` is active, it temporarily supplies its selected Vite URL to the Django process and restores the previous environment afterward. Use `--vite-port` and `--vite-public-host` when a managed development server needs stable or externally reachable Vite coordinates.
+- Do not use `?_action=...` links to invoke actions. Call actions through HyperDjango's client runtime, which sends `X-Hyper-Action`, or submit `_action` in POST form data. Ordinary GET query strings now always remain page-navigation state.
+- Resolve new `hyperdjango.*` system-check errors instead of silencing them by default. Development projects should have a valid Vite configuration and colocated entries; production images should run `npm run build` before Django checks so `HYPER_VITE_OUTPUT_DIR/.vite/manifest.json` exists and is newer than its source entries.
+- Monorepos that install HyperDjango through a local path dependency must use the repository root as the Docker build context and copy the HyperDjango package metadata and source before `uv sync`. Projects installing a published HyperDjango release from PyPI do not need this Docker change.
+- `HYPER_DEBUG_TOOLBAR=True` now enables the standalone inspector regardless of `DEBUG`. Existing `if DEBUG:` configuration remains valid and recommended; deployments that set the toolbar flag outside that condition should review access to traces and debugging controls.
+- No Alpine or morphing migration is required. HyperDjango remains usable without Alpine, continues to prefer Alpine Morph when Alpine is available, and retains morphdom as the framework-independent fallback.
+
+#### Adopting the HyperDjango Request Inspector
+
+The inspector is optional and has no external runtime dependency. Existing projects
+that do not enable it require no changes. To add it, register the app and place its
+middleware near the start of the middleware list so it surrounds HyperDjango dispatch:
+
+```python
+INSTALLED_APPS += ["hyperdjango.integrations.devtools"]
+
+MIDDLEWARE = [
+    "hyperdjango.integrations.devtools.middleware.HyperDjangoDebugToolbarMiddleware",
+    *MIDDLEWARE,
+]
+
+HYPER_DEBUG_TOOLBAR = True
+HYPER_DEBUG_TOOLBAR_CONFIG = {
+    "MAX_HISTORY": 50,
+    "URL_PREFIX": "__hyperdebug__",
+}
+```
+
+If the project uses `GZipMiddleware`, place the inspector middleware immediately after
+it so toolbar injection occurs before compression. Mount the inspector endpoints before
+HyperDjango's broad file routes, and keep the mounted prefix synchronized with
+`HYPER_DEBUG_TOOLBAR_CONFIG["URL_PREFIX"]`:
+
+```python
+from django.urls import include, path
+from hyperdjango.urls import include_routes
+
+urlpatterns = [
+    path(
+        "__hyperdebug__/",
+        include("hyperdjango.integrations.devtools.urls"),
+    ),
+    *include_routes(),
+]
+```
+
+`HYPER_DEBUG_TOOLBAR` is the authoritative switch and is intentionally independent of
+Django's `DEBUG` setting. Most projects should wrap the app, middleware, setting, and
+URLs in their existing `if DEBUG:` development configuration. Projects enabling it
+with `DEBUG=False` must serve HyperDjango's packaged static assets through their normal
+production static-file pipeline and should explicitly control who can access sanitized
+request metadata, SQL, exception details, replay, pause, pin, and clear controls.
+
+The toolbar keeps a bounded, process-local history. Configure `MAX_HISTORY` for the
+expected development workload, and remember that histories are not shared between
+workers and disappear on process restart. Do not enable both the standalone inspector
+and HyperDjango's optional Django Debug Toolbar panel unless both interfaces are
+intentionally required.
 
 ## 0.37.0
 - Breaking: HyperDjango no longer dispatches actions from the `_action` query parameter on GET requests. Actions should be invoked through the `X-Hyper-Action` header used by HyperDjango's client runtime, or through POST form data.

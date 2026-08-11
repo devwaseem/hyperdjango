@@ -109,7 +109,9 @@ class Command(BaseCommand):
         if skipped:
             self.stdout.write(f"Skipped: {', '.join(sorted(set(skipped)))}")
 
-        self.stdout.write("Next: run `npm install` then `npm run dev` for Vite assets.")
+        self.stdout.write(
+            "Next: run `npm install` then `python manage.py hyper_runserver`."
+        )
 
 
 def _write_file(path: Path, content: str, *, force: bool) -> str:
@@ -149,10 +151,12 @@ if HYPER_FRONTEND_DIR not in TEMPLATES[0]["DIRS"]:
     TEMPLATES[0]["DIRS"].append(HYPER_FRONTEND_DIR)
 
 if "STATICFILES_DIRS" in globals():
-    if HYPER_VITE_OUTPUT_DIR not in STATICFILES_DIRS:
+    if HYPER_VITE_OUTPUT_DIR.exists() and HYPER_VITE_OUTPUT_DIR not in STATICFILES_DIRS:
         STATICFILES_DIRS.append(HYPER_VITE_OUTPUT_DIR)
 else:
-    STATICFILES_DIRS = [HYPER_VITE_OUTPUT_DIR]
+    STATICFILES_DIRS = (
+        [HYPER_VITE_OUTPUT_DIR] if HYPER_VITE_OUTPUT_DIR.exists() else []
+    )
 {SCAFFOLD_MARKER_END}
 """
 
@@ -223,7 +227,7 @@ def _desired_package_json() -> dict[str, Any]:
             "build": "vite build",
         },
         "devDependencies": {
-            "vite": "^7.0.0",
+            "vite": "^8.0.0",
         },
         "dependencies": {
             "@alpinejs/morph": "^3.14.9",

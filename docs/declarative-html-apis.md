@@ -4,6 +4,38 @@ Most client-side behavior should go through `$action(...)` or `window.action(...
 
 These HTML APIs are still especially useful when you want less inline JavaScript.
 
+## Network Availability
+
+Use `hyper-online` and `hyper-offline` to show content based on the browser's current
+network availability. These attributes do not require Alpine.
+
+```html
+<p hyper-offline role="status">You are offline. Changes will sync when reconnected.</p>
+<p hyper-online>Connected</p>
+```
+
+Add or remove classes in the same way as the loading APIs:
+
+```html
+<main hyper-offline-class="is-offline">
+  ...
+</main>
+
+<button class="unavailable" hyper-online-remove-class="unavailable">
+  Save
+</button>
+```
+
+Available class attributes are:
+
+- `hyper-online-class`
+- `hyper-online-remove-class`
+- `hyper-offline-class`
+- `hyper-offline-remove-class`
+
+HyperDjango reapplies the state after HTML swaps. For JavaScript lifecycle hooks and
+the `Hyper.network` API, see the client runtime reference.
+
 ## `hyper-form-disable`
 
 Use `hyper-form-disable` on a form to disable submit buttons and button-like controls while the request is active.

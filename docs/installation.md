@@ -8,6 +8,7 @@ Start here before reading the deeper routing, rendering, action, and client-side
 
 - Python `>=3.13`
 - Django `>=4.2`
+- Node.js `>=20.19` when developing or building frontend assets with Vite 8
 - Vite build output available at runtime
 
 ## Install
@@ -145,5 +146,11 @@ python manage.py hyper_routes --json
 
 ## Optional Development Diagnostics
 
-HyperDjango provides a request, action, rendering, and timing panel for Django Debug
-Toolbar. See [Django Debug Toolbar](debug-toolbar.md) for the development-only setup.
+HyperDjango ships its own rich request inspector for routes, actions, rendering,
+timings, exceptions, and completed SSE streams. See
+[HyperDjango Debug Toolbar](dev-toolbar.md) for setup. `DEBUG=True` is recommended,
+but `HYPER_DEBUG_TOOLBAR` is the authoritative enablement switch so consumers can
+choose their own environment and access policy.
+
+An optional [Django Debug Toolbar panel](debug-toolbar.md) remains available for
+projects already using DJDT.

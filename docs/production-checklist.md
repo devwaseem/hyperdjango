@@ -25,6 +25,9 @@ Action responses include no-store/no-cache and `Vary` headers for Hyper request 
 - if using CSP, use Django's CSP middleware/context processor or otherwise
   expose `request._csp_nonce` so HyperDjango can nonce rendered asset tags,
   runtime scripts, and dynamically activated scripts
+- if `HYPER_DEBUG_TOOLBAR=True`, confirm that exposing sanitized traces, SQL,
+  request metadata, replay, pause, and clear controls is intentional and protected by
+  the deployment's access policy; otherwise disable it
 
 ## Client Contracts
 

@@ -9,7 +9,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
-    "vite": "^7.3.5"
+    "vite": "^8.0.0"
   },
   "dependencies": {
     "@alpinejs/morph": "^3.14.9",

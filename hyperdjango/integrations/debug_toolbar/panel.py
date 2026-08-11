@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from inspect import isawaitable
 
 from debug_toolbar.panels import Panel
@@ -9,6 +10,7 @@ from hyperdjango.integrations.debug_toolbar.tracing import (
     clear_trace,
     record_exception,
     record_response,
+    record_stream_finished,
     start_trace,
 )
 
@@ -47,20 +49,67 @@ class HyperDjangoPanel(Panel):
         if isawaitable(response):
             return self._finish_async(request, trace, response)
 
-        record_response(request, response)
-        clear_trace(request, trace)
-        return response
+        return self._prepare_response(request, trace, response)
 
     async def _finish_async(self, request, trace, response_awaitable):
         try:
             response = await response_awaitable
-            record_response(request, response)
-            return response
         except BaseException as exc:
             record_exception(request, exc, phase="request")
-            raise
-        finally:
             clear_trace(request, trace)
+            raise
+        return self._prepare_response(request, trace, response)
+
+    def _prepare_response(self, request, trace, response):
+        record_response(request, response)
+        if not getattr(response, "streaming", False):
+            clear_trace(request, trace)
+            return response
+
+        content = response.streaming_content
+        if getattr(response, "is_async", False):
+
+            async def observe_async_stream():
+                status = "completed"
+                exception = None
+                try:
+                    async for chunk in content:
+                        yield chunk
+                except (asyncio.CancelledError, GeneratorExit):
+                    status = "closed"
+                    raise
+                except BaseException as exc:
+                    status = "failed"
+                    exception = exc
+                    raise
+                finally:
+                    self._finalize_stream(request, trace, status, exception)
+
+            response.streaming_content = observe_async_stream()
+        else:
+
+            def observe_sync_stream():
+                status = "completed"
+                exception = None
+                try:
+                    yield from content
+                except GeneratorExit:
+                    status = "closed"
+                    raise
+                except BaseException as exc:
+                    status = "failed"
+                    exception = exc
+                    raise
+                finally:
+                    self._finalize_stream(request, trace, status, exception)
+
+            response.streaming_content = observe_sync_stream()
+        return response
+
+    def _finalize_stream(self, request, trace, status, exception) -> None:
+        record_stream_finished(request, status=status, exception=exception)
+        self.record_stats(trace.snapshot())
+        clear_trace(request, trace)
 
     def generate_stats(self, request, response) -> None:
         trace = self._trace

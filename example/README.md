@@ -57,22 +57,13 @@ source .venv/bin/activate
 pip install -e .
 ```
 
-Then run Vite and Django in separate terminals.
-
-Terminal 1:
+Then install the frontend dependencies and run Django and Vite together:
 
 ```bash
 cd example
 npm install
-npm run dev
-```
-
-Terminal 2:
-
-```bash
-cd example
 python manage.py migrate
-python manage.py runserver
+python manage.py hyper_runserver
 ```
 
 Open `http://127.0.0.1:8000/`.

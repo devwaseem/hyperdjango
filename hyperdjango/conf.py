@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from django.conf import settings
@@ -50,10 +51,14 @@ def is_dev_env() -> bool:
 
 
 def get_vite_dev_server_url() -> str:
+    runtime_url = os.environ.get("HYPER_VITE_DEV_SERVER_URL")
+    if runtime_url:
+        return runtime_url.rstrip("/") + "/"
     try:
-        return str(
+        configured_url = str(
             getattr(settings, "HYPER_VITE_DEV_SERVER_URL", "http://localhost:5173/")
         )
+        return configured_url.rstrip("/") + "/"
     except ImproperlyConfigured:
         return "http://localhost:5173/"
 

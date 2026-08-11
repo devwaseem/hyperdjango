@@ -45,6 +45,27 @@ If no scoping attribute is provided, the element tracks **global** request state
 
 ## UI Management Attributes
 
+### `hyper-online`
+- **Behavior**: Shows the element while the browser reports network availability and hides it while offline.
+
+### `hyper-offline`
+- **Behavior**: Shows the element while the browser reports no network availability and hides it while online.
+
+### `hyper-online-class`
+- **Behavior**: Adds the listed space-separated classes while online and removes them while offline.
+
+### `hyper-online-remove-class`
+- **Behavior**: Removes the listed space-separated classes while online and adds them while offline.
+
+### `hyper-offline-class`
+- **Behavior**: Adds the listed space-separated classes while offline and removes them while online.
+
+### `hyper-offline-remove-class`
+- **Behavior**: Removes the listed space-separated classes while offline and adds them while online.
+
+These states are reapplied after HyperDjango swaps new HTML into the document. They reflect
+`navigator.onLine`, which does not guarantee that the application server is reachable.
+
 ### `hyper-form-disable`
 - **Behavior**: Applied to a `<form>` element. Automatically adds `hyper-loading-disable` to all `<button>`, `input[type="submit"]`, and `input[type="button"]` controls within the form when a request is active.
 - **Purpose**: Provides a declarative way to disable all form controls during submission without adding individual attributes to every button.
@@ -59,4 +80,3 @@ If no scoping attribute is provided, the element tracks **global** request state
 - Use `hyper-loading-key` when the request lane is already named with `$action(..., { key })`.
 - Use `hyper-loading-action` when you care about one action name regardless of key.
 - Use `hyper-loading-disable*` when controls should stop duplicate input during active requests.
-

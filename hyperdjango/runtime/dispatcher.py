@@ -18,6 +18,7 @@ from hyperdjango.integrations.debug_toolbar.tracing import (
     record_dispatch as debug_record_dispatch,
     record_exception as debug_record_exception,
     record_render as debug_record_render,
+    record_render_output as debug_record_render_output,
     record_result as debug_record_result,
 )
 from hyperdjango.runtime.requests import (
@@ -141,6 +142,7 @@ def _dispatch_action_sync(
         name=action_name,
         target=get_target_name(request),
         arguments=action_kwargs,
+        handler=action_method,
     )
     try:
         with debug_operation(request, "action"):
@@ -202,6 +204,7 @@ async def _dispatch_action_async(
         name=action_name,
         target=get_target_name(request),
         arguments=action_kwargs,
+        handler=action_method,
     )
     try:
         with debug_operation(request, "action"):
@@ -338,6 +341,7 @@ def _to_full_response(page: Any, request: HttpRequest, result: Any) -> HttpRespo
                         request=request,
                         context=context,
                     )
+                debug_record_render_output(request, render_event, html, context)
             else:
                 html = page.render(request=request, context_updates=context_updates)
             return HttpResponse(html.encode())

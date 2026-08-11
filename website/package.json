@@ -5,10 +5,12 @@
   "scripts": {
     "sync:docs": "python scripts/sync-docs.py",
     "dev": "vite",
-    "build": "vite build"
+    "build": "vite build",
+    "test:e2e": "VITE_APP_OUTPUT_DIR=dist npm run build && playwright test"
   },
   "devDependencies": {
-    "vite": "^7.3.5"
+    "@playwright/test": "1.62.1",
+    "vite": "^8.0.0"
   },
   "dependencies": {
     "@alpinejs/morph": "^3.14.9",

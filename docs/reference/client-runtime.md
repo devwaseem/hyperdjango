@@ -25,10 +25,11 @@ Request metadata sent by the runtime can include:
 ## SSE Reconnection
 
 Action streams reconnect automatically after a network or response-body read failure,
-or when the connection closes before an `end` or `redirect` event. The runtime uses
-bounded exponential backoff: 1 second initially, doubling to a maximum
-of 30 seconds, with at most 10 reconnect attempts. A valid SSE `retry:` field changes
-the next retry delay.
+or when the connection closes before an `end` or `redirect` event. While the browser is
+offline, the stream pauses without consuming retry attempts and reconnects immediately
+after `hyper:network:online`. Other failures use bounded exponential backoff: 1 second
+initially, doubling to a maximum of 30 seconds, with at most 10 reconnect attempts. A
+valid SSE `retry:` field changes the next retry delay.
 
 Every action request carries a stable `X-Hyper-Request-ID`. Response events are assigned
 IDs, and a reconnect sends `Last-Event-ID`; the response stream skips events the browser
@@ -155,8 +156,59 @@ The HyperDjango client runtime dispatches events to `window` for lifecycle monit
 | `hyper:uploadProgress` | During file upload progress tracking. | `key`, `progress` (0-1) |
 | `hyper:streamEvent` | When a new SSE event is received from the server. | `event` (type), `data` (payload) |
 | `hyper:toast` | When a `Toast` action is received. | `value` |
+| `hyper:network:change` | When browser network availability changes. | `online`, `offline` |
+| `hyper:network:online` | When the browser regains network availability. | `online`, `offline` |
+| `hyper:network:offline` | When the browser loses network availability. | `online`, `offline` |
 | `hyper:history:restore:before` | Before a Back/Forward restore fetch starts. | `url`, `target`, `state` |
 | `hyper:history:restore:after` | After a Back/Forward restore finishes or fails. | `url`, `target`, `state`, `success`, `error` |
+
+## Network Availability
+
+The core runtime tracks the browser's `online` and `offline` events without requiring
+Alpine. Read the current state from `Hyper.network`:
+
+```js
+if (Hyper.network.online) {
+  startOptionalNetworkWork();
+}
+
+window.addEventListener("hyper:network:online", () => {
+  action("sync_pending_changes");
+});
+
+window.addEventListener("hyper:network:offline", () => {
+  pauseOptionalNetworkWork();
+});
+```
+
+Use `Hyper.network.refresh()` to resync the state from `navigator.onLine`. The runtime
+also provides declarative visibility attributes that are reapplied after HTML swaps:
+
+```html
+<p hyper-offline role="status">You are offline.</p>
+<p hyper-online>Connected</p>
+```
+
+Network classes follow the same add/remove model as loading classes:
+
+```html
+<main class="is-online"
+      hyper-offline-class="is-offline"
+      hyper-offline-remove-class="is-online">
+  ...
+</main>
+```
+
+`hyper-online-class` adds its classes while online, and `hyper-online-remove-class`
+removes its classes while online. The corresponding `hyper-offline-class` and
+`hyper-offline-remove-class` attributes apply the same behavior while offline.
+
+Interrupted SSE action streams wait while offline and reconnect immediately when the
+browser reports that the network is back. This pause does not consume the configured
+SSE retry count.
+
+Browser network availability does not guarantee that the application server is
+reachable. Confirm critical recovery work with a lightweight request to the server.
 
 ## Back/Forward Restoration
 
@@ -179,8 +231,12 @@ explanation.
 At dispatch time, the server treats a request as an action request when an action name is present through one of these sources:
 
 - `X-Hyper-Action`
-- query string `_action`
 - POST field `_action`
+
+The `_action` query parameter is intentionally ignored on `GET` requests. Programmatic
+actions, including actions using `method: "GET"`, identify the action with the
+`X-Hyper-Action` header. This keeps ordinary page URLs and query strings independently
+addressable and prevents a normal navigation from dispatching a page action.
 
 Action kwargs are assembled in this order:
 

@@ -40,18 +40,50 @@
 
   <h4>Action results and SSE</h4>
   {% if results %}
-    {% for result in results %}
-      <p><strong>{{ result.kind }}</strong> — {{ result.item_types|join:", " }}{% if result.streaming %} (streaming){% endif %}</p>
-      {% if result.note %}<p>{{ result.note }}</p>{% endif %}
-      {% if result.items %}<pre>{{ result.items }}</pre>{% endif %}
-    {% endfor %}
+    <table>
+      <thead>
+        <tr><th>#</th><th>Result</th><th>Item</th><th>Stream</th><th>Target</th><th>Swap</th><th>Content</th><th>Metadata</th></tr>
+      </thead>
+      <tbody>
+        {% for result in results %}
+          {% if result.items %}
+            {% for item in result.items %}
+              <tr>
+                <td>{{ forloop.parentloop.counter }}.{{ forloop.counter }}</td>
+                <td>{{ result.kind }}{% if result.streaming %} (streaming){% endif %}</td>
+                <td><code>{{ item.type }}</code></td>
+                <td>{{ result.iteration_status|default:"known" }}</td>
+                <td><code>{{ item.target|default:"—" }}</code></td>
+                <td><code>{{ item.swap|default:"—" }}</code></td>
+                <td>{% if item.content %}<pre>{{ item.content }}</pre>{% elif item.html %}<pre>{{ item.html }}</pre>{% elif item.js %}<pre>{{ item.js }}</pre>{% else %}—{% endif %}</td>
+                <td>
+                  {% if item.details %}
+                    {% for detail in item.details %}<div><strong>{{ detail.label }}:</strong> <code>{{ detail.value }}</code></div>{% endfor %}
+                  {% else %}—{% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td>{{ forloop.counter }}</td>
+              <td>{{ result.kind }}{% if result.streaming %} (streaming){% endif %}</td>
+              <td><code>{{ result.item_types|join:", " }}</code></td>
+              <td>{{ result.iteration_status|default:"known" }}</td>
+              <td>—</td>
+              <td>—</td>
+              <td>{{ result.note|default:"—" }}</td>
+            </tr>
+          {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
   {% else %}<p>No action result was recorded.</p>{% endif %}
 
   <h4>Phase timings</h4>
   <table>
-    <thead><tr><th>Phase</th><th>Duration</th></tr></thead>
+    <thead><tr><th>Phase</th><th>Start</th><th>Duration</th></tr></thead>
     <tbody>
-      {% for timing in timings %}<tr><td>{{ timing.phase }}</td><td>{{ timing.duration_ms }} ms</td></tr>{% endfor %}
+      {% for timing in timings %}<tr><td>{{ timing.phase }}</td><td>{{ timing.start_ms }} ms</td><td>{{ timing.duration_ms }} ms</td></tr>{% endfor %}
     </tbody>
   </table>
 

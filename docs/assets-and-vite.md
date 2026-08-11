@@ -61,10 +61,13 @@ In development:
 
 - HyperDjango injects the Vite dev server URL
 - Vite client is added automatically where needed
+- `python manage.py hyper_runserver` starts both servers and assigns Vite a free port
+- Vite readiness is confirmed before Django starts, with startup failures surfaced inline
 
 In production:
 
 - HyperDjango resolves built assets from `dist/.vite/manifest.json`
+- Django system checks report missing or stale manifests before serving traffic
 
 ## Template Tags
 

@@ -1,5 +1,62 @@
 # Commands
 
+## `python manage.py hyper_runserver`
+
+Purpose:
+
+- start Django and Vite together for local development
+- automatically select a free Vite port and make its URL available to HyperDjango
+
+Useful flags:
+
+- `--vite-port 5173` to request a fixed Vite port
+- `--vite-host 127.0.0.1` to override Vite's bind host
+- `--vite-public-host devbox.local` to set the hostname injected into browser URLs
+- `--vite-timeout 15` to control the readiness deadline
+- `--package-manager npm|pnpm|yarn|bun` to override lockfile detection
+- `--auto-port` to select an available Django port too
+- `--open` to open the app after Django begins accepting connections
+- `--verbose` to include Vite startup details
+- `--no-vite` to run only Django
+
+All normal Django `runserver` arguments remain available. For example:
+
+```bash
+python manage.py hyper_runserver 8010
+python manage.py hyper_runserver 0.0.0.0:8000
+```
+
+By default, Vite uses the same bind host as Django. Thus the second example
+binds both Django and Vite to all IPv4 interfaces. For wildcard bind addresses,
+HyperDjango injects `localhost` as the browser-facing Vite hostname.
+
+For another device or a container-facing hostname, keep the wildcard bind and
+provide the reachable hostname separately:
+
+```bash
+python manage.py hyper_runserver 0.0.0.0:8000 --vite-public-host devbox.local
+```
+
+The Vite process stays alive across Django autoreloads and is stopped when the
+development server exits. Vite's terminal clearing is disabled so its output
+does not replace Django's logs, and its messages are merged into the command's
+output with a `[vite]` prefix. Django startup messages use a `[django]` prefix,
+and a compact banner lists local and network URLs.
+
+HyperDjango detects Bun, pnpm, Yarn, or npm from the project's lockfile. It
+prints the exact install command when `node_modules` is absent. An explicit
+`HYPER_VITE_COMMAND` string or sequence disables package-manager detection.
+
+Vite must report readiness before Django starts. Automatic Vite ports use
+Vite's own collision handling, while fixed ports use `--strictPort`. Startup
+errors include recent Vite output, unexpected Vite exits stop Django, and the
+entire npm/Vite process group is terminated on shutdown.
+
+When the HyperDjango development toolbar is active, request logs include total
+duration, action name, SQL count/time, template-render time, and a direct trace
+URL. Django 500 responses from HyperDjango requests are also presented using
+Vite's browser error overlay.
+
 ## `python manage.py hyper_scaffold`
 
 Purpose:

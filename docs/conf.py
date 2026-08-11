@@ -22,3 +22,8 @@ html_theme = "sphinx_rtd_theme"
 myst_enable_extensions = [
     "colon_fence",
 ]
+
+# Alpine's valid shorthand attributes (for example ``@click``) are not accepted by
+# Pygments' strict HTML lexer. Sphinx retries them in relaxed mode and renders the
+# blocks correctly, so do not turn that lexer limitation into a release failure.
+suppress_warnings = ["misc.highlighting_failure"]

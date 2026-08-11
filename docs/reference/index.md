@@ -11,8 +11,11 @@ django-integration
 settings
 pages-and-rendering
 actions
+asset-resolver
 client-runtime
+exceptions
 html-apis
+sse-payloads
 template-tags
 commands
 ```

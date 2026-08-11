@@ -20,7 +20,7 @@ class HyperDjangoConfig(AppConfig):
     name = "hyperdjango"
 
     def ready(self) -> None:
-        return
+        from hyperdjango import checks  # noqa: F401
 
 
 def _watch_hyper_frontend(sender, **kwargs) -> None:

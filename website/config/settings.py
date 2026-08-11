@@ -1,7 +1,6 @@
 import os
 from pathlib import Path
 
-
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-only-secret-key")
@@ -26,9 +25,11 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "hyperdjango",
+    "hyperdjango.integrations.devtools",
 ]
 
 MIDDLEWARE = [
+    "hyperdjango.integrations.devtools.middleware.HyperDjangoDebugToolbarMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -37,6 +38,13 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+# This website is also the public inspector demonstration.
+HYPER_DEBUG_TOOLBAR = True
+HYPER_DEBUG_TOOLBAR_CONFIG = {
+    "MAX_HISTORY": 75,
+    "URL_PREFIX": "__hyperdebug__",
+}
 
 ROOT_URLCONF = "config.urls"
 
@@ -71,7 +79,9 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = os.getenv("STATIC_ROOT", str(BASE_DIR / "staticfiles"))
-STATICFILES_DIRS = [BASE_DIR / "dist", BASE_DIR / "static"]
+STATICFILES_DIRS = [BASE_DIR / "static"]
+if (BASE_DIR / "dist").exists():
+    STATICFILES_DIRS.append(BASE_DIR / "dist")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
@@ -82,7 +92,7 @@ HYPER_DEV = os.getenv("HYPER_DEV", "True") == "True"
 SITE_URL = os.getenv(
     "SITE_URL", "https://hyperdjango.charingcrosscapital.com"
 ).rstrip("/")
-SITE_VERSION = os.getenv("SITE_VERSION", "0.25.0")
+SITE_VERSION = os.getenv("SITE_VERSION", "0.38.0")
 GITHUB_URL = os.getenv(
     "GITHUB_URL", "https://github.com/devwaseem/hyperdjango"
 ).rstrip("/")
@@ -103,7 +113,7 @@ LOGGING = {
         "django": {
             "handlers": ["console"],
             "level": "INFO" if DEBUG else "ERROR",
-            "propagate": True,
+            "propagate": False,
         },
     },
 }

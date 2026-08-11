@@ -253,6 +253,9 @@ Common ones:
 - `hyper:uploadProgress`
 - `hyper:streamEvent`
 - `hyper:toast`
+- `hyper:network:change`
+- `hyper:network:online`
+- `hyper:network:offline`
 
 ```js
 window.addEventListener("hyper:afterRequest", (event) => {

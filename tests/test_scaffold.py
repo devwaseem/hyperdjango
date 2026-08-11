@@ -28,7 +28,7 @@ def test_merge_package_json_adds_missing_hyper_defaults() -> None:
     assert merged["scripts"]["build"] == "vite build"
     assert merged["dependencies"]["react"] == "19.0.0"
     assert merged["dependencies"]["alpinejs"] == "^3.14.9"
-    assert merged["devDependencies"]["vite"] == "^7.0.0"
+    assert merged["devDependencies"]["vite"] == "^8.0.0"
 
 
 def test_ensure_package_json_creates_and_updates(tmp_path: Path) -> None:

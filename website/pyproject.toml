@@ -12,6 +12,9 @@ dependencies = [
     "uvicorn>=0.46.0",
 ]
 
+[tool.uv.sources]
+hyperdjango = { path = "..", editable = true }
+
 
 [dependency-groups]
 dev = [

@@ -24,6 +24,7 @@ from hyperdjango.conf import get_frontend_dir, get_vite_dev_server_url, is_dev_e
 from hyperdjango.integrations.debug_toolbar.tracing import (
     operation as debug_operation,
     record_render as debug_record_render,
+    record_render_output as debug_record_render_output,
 )
 from hyperdjango.runtime.dispatcher import dispatch_page_async, dispatch_page_sync
 
@@ -117,12 +118,15 @@ class HyperPageTemplate(metaclass=HyperPageTemplateMeta):
             template=template_name,
             relative_template=relative_template_name or None,
         )
+        context = self._build_context(request, context_updates)
         with debug_operation(request, "render", render_event):
-            return self._render_template_name(
+            html = self._render_template_name(
                 template_name,
                 request=request,
-                context=self._build_context(request, context_updates),
+                context=context,
             )
+        debug_record_render_output(request, render_event, html, context)
+        return html
 
     def render_block(
         self,
@@ -146,7 +150,7 @@ class HyperPageTemplate(metaclass=HyperPageTemplateMeta):
             relative_template=relative_template_name or None,
         )
         with debug_operation(request, "render", render_event):
-            return cast(
+            html = cast(
                 str,
                 render_block_to_string(
                     template_name=template_name,
@@ -155,6 +159,8 @@ class HyperPageTemplate(metaclass=HyperPageTemplateMeta):
                     request=request,
                 ),
             )
+        debug_record_render_output(request, render_event, html, context)
+        return html
 
     def render_template(
         self,
@@ -171,12 +177,14 @@ class HyperPageTemplate(metaclass=HyperPageTemplateMeta):
             template=template_name,
             relative_template=template_dir,
         )
+        context = self._build_context(request, context_updates)
         with debug_operation(request, "render", render_event):
             html = self._render_template_name(
                 template_name,
                 request=request,
-                context=self._build_context(request, context_updates),
+                context=context,
             )
+        debug_record_render_output(request, render_event, html, context)
         return HyperPartialTemplateResult(
             html=html,
             js=self._resolve_template_js(target_dir),

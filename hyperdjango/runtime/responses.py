@@ -26,6 +26,7 @@ from hyperdjango.actions import (
     Signals,
     Toast,
 )
+from hyperdjango.integrations.debug_toolbar.tracing import record_stream_item
 
 
 ACTION_VARY_HEADERS = [
@@ -52,6 +53,7 @@ def to_action_http_response(
     result: Any, *, request: HttpRequest | None = None
 ) -> HttpResponse:
     items, status, headers = normalize_action_result(result)
+    items = _observe_action_items(items, request=request)
     event_id_prefix, skip_events = _sse_resume_context(request)
     streaming_content: Iterable[str] | AsyncIterator[str]
     if _is_asgi_request(request):
@@ -71,6 +73,28 @@ def to_action_http_response(
     for key, value in headers.items():
         response[key] = value
     return ensure_action_response_headers(response)
+
+
+def _observe_action_items(
+    items: Iterable[ActionItem] | AsyncIterable[ActionItem],
+    *,
+    request: HttpRequest | None,
+) -> Iterable[ActionItem] | AsyncIterable[ActionItem]:
+    if isinstance(items, AsyncIterable):
+
+        async def observe_async() -> AsyncIterator[ActionItem]:
+            async for item in items:
+                record_stream_item(request, item)
+                yield item
+
+        return observe_async()
+
+    def observe_sync() -> Iterator[ActionItem]:
+        for item in items:
+            record_stream_item(request, item)
+            yield item
+
+    return observe_sync()
 
 
 def _action_error_event(status: int, message: str) -> tuple[str, dict[str, Any]]:

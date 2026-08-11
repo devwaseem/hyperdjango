@@ -149,6 +149,10 @@ def test_debug_toolbar_bridge_refreshes_after_body_swaps() -> None:
     assert 'window.addEventListener("hyper:settle:end"' in bridge
     assert 'document.getElementById("djDebug")' in bridge
     assert "window.djdt.show_toolbar();" in bridge
+    assert 'window.addEventListener("hyper:afterRequest"' in bridge
+    assert 'response.headers.get("djdt-request-id")' in bridge
+    assert 'url.searchParams.set("panel_id", "HyperDjangoPanel")' in bridge
+    assert "content.innerHTML = data.content;" in bridge
 
 
 def test_client_runtime_exposes_sse_retry_opt_out() -> None:
@@ -163,6 +167,29 @@ def test_client_runtime_exposes_sse_retry_opt_out() -> None:
     assert "sseRetry: true" in runtime
     assert "const retry = options.retry ?? options.sseRetry;" in runtime
     assert "const retryable = retryEnabled && expectSSE" in runtime
+
+
+def test_client_runtime_exposes_native_network_state() -> None:
+    runtime = (
+        Path(__file__).resolve().parent.parent
+        / "hyperdjango"
+        / "static"
+        / "hyperdjango"
+        / "hyper.js"
+    ).read_text()
+
+    assert 'window.addEventListener("online"' in runtime
+    assert 'window.addEventListener("offline"' in runtime
+    assert 'emitEvent("hyper:network:change", detail)' in runtime
+    assert '"hyper:network:online" : "hyper:network:offline"' in runtime
+    assert 'root.querySelectorAll("[hyper-online]")' in runtime
+    assert 'root.querySelectorAll("[hyper-offline]")' in runtime
+    assert 'root.querySelectorAll("[hyper-online-class]")' in runtime
+    assert 'root.querySelectorAll("[hyper-online-remove-class]")' in runtime
+    assert 'root.querySelectorAll("[hyper-offline-class]")' in runtime
+    assert 'root.querySelectorAll("[hyper-offline-remove-class]")' in runtime
+    assert "await waitForNetwork(controller.signal);" in runtime
+    assert "network," in runtime
 
 
 def test_hyperview_registers_actions() -> None:

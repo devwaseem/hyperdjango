@@ -115,6 +115,20 @@ DOC_PAGES: Final[tuple[DocPage, ...]] = (
         summary="Understand automatic entry discovery, Vite development and production asset loading, and template asset tags.",
     ),
     DocPage(
+        slug="dev-toolbar",
+        source="dev-toolbar.md",
+        nav_title="Request Inspector",
+        group="Guides",
+        summary="Enable and use HyperDjango's standalone request inspector for routes, actions, output, SSE streams, timings, SQL, and browser outcomes.",
+    ),
+    DocPage(
+        slug="debug-toolbar",
+        source="debug-toolbar.md",
+        nav_title="Django Debug Toolbar",
+        group="Guides",
+        summary="Add HyperDjango diagnostics as an optional custom panel inside Django Debug Toolbar.",
+    ),
+    DocPage(
         slug="reference",
         source="reference/index.md",
         nav_title="Overview",
@@ -133,7 +147,7 @@ DOC_PAGES: Final[tuple[DocPage, ...]] = (
         source="reference/settings.md",
         nav_title="Settings",
         group="Reference",
-        summary="Exact reference for HYPER_FRONTEND_DIR, HYPER_VITE_OUTPUT_DIR, HYPER_VITE_DEV_SERVER_URL, and HYPER_DEV.",
+        summary="Exact reference for frontend, Vite, development-server, and request-inspector settings.",
     ),
     DocPage(
         slug="reference/pages-and-rendering",

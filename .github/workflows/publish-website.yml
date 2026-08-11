@@ -6,6 +6,9 @@ on:
       - main
     paths:
       - 'website/**'
+      - 'hyperdjango/**'
+      - 'pyproject.toml'
+      - 'README.md'
       - '.github/workflows/publish-website.yml'
 
 jobs:
@@ -40,7 +43,8 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./website
+          context: .
+          file: ./website/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ghcr.io/${{ github.repository }}/hyperdjango-website:latest

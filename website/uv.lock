@@ -211,15 +211,23 @@ wheels = [
 
 [[package]]
 name = "hyperdjango"
-version = "0.27.0"
-source = { registry = "https://pypi.org/simple" }
+version = "0.38.0"
+source = { editable = "../" }
 dependencies = [
     { name = "django" },
     { name = "django-render-block" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/8f/4f/f4fa5a5a9e0d830797158fa4c1322f89e32a0f923698920a18167203fa70/hyperdjango-0.27.0.tar.gz", hash = "sha256:0a182d2dfc1370aa62f40ec1637d16b4a36307712194f0cd7b1136a2f2bc339a", size = 41269, upload-time = "2026-04-27T19:52:51.397Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/f8/6e/6a0bad4c30eae6bb5e30f51e602ec845047fecf9fea108bb25cfbac53b54/hyperdjango-0.27.0-py3-none-any.whl", hash = "sha256:653cfa09c108bda25cbb130ace237011b74e49e245aba0224e70bfb42ac8c0f4", size = 43660, upload-time = "2026-04-27T19:52:47.856Z" },
+
+[package.metadata]
+requires-dist = [
+    { name = "django", specifier = ">=4.2" },
+    { name = "django-render-block", specifier = ">=0.10" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "django-debug-toolbar", specifier = ">=6.2,<8" },
+    { name = "pytest", specifier = ">=9.0.2" },
 ]
 
 [[package]]
@@ -280,7 +288,7 @@ types = [
 [package.metadata]
 requires-dist = [
     { name = "django", specifier = ">=4.2" },
-    { name = "hyperdjango" },
+    { name = "hyperdjango", editable = "../" },
     { name = "markdown", specifier = ">=3.8" },
     { name = "uvicorn", specifier = ">=0.46.0" },
 ]

@@ -41,7 +41,7 @@ client-side-actions
 declarative-html-apis
 alpine-integration
 assets-and-vite
-cookbook
+dev-toolbar
 debug-toolbar
 troubleshooting
 production-checklist

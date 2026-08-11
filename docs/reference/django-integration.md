@@ -39,7 +39,30 @@ Notes:
 - if `APPEND_SLASH` is enabled, compiled routes include trailing slashes
 - route conflicts are detected at compile time
 
-## Django Debug Toolbar
+## HyperDjango Debug Toolbar
+
+The recommended HyperDjango development inspector is built in and has no external
+runtime dependency. See the [HyperDjango Debug Toolbar guide](../dev-toolbar.md) for
+complete setup, recorded data, SSE behavior, security guidance, and troubleshooting.
+
+```python
+if DEBUG:
+    INSTALLED_APPS += ["hyperdjango.integrations.devtools"]
+    MIDDLEWARE = [
+        "hyperdjango.integrations.devtools.middleware.HyperDjangoDebugToolbarMiddleware",
+        *MIDDLEWARE,
+    ]
+    HYPER_DEBUG_TOOLBAR = True
+```
+
+Mount `hyperdjango.integrations.devtools.urls` before `include_routes()`. The middleware
+adds `X-HyperDjango-Debug-ID` to traced responses and injects the toolbar assets into
+uncompressed HTML documents. Its endpoints and in-memory store are inactive unless
+`HYPER_DEBUG_TOOLBAR` is true. Using `DEBUG` as the surrounding condition is the
+recommended development convention, but consumers may choose a different environment
+or access policy.
+
+## Django Debug Toolbar panel
 
 For a complete walkthrough—including Docker, custom base templates, panel contents,
 SSE limitations, system checks, and troubleshooting—see the

@@ -10,6 +10,8 @@ const Hyper = (() => {
   const loadedModuleScripts = new Map();
   const elementRequestKeys = new WeakMap();
   let nextElementRequestKey = 0;
+  let networkOnline = typeof navigator === "undefined" ? true : navigator.onLine;
+  let networkInitialized = false;
   const config = {
     strictTargets: false,
     sseRetry: true,
@@ -28,6 +30,79 @@ const Hyper = (() => {
     window.dispatchEvent(new CustomEvent(name, eventInit));
     document.dispatchEvent(new CustomEvent(name, eventInit));
   }
+
+  function applyNetworkState(root = document) {
+    if (!root || typeof root.querySelectorAll !== "function") {
+      return;
+    }
+    for (const el of root.querySelectorAll("[hyper-online]")) {
+      el.hidden = !networkOnline;
+      el.setAttribute("aria-hidden", String(!networkOnline));
+    }
+    for (const el of root.querySelectorAll("[hyper-offline]")) {
+      el.hidden = networkOnline;
+      el.setAttribute("aria-hidden", String(networkOnline));
+    }
+    for (const el of root.querySelectorAll("[hyper-online-class]")) {
+      for (const className of parseClassList(el.getAttribute("hyper-online-class"))) {
+        el.classList.toggle(className, networkOnline);
+      }
+    }
+    for (const el of root.querySelectorAll("[hyper-online-remove-class]")) {
+      for (const className of parseClassList(el.getAttribute("hyper-online-remove-class"))) {
+        el.classList.toggle(className, !networkOnline);
+      }
+    }
+    for (const el of root.querySelectorAll("[hyper-offline-class]")) {
+      for (const className of parseClassList(el.getAttribute("hyper-offline-class"))) {
+        el.classList.toggle(className, !networkOnline);
+      }
+    }
+    for (const el of root.querySelectorAll("[hyper-offline-remove-class]")) {
+      for (const className of parseClassList(el.getAttribute("hyper-offline-remove-class"))) {
+        el.classList.toggle(className, networkOnline);
+      }
+    }
+  }
+
+  function setNetworkState(online) {
+    const nextOnline = Boolean(online);
+    const changed = nextOnline !== networkOnline;
+    networkOnline = nextOnline;
+    applyNetworkState(document);
+    if (!changed) {
+      return;
+    }
+
+    const detail = { online: networkOnline, offline: !networkOnline };
+    emitEvent("hyper:network:change", detail);
+    emitEvent(networkOnline ? "hyper:network:online" : "hyper:network:offline", detail);
+  }
+
+  function initNetwork() {
+    if (networkInitialized) {
+      applyNetworkState(document);
+      return;
+    }
+    networkInitialized = true;
+    networkOnline = typeof navigator === "undefined" ? true : navigator.onLine;
+    applyNetworkState(document);
+    window.addEventListener("online", () => setNetworkState(true));
+    window.addEventListener("offline", () => setNetworkState(false));
+  }
+
+  const network = Object.freeze({
+    get online() {
+      return networkOnline;
+    },
+    get offline() {
+      return !networkOnline;
+    },
+    refresh() {
+      setNetworkState(typeof navigator === "undefined" ? true : navigator.onLine);
+      return networkOnline;
+    },
+  });
 
   function configure(next = {}) {
     if (!next || typeof next !== "object") {
@@ -842,6 +917,34 @@ const Hyper = (() => {
     });
   }
 
+  function waitForNetwork(signal) {
+    return new Promise((resolve, reject) => {
+      if (signal.aborted) {
+        reject(new DOMException("The operation was aborted.", "AbortError"));
+        return;
+      }
+      if (networkOnline) {
+        resolve();
+        return;
+      }
+
+      const cleanup = () => {
+        window.removeEventListener("hyper:network:online", onOnline);
+        signal.removeEventListener("abort", onAbort);
+      };
+      const onOnline = () => {
+        cleanup();
+        resolve();
+      };
+      const onAbort = () => {
+        cleanup();
+        reject(new DOMException("The operation was aborted.", "AbortError"));
+      };
+      window.addEventListener("hyper:network:online", onOnline, { once: true });
+      signal.addEventListener("abort", onAbort, { once: true });
+    });
+  }
+
   async function request(url, options = {}) {
     const method = (options.method || "GET").toUpperCase();
     const headers = {
@@ -1012,6 +1115,10 @@ const Hyper = (() => {
             }
             const retryable = retryEnabled && expectSSE &&
               !(error && (error.name === "AbortError" || error.name === "SyntaxError" || error.hyperSSEHandlerError));
+            if (retryable && !networkOnline) {
+              await waitForNetwork(controller.signal);
+              continue;
+            }
             if (!retryable || retryCount >= retryMaxCount) {
               if (retryable) {
                 emitEvent("hyper:requestRetriesFailed", {
@@ -1620,6 +1727,7 @@ const Hyper = (() => {
     if (!el) {
       await mutate();
       applyViewNames(document);
+      applyNetworkState(document);
       applyFocus(focus, target, focusState);
       return;
     }
@@ -1631,6 +1739,7 @@ const Hyper = (() => {
       await sleep(swapDelay);
       await mutate();
       applyViewNames(resolveElement(target) || document);
+      applyNetworkState(document);
       applyFocus(focus, target, focusState);
       emitEvent("hyper:swap:end", { target, ...detail });
       el.classList.remove("hyper-swapping");
@@ -2368,11 +2477,13 @@ const Hyper = (() => {
     swapHTML,
     applySwap,
     initLoadingIndicators,
+    initNetwork,
     initNavigation,
     initForms,
     navigate,
     configure,
     applyViewNames,
+    network,
   };
 })();
 
@@ -2382,11 +2493,13 @@ window.action = Hyper.action;
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", () => {
     Hyper.initLoadingIndicators();
+    Hyper.initNetwork();
     Hyper.initNavigation();
     Hyper.initForms();
   });
 } else {
   Hyper.initLoadingIndicators();
+  Hyper.initNetwork();
   Hyper.initNavigation();
   Hyper.initForms();
 }

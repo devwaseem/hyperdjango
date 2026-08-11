@@ -189,12 +189,15 @@ Each row includes the template name and render duration.
 ### Action results and SSE
 
 Known action results report item types and useful metadata, including targets, swap
-modes, history URLs, redirects, event names, and loaded script URLs.
+modes, history URLs, redirects, event names, loaded script URLs, transition/focus
+options, delays, statuses, and sanitized signal/event/toast payloads. The panel displays
+each returned item as a numbered table row so multi-item responses remain scannable.
 
-HyperDjango does not iterate a generator merely to populate the panel. For a sync or
-async generator, the panel reports **Unknown until stream iteration**. Consequently,
-the panel can measure stream construction and response preparation, but not the later
-time spent yielding every SSE item to the client.
+HyperDjango does not iterate a generator early merely to populate the panel. Before a
+sync or async generator starts, the panel reports **Unknown until stream iteration**.
+It then observes items as Django naturally streams them and replaces the stored panel
+data when the stream completes, closes, or fails. Reopen the panel after completion to
+see yielded item types and metadata.
 
 ### Phase timings
 
@@ -271,10 +274,11 @@ Check that:
 
 ### SSE item types are unknown
 
-This is expected for generator and async-generator action results. HyperDjango avoids
-consuming the stream because doing so would change application behavior. Return a known
-`ActionResult`, `Actions`, list, or tuple when you want item metadata to be available
-before streaming begins.
+This is expected only before a generator or async generator begins iteration.
+HyperDjango avoids consuming the stream early because doing so would change application
+behavior. Once streaming finishes, reopen the panel to load the final item metadata.
+Return a known `ActionResult`, `Actions`, list, or tuple when you need metadata before
+streaming begins.
 
 ## Production safety
 
