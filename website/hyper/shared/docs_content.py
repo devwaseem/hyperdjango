@@ -1,14 +1,13 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-import re
 from typing import Final
 
-from django.utils.safestring import SafeString, mark_safe
 import markdown
-
+from django.utils.safestring import SafeString, mark_safe
 
 WEBSITE_DIR: Final[Path] = Path(__file__).resolve().parents[2]
 DOCS_DIR: Final[Path] = WEBSITE_DIR / "docs"
@@ -85,6 +84,13 @@ DOC_PAGES: Final[tuple[DocPage, ...]] = (
         nav_title="Actions",
         group="Guides",
         summary="Write HyperDjango actions, return typed response items, and understand immediate versus streaming responses.",
+    ),
+    DocPage(
+        slug="history",
+        source="history.md",
+        nav_title="History",
+        group="Guides",
+        summary="Update browser history from actions and restore full or partial pages safely during back and forward navigation.",
     ),
     DocPage(
         slug="client-side-actions",
@@ -164,6 +170,13 @@ DOC_PAGES: Final[tuple[DocPage, ...]] = (
         summary="Detailed arguments and supported return shapes for action items and action methods.",
     ),
     DocPage(
+        slug="reference/asset-resolver",
+        source="reference/asset-resolver.md",
+        nav_title="Asset Resolver",
+        group="Reference",
+        summary="Reference for resolving page, layout, template, development-server, and production-manifest assets.",
+    ),
+    DocPage(
         slug="reference/client-runtime",
         source="reference/client-runtime.md",
         nav_title="Client Runtime",
@@ -171,11 +184,25 @@ DOC_PAGES: Final[tuple[DocPage, ...]] = (
         summary="Detailed reference for $action, window.action, runtime outcomes, and browser events.",
     ),
     DocPage(
+        slug="reference/exceptions",
+        source="reference/exceptions.md",
+        nav_title="Exceptions",
+        group="Reference",
+        summary="Reference for HyperDjango exception types and the runtime conditions that raise them.",
+    ),
+    DocPage(
         slug="reference/html-apis",
         source="reference/html-apis.md",
         nav_title="HTML APIs",
         group="Reference",
         summary="Reference for hyper-form-disable, hyper-view-transition-name, and loading-related attributes.",
+    ),
+    DocPage(
+        slug="reference/sse-payloads",
+        source="reference/sse-payloads.md",
+        nav_title="SSE Payloads",
+        group="Reference",
+        summary="Wire-format reference for streamed action events, event IDs, retries, and resume behavior.",
     ),
     DocPage(
         slug="reference/template-tags",
@@ -189,7 +216,7 @@ DOC_PAGES: Final[tuple[DocPage, ...]] = (
         source="reference/commands.md",
         nav_title="Commands",
         group="Reference",
-        summary="Reference for hyper_scaffold and hyper_routes.",
+        summary="Reference for hyper_runserver, hyper_scaffold, and hyper_routes.",
     ),
     DocPage(
         slug="troubleshooting",
@@ -211,6 +238,27 @@ DOC_PAGES: Final[tuple[DocPage, ...]] = (
         nav_title="FAQ",
         group="Guides",
         summary="Quick answers for View vs HyperView, layout choices, render helpers, Alpine, and action return patterns.",
+    ),
+    DocPage(
+        slug="examples",
+        source="examples/index.md",
+        nav_title="Examples Overview",
+        group="Examples",
+        summary="Find practical recipes and the complete runnable example application.",
+    ),
+    DocPage(
+        slug="cookbook",
+        source="cookbook.md",
+        nav_title="Cookbook",
+        group="Examples",
+        summary="Copy practical patterns for signals, partial swaps, streaming, navigation, uploads, and reusable UI flows.",
+    ),
+    DocPage(
+        slug="examples/example-app",
+        source="examples/example-app.md",
+        nav_title="Example App",
+        group="Examples",
+        summary="Run the bundled project and explore its routes, actions, layouts, dynamic segments, and browser tests.",
     ),
 )
 

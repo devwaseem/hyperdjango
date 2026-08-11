@@ -5,6 +5,7 @@ from pathlib import Path
 from xml.sax.saxutils import escape
 
 from django.http import HttpRequest, HttpResponse
+from hyperdjango.shortcuts import render_template_page
 
 from hyper.shared.docs_content import (
     get_doc_last_modified,
@@ -13,8 +14,6 @@ from hyper.shared.docs_content import (
 )
 from hyper.shared.seo import absolute_url, page_json_ld, seo_context
 from hyper.templates.errors import ErrorPage
-from hyperdjango.shortcuts import render_template_page
-
 
 WEBSITE_DIR = Path(__file__).resolve().parents[1]
 
@@ -23,6 +22,7 @@ HOME_SOURCE_FILES = [
     WEBSITE_DIR / "hyper" / "routes" / "index" / "+page.py",
     WEBSITE_DIR / "hyper" / "routes" / "index" / "index.html",
     WEBSITE_DIR / "hyper" / "routes" / "index" / "partials" / "hero.html",
+    WEBSITE_DIR / "hyper" / "routes" / "index" / "partials" / "release.html",
     WEBSITE_DIR / "hyper" / "routes" / "index" / "partials" / "footer.html",
 ]
 

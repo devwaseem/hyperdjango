@@ -1,8 +1,14 @@
 import asyncio
 
+from hyperdjango.actions import HTML, Delete, Event, Signal, Toast, action
+
 from hyper.layouts.base import BaseLayout
-from hyper.shared.seo import page_json_ld, seo_context, site_json_ld
-from hyperdjango.actions import Delete, Event, HTML, Signal, Toast, action
+from hyper.shared.seo import (
+    page_json_ld,
+    seo_context,
+    site_json_ld,
+    site_version,
+)
 
 # In-memory demo state (restarts with server)
 STATE = {
@@ -50,6 +56,7 @@ class PageView(BaseLayout):
                 ],
             ),
             "todos": STATE["todos"],
+            "site_version": site_version(),
             **stats,
             "search_results": [],
             "inline_text": STATE["inline_text"],

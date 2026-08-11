@@ -6,9 +6,9 @@
     <div class="relative z-10 flex min-h-screen flex-col text-black">
         <div class="mx-auto flex min-h-screen w-full max-w-7xl flex-col justify-center px-4 pt-20 pb-16 text-center sm:px-6 sm:pt-32 sm:pb-20">
             <div class="mx-auto flex w-full max-w-5xl flex-col items-center gap-6 sm:gap-8">
-                <div class="inline-block p-2 text-sm transition-all duration-300 opacity-0 translate-y-4 sm:text-base"
+                <div class="inline-block border border-black/10 px-3 py-2 font-mono text-[11px] font-bold uppercase tracking-[0.16em] transition-all duration-300 opacity-0 translate-y-4 sm:text-xs"
                  :class="step >= 1 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'"
-                  x-cloak>v0.27.0 - Alpha</div>
+                  x-cloak>v{{ site_version }} · Latest release</div>
                 <h1 class="flex flex-col items-center justify-center text-[clamp(2.5rem,12vw,5rem)] leading-[0.9] font-extrabold font-doto tracking-tight sm:text-6xl">
                     <span class="flex min-h-[1.1em] items-center justify-center sm:min-h-[1.2em]">
                     <span x-text="fullText1.slice(0, count1)"></span>

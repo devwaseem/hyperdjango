@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-- No changes yet.
+- Updated the public website for the 0.38.0 release with a version-synchronized homepage badge, a release highlights section, clearer command documentation, current upgrade guidance, complete website routes for every linked guide/reference/example page, and browser coverage that prevents future version drift.
 
 ## 0.38.0
 
