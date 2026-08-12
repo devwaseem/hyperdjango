@@ -31,7 +31,7 @@ async function visit(page, path = "/", headers = {}) {
   });
   if (Object.keys(headers).length) await page.setExtraHTTPHeaders(headers);
   await page.goto(path, { waitUntil: "networkidle" });
-  await expect(host(page)).toHaveCSS("visibility", "visible");
+  await expect(toolbar(page)).toHaveCSS("visibility", "visible");
   await expect(toolbar(page).locator(".hdd-launcher")).toBeVisible();
 }
 
@@ -78,11 +78,11 @@ test.describe.serial("HyperDjango request inspector", () => {
 
   test("loads independently and supports launcher, drawer, fullscreen, keyboard, and dragging", async ({ page }) => {
     await visit(page);
-    await expect(page.getByText("v0.40.0 · Latest release")).toBeVisible();
+    await expect(page.getByText("v0.40.1 · Latest release")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Command, then watch" })).toBeVisible();
     await expect(page.getByRole("link", { name: /Open inspector guide/ })).toHaveAttribute("href", "/docs/dev-toolbar");
     const root = toolbar(page);
-    await expect(root.locator("[data-slot='launcher-count']")).toHaveText("1");
+    await expect(root.locator("[data-slot='launcher-count']")).toHaveText("0");
     await expect(root.locator(".hdd-launcher-copy")).toContainText("HYPERDJANGO");
 
     await root.getByRole("button", { name: /Open HyperDjango debug toolbar/ }).click();
@@ -112,11 +112,12 @@ test.describe.serial("HyperDjango request inspector", () => {
     await expect.poll(() => page.evaluate(() => localStorage.getItem("hyperdjango.debug.launcherX"))).toBe("32");
   });
 
-  test("does not move the document when loading or restoring an open toolbar", async ({ page }) => {
+  test("does not flash or move the document when refreshing an open toolbar", async ({ page }) => {
     await page.addInitScript(() => {
       localStorage.setItem("hyperdjango.debug.open", "true");
       localStorage.setItem("hyperdjango.debug.tab", "timeline");
       window.__toolbarVisibleBeforeDOMContentLoaded = false;
+      window.__toolbarDrawerTransitionStarts = 0;
       window.__toolbarDOMContentLoaded = false;
       document.addEventListener("DOMContentLoaded", () => {
         window.__toolbarDOMContentLoaded = true;
@@ -124,16 +125,21 @@ test.describe.serial("HyperDjango request inspector", () => {
       const hostObserver = new MutationObserver(() => {
         const toolbarHost = document.querySelector("hyperdjango-debug-toolbar");
         if (!toolbarHost) return;
+        const toolbarRoot = toolbarHost.shadowRoot?.querySelector("#hd-debug-toolbar");
+        if (!toolbarRoot) return;
+        toolbarRoot.querySelector(".hdd-console")?.addEventListener("transitionstart", (event) => {
+          if (event.propertyName === "transform") window.__toolbarDrawerTransitionStarts += 1;
+        });
         const recordVisibility = () => {
           if (
             !window.__toolbarDOMContentLoaded &&
-            getComputedStyle(toolbarHost).visibility === "visible" &&
-            getComputedStyle(toolbarHost).opacity !== "0"
+            getComputedStyle(toolbarRoot).visibility === "visible" &&
+            getComputedStyle(toolbarRoot).opacity !== "0"
           ) {
             window.__toolbarVisibleBeforeDOMContentLoaded = true;
           }
         };
-        new MutationObserver(recordVisibility).observe(toolbarHost, {
+        new MutationObserver(recordVisibility).observe(toolbarRoot, {
           attributes: true,
           attributeFilter: ["style"],
         });
@@ -143,14 +149,25 @@ test.describe.serial("HyperDjango request inspector", () => {
       hostObserver.observe(document, { childList: true, subtree: true });
     });
     await page.goto("/", { waitUntil: "networkidle" });
-    await expect(host(page)).toHaveCSS("visibility", "visible");
+    await expect(toolbar(page)).toHaveCSS("visibility", "visible");
     await expect(toolbar(page)).toHaveClass(/is-open/);
     expect(await page.evaluate(() => window.__toolbarVisibleBeforeDOMContentLoaded)).toBe(false);
+    expect(await page.evaluate(() => window.__toolbarDrawerTransitionStarts)).toBe(0);
+    await expect(toolbar(page)).not.toHaveClass(/is-restoring/);
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
 
     await page.reload({ waitUntil: "networkidle" });
     await expect(toolbar(page)).toHaveClass(/is-open/);
+    expect(await page.evaluate(() => window.__toolbarDrawerTransitionStarts)).toBe(0);
+    await expect(toolbar(page)).not.toHaveClass(/is-restoring/);
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+
+    await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent("pagehide")));
+    await expect(toolbar(page)).toHaveCSS("visibility", "hidden");
+    await expect(toolbar(page)).toHaveCSS("opacity", "0");
+    await page.evaluate(() => window.dispatchEvent(new Event("pageshow")));
+    await expect(toolbar(page)).toHaveCSS("visibility", "visible");
+    await expect(toolbar(page)).toHaveCSS("opacity", "1");
   });
 
   test("navigates the focused views and exposes complete route, request, database, and copy data", async ({ page, context }) => {
@@ -171,7 +188,7 @@ test.describe.serial("HyperDjango request inspector", () => {
     expect(llms).toContain("## Request Inspector");
     expect(llms).toContain("authoritative enablement switch");
     expect(llms).toContain("## Django Debug Toolbar");
-    expect(llms).toContain("## Current Release: 0.40.0");
+    expect(llms).toContain("## Current Release: 0.40.1");
     for (const path of [
       "/docs/history",
       "/docs/cookbook",
@@ -181,6 +198,8 @@ test.describe.serial("HyperDjango request inspector", () => {
       expect((await page.request.get(path)).ok()).toBeTruthy();
     }
 
+    await page.locator("#todo-list-demo input:not(:checked)").first().click();
+    await selectTrace(page, (record) => record.action === "toggle_todo");
     await openToolbar(page);
 
     const tabs = toolbar(page).getByRole("tab");
@@ -311,6 +330,8 @@ test.describe.serial("HyperDjango request inspector", () => {
 
   test("refuses ambiguous DOM selectors instead of highlighting the wrong element", async ({ page }) => {
     await visit(page);
+    await page.locator("#todo-list-demo input:not(:checked)").first().click();
+    await selectTrace(page, (record) => record.action === "toggle_todo");
     await openToolbar(page);
     const id = (await latestHistory(page))[0].id;
     await page.evaluate(async (requestId) => {
@@ -400,6 +421,12 @@ test.describe.serial("HyperDjango request inspector", () => {
   test("uses a compact picker and bounded, scrollable content on portrait and landscape screens", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
     await visit(page);
+    await page.evaluate(() => window.Hyper.action(
+      "increment_signal_demo",
+      { count: 0 },
+      { method: "POST" },
+    ));
+    await selectTrace(page, (record) => record.action === "increment_signal_demo");
     await openToolbar(page);
 
     const picker = toolbar(page).locator("[data-slot='tab-select']");

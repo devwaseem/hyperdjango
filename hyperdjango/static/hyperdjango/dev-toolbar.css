@@ -194,6 +194,7 @@
   will-change: transform;
 }
 
+#hd-debug-toolbar.is-restoring .hdd-console { transition: none; }
 #hd-debug-toolbar.is-open .hdd-console { pointer-events: auto; transform: translateY(0); }
 #hd-debug-toolbar.is-fullscreen .hdd-console { height: 100vh; height: 100dvh; }
 #hd-debug-toolbar.is-open .hdd-launcher { visibility: hidden; }

@@ -4,15 +4,17 @@ HyperDjango gives Django a server-first workflow with file routing, colocated as
 
 Use it when you want interactive UX without splitting your app into separate backend API and SPA frontend codebases.
 
-## Current Release: 0.40.0
+## Current Release: 0.40.1
 
-HyperDjango 0.40 makes the standalone Request Inspector quieter and more focused:
+HyperDjango 0.40.1 makes the standalone Request Inspector quieter and more focused:
 
 - keep the inspector hidden until the DOM, stylesheet, and initial trace state are ready
 - set `HYPER_DEBUG_TOOLBAR_CONFIG["RECORD_PAGE_REQUESTS"] = False` to retain only
   Hyper action requests while keeping the launcher available on HTML pages
 - exclude Django Debug Toolbar's internal polling endpoints from HyperDjango capture
   even when DJDT is mounted under a custom path
+- restore a previously open inspector immediately on refresh without replaying the
+  drawer animation
 
 See the [Request Inspector guide](dev-toolbar.md) for configuration and behavior. The
 0.39 command-to-query handoff remains documented under

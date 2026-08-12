@@ -420,6 +420,9 @@ def test_devtools_assets_expose_rich_brutalist_inspector() -> None:
     assert 'slots.tabs.addEventListener("keydown"' in runtime
     assert "setToolbarOpen(false, { instant: true })" not in runtime
     assert "transition: transform 240ms var(--hdd-ease-out)" in styles
+    assert '#hd-debug-toolbar.is-restoring .hdd-console { transition: none; }' in styles
+    assert 'root.classList.add("is-restoring")' in runtime
+    assert 'root.classList.remove("is-restoring")' in runtime
     assert "closeDuration" in runtime
     assert "state.tabsMarkup !== markup" in runtime
     assert "state.panelMarkup === markup" in runtime
@@ -482,8 +485,16 @@ def test_devtools_assets_expose_rich_brutalist_inspector() -> None:
     assert 'setProperty("opacity", "1", "important")' in runtime
     assert 'setProperty("pointer-events", "none", "important")' in runtime
     assert 'removeProperty("pointer-events")' in runtime
+    assert 'root.style.setProperty("visibility", "hidden", "important")' in runtime
+    assert 'root.style.setProperty("visibility", "visible", "important")' in runtime
     assert 'document.readyState !== "loading"' in runtime
     assert '"DOMContentLoaded"' in runtime
+    assert "if (navigatingAway) return" in runtime
+    assert 'window.addEventListener("beforeunload", concealForNavigation)' in runtime
+    assert 'window.addEventListener("pagehide", concealForNavigation)' in runtime
+    assert 'window.addEventListener("pageshow", restoreAfterNavigation)' in runtime
+    assert "document.fonts.load" in runtime
+    assert "Promise.allSettled" in runtime
     assert "streamIsPending" in runtime
     assert "record?.response?.streaming" in runtime
     assert "background: true" in runtime

@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## 0.40.1 - 2026-08-12
+
+- Prevented refresh-time Request Inspector flashes by concealing the outgoing toolbar during unload/page-hide, waiting for its independent fonts before reveal, and restoring a persisted open drawer without replaying its entrance animation.
+
 ## 0.40.0 - 2026-08-12
 
 - Added `HYPER_DEBUG_TOOLBAR_CONFIG["RECORD_PAGE_REQUESTS"]`; set it to `False` to keep the standalone inspector available on HTML pages while recording only Hyper action requests.

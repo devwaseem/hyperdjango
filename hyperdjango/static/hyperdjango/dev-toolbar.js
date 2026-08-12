@@ -61,20 +61,38 @@
   host.setAttribute("data-hyperdjango-devtools", "");
   host.style.setProperty("all", "initial", "important");
   host.style.setProperty("contain", "style", "important");
-  host.style.setProperty("visibility", "hidden", "important");
-  host.style.setProperty("opacity", "0", "important");
-  host.style.setProperty("pointer-events", "none", "important");
+  let root = null;
+  const concealHost = () => {
+    if (!root) return;
+    root.style.setProperty("visibility", "hidden", "important");
+    root.style.setProperty("opacity", "0", "important");
+    root.style.setProperty("pointer-events", "none", "important");
+  };
   let stylesheetReady = false;
   let domReady = document.readyState !== "loading";
   let toolbarReady = false;
+  let navigatingAway = false;
   const revealHostWhenReady = () => {
-    if (!stylesheetReady || !domReady || !toolbarReady) return;
+    if (navigatingAway || !stylesheetReady || !domReady || !toolbarReady) return;
     requestAnimationFrame(() => {
-      host.style.setProperty("visibility", "visible", "important");
-      host.style.setProperty("opacity", "1", "important");
-      host.style.removeProperty("pointer-events");
+      if (navigatingAway) return;
+      root.style.setProperty("visibility", "visible", "important");
+      root.style.setProperty("opacity", "1", "important");
+      root.style.removeProperty("pointer-events");
+      requestAnimationFrame(() => root.classList.remove("is-restoring"));
     });
   };
+  const concealForNavigation = () => {
+    navigatingAway = true;
+    concealHost();
+  };
+  const restoreAfterNavigation = () => {
+    navigatingAway = false;
+    revealHostWhenReady();
+  };
+  window.addEventListener("beforeunload", concealForNavigation);
+  window.addEventListener("pagehide", concealForNavigation);
+  window.addEventListener("pageshow", restoreAfterNavigation);
   if (!domReady) {
     document.addEventListener(
       "DOMContentLoaded",
@@ -92,7 +110,14 @@
   if (script && script.nonce) stylesheet.nonce = script.nonce;
   stylesheet.addEventListener(
     "load",
-    () => {
+    async () => {
+      if (document.fonts?.load) {
+        await Promise.allSettled([
+          document.fonts.load('800 12px "HyperDjango Doto"'),
+          document.fonts.load('400 12px "HyperDjango IBM Plex Mono"'),
+          document.fonts.load('700 12px "HyperDjango IBM Plex Mono"'),
+        ]);
+      }
       stylesheetReady = true;
       revealHostWhenReady();
     },
@@ -105,8 +130,9 @@
   );
   shadow.appendChild(stylesheet);
 
-  const root = document.createElement("section");
+  root = document.createElement("section");
   root.id = "hd-debug-toolbar";
+  root.classList.add("is-restoring");
   root.setAttribute("aria-label", "HyperDjango debug toolbar");
   root.innerHTML = `
     <div class="hdd-launcher" data-slot="launcher">
@@ -144,6 +170,7 @@
         </main>
       </div>
     </div>`;
+  concealHost();
   shadow.appendChild(root);
   document.documentElement.appendChild(host);
 
