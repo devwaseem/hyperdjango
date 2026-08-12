@@ -1,6 +1,7 @@
 import asyncio
 
-from hyperdjango.actions import HTML, Delete, Event, Signal, Toast, action
+from hyperdjango.actions import Checkpoint, Delete, Event, HTML, Signal, Toast, action
+from hyperdjango.sse import get_resume_checkpoint
 
 from hyper.layouts.base import BaseLayout
 from hyper.shared.seo import (
@@ -247,35 +248,109 @@ class PageView(BaseLayout):
             ),
         ]
 
+    # -- RETRYABLE GET CHECKPOINTS --
+    @action(method="GET")
+    async def stream_checkpoint_report(self, request, **kwargs):
+        """Resume a read-only stream after its last acknowledged stage."""
+        resume = get_resume_checkpoint(
+            request,
+            allowed=("catalog-loaded",),
+        )
+
+        if resume is None:
+            yield HTML(
+                content=(
+                    '<li data-checkpoint-stage="catalog" '
+                    'class="border-2 border-black bg-white p-4">'
+                    '<span class="block text-[10px] font-black uppercase '
+                    'tracking-[0.18em] text-gray-400">Stage 1 · completed</span>'
+                    '<strong class="mt-1 block">Load product catalog</strong>'
+                    '<span class="mt-2 block text-xs text-gray-500">'
+                    "The browser applied this patch, then acknowledged "
+                    "catalog-loaded.</span></li>"
+                ),
+                target="#checkpoint-retry-log",
+                swap="append",
+            )
+            yield Checkpoint("catalog-loaded")
+
+            # Simulate the connection disappearing after the browser has
+            # acknowledged the completed stage.
+            raise ConnectionResetError(
+                "Intentional checkpoint demo interruption"
+            )
+
+        await asyncio.sleep(0.35)
+        yield HTML(
+            content=(
+                '<li data-checkpoint-stage="pricing" '
+                'class="border-2 border-black bg-black p-4 text-white">'
+                '<span class="block text-[10px] font-black uppercase '
+                'tracking-[0.18em] text-white/60">Stage 2 · resumed</span>'
+                '<strong class="mt-1 block">Calculate live pricing</strong>'
+                '<span class="mt-2 block text-xs text-white/70">'
+                "The retried GET skipped the catalog stage and continued "
+                "here.</span></li>"
+            ),
+            target="#checkpoint-retry-log",
+            swap="append",
+        )
+
+        await asyncio.sleep(0.35)
+        yield HTML(
+            content=(
+                '<li data-checkpoint-stage="complete" '
+                'class="border-2 border-black bg-white p-4">'
+                '<span class="block text-[10px] font-black uppercase '
+                'tracking-[0.18em] text-gray-400">Stage 3 · complete</span>'
+                '<strong class="mt-1 block">Report ready</strong>'
+                '<span class="mt-2 block text-xs text-gray-500">'
+                "All stages finished without replaying the acknowledged "
+                "patch.</span></li>"
+            ),
+            target="#checkpoint-retry-log",
+            swap="append",
+        )
+        yield Toast(
+            payload={
+                "type": "success",
+                "title": "Stream resumed",
+                "message": "The retry continued after catalog-loaded.",
+            }
+        )
+
     # -- COMMAND -> QUERY SWITCH --
-    @action(method="POST", retry=False)
+    @action(method="POST")
     def start_switch_build(self, request, package="hyperdjango", **kwargs):
         """A bounded command; a real application would commit/enqueue here."""
         type(self).switch_builds_started += 1
         job_id = f"{package}-{type(self).switch_builds_started}"
         return self.watch_switch_build.switch_to(job_id=job_id)
 
-    @action(method="GET", retry=True)
+    @action(method="GET")
     async def watch_switch_build(self, request, job_id, **kwargs):
-        """A read-only watcher whose ordered sequence is safe to replay."""
+        """A read-only watcher that resumes from an acknowledged checkpoint."""
         request_id = request.headers.get("X-Hyper-Request-ID", "")
         mutation_count = type(self).switch_builds_started
+        resume = get_resume_checkpoint(request, allowed=("connected",))
 
-        yield Signal(
-            name="switchBuild",
-            value={
-                "phase": "Watcher connected",
-                "progress": 20,
-                "jobId": job_id,
-                "requestId": request_id,
-                "mutationCount": mutation_count,
-                "resumed": False,
-            },
-        )
+        if resume is None:
+            yield Signal(
+                name="switchBuild",
+                value={
+                    "phase": "Watcher connected",
+                    "progress": 20,
+                    "jobId": job_id,
+                    "requestId": request_id,
+                    "mutationCount": mutation_count,
+                    "resumed": False,
+                },
+            )
+            yield Checkpoint("connected")
 
-        # Demonstrate sequence-based Last-Event-ID replay. On reconnect the
-        # first patch is regenerated and skipped, then streaming continues.
-        if not request.headers.get("Last-Event-ID"):
+        # The browser acknowledges the checkpoint only after applying the
+        # preceding patch, so a reconnect can jump directly to later work.
+        if resume is None:
             raise ConnectionResetError(
                 "Intentional SwitchAction demo interruption"
             )

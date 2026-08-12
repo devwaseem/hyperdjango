@@ -38,7 +38,7 @@
             <p style="margin: 0;">The short POST is never retried. It switches to a retryable, read-only GET watcher.</p>
             <button type="button"
                     hyper-loading-disable="package-build"
-                    x-on:click="$action('start_package_build', { package_id: 'example' }, { method: 'POST', retry: false, key: 'package-build' })">
+                    x-on:click="$action('start_package_build', { package_id: 'example' }, { method: 'POST', key: 'package-build' })">
                 Build package
             </button>
             <div id="package-build-status" hyper-loading-key="package-build">Waiting to start.</div>

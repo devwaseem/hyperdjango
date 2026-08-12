@@ -17,6 +17,7 @@ from django.test import RequestFactory
 
 from hyperdjango.actions import (
     ActionResult,
+    Checkpoint,
     History,
     HTML,
     Redirect,
@@ -303,7 +304,7 @@ def test_result_metadata_and_value_caps_are_bounded() -> None:
             "SwitchPage",
             (HyperView,),
             {
-                "watch_build": action("watch_build", method="GET", retry=True)(
+                "watch_build": action("watch_build", method="GET")(
                     lambda self, request, token: None
                 )
             },
@@ -313,7 +314,6 @@ def test_result_metadata_and_value_caps_are_bounded() -> None:
     assert switch["items"][0]["details"] == [
         {"label": "destination action", "value": "watch_build"},
         {"label": "method", "value": "GET"},
-        {"label": "retry", "value": True},
     ]
     assert "data" not in switch["items"][0]
 
@@ -455,6 +455,34 @@ def test_panel_observes_action_generator_only_during_stream_iteration() -> None:
     assert not hasattr(request, "_hyperdjango_debug_toolbar_trace")
     stored = panel.toolbar.store.saved[(panel.toolbar.request_id, panel.panel_id)]
     assert stored["results"][0]["iteration_status"] == "completed"
+
+
+def test_panel_records_only_explicit_sse_checkpoint_ids() -> None:
+    _ensure_settings()
+
+    class DemoPage(HyperView):
+        @action(method="GET")
+        def stream(self, request):
+            yield HTML(content="<div>ready</div>", target="#result")
+            yield Checkpoint("ready")
+
+    request = RequestFactory().get(
+        "/stream/",
+        HTTP_X_HYPER_ACTION="stream",
+        HTTP_X_HYPER_REQUEST_ID="trace-1",
+    )
+    _resolver(request, name="hyper_stream", route="stream/")
+    panel = _make_panel(request, lambda current: dispatch_page(DemoPage(), current))
+
+    response = panel.process_request(request)
+    panel.generate_stats(request, response)
+    list(response.streaming_content)
+    result = panel.get_stats()["results"][0]
+
+    assert result["item_types"] == ["HTML", "Checkpoint"]
+    assert result["items"][0]["event_id"] is None
+    assert result["items"][1]["event_id"] == "trace-1:checkpoint:ready"
+    assert result["items"][1]["payload_bytes"] == 0
 
 
 def test_panel_observes_async_generator_after_stream_completion() -> None:

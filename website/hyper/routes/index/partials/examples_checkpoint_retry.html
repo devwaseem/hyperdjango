@@ -1,0 +1,109 @@
+<section id="checkpoint-retry-demo" class="max-w-6xl mx-auto px-6 py-24 border-t border-black/10">
+    <div class="flex flex-col mb-12">
+        <div class="flex flex-wrap items-center gap-3 mb-2">
+            <h2 class="font-doto text-4xl font-black uppercase">Retryable GET</h2>
+            <span class="border border-black px-2 py-1 font-mono text-[10px] font-black uppercase tracking-[0.16em]">Named checkpoints</span>
+        </div>
+        <p class="font-mono text-gray-500 max-w-3xl">A long-running read-only stream can mark completed stages. If the connection drops, the browser retries the GET with the last acknowledged checkpoint and the action continues from there.</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 border-2 border-black divide-y-2 lg:divide-y-0 lg:divide-x-2 divide-black font-mono">
+        <div class="bg-gray-50 min-h-0 overflow-hidden">
+            <div class="flex flex-col gap-6 p-6 pb-10 box-border overflow-y-auto overflow-x-hidden lg:h-[76vh]">
+                <div>
+                    <div class="flex items-center gap-2 mb-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                        <span class="w-1.5 h-1.5 bg-black/20"></span>
+                        +page.py
+                    </div>
+                    <pre class="text-[12px] leading-relaxed overflow-x-auto"><code class="language-python">from hyperdjango import Checkpoint, HTML, action, get_resume_checkpoint
+
+
+class PageView(HyperView):
+    @action(method="GET")
+    async def build_report(self, request):
+        stages = ("catalog-loaded",)
+        resume = get_resume_checkpoint(request, allowed=stages)
+
+        if resume is None:
+            yield HTML("Catalog loaded", target="#report", swap="append")
+            yield Checkpoint("catalog-loaded")
+
+        # On retry, catalog-loaded is returned above and this block is
+        # not executed again. Continue from shared, reconstructible state.
+        yield HTML("Pricing calculated", target="#report", swap="append")
+        yield HTML("Report ready", target="#report", swap="append")</code></pre>
+                </div>
+
+                <div class="border-t border-black/5 pt-6">
+                    <div class="flex items-center gap-2 mb-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                        <span class="w-1.5 h-1.5 bg-black/20"></span>
+                        template.html
+                    </div>
+                    <pre class="text-[12px] leading-relaxed overflow-x-auto"><code class="language-html">{% verbatim %}&lt;button
+  hyper-loading-disable="report"
+  @click="$action(
+    'build_report',
+    {},
+    { method: 'GET', key: 'report' }
+  )"
+&gt;
+  Build report
+&lt;/button&gt;
+
+&lt;ol id="report"&gt;&lt;/ol&gt;{% endverbatim %}</code></pre>
+                </div>
+
+                <div class="border-2 border-black bg-white p-4 text-xs leading-relaxed">
+                    <strong class="block uppercase tracking-[0.14em] mb-2">Checkpoint contract</strong>
+                    <p>A checkpoint means the browser processed every preceding frame. It is an untrusted progress hint—not authorization or exactly-once execution—so authenticate every retry and keep work before each checkpoint safe to repeat.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white min-h-0 overflow-hidden">
+            <div class="p-8 pb-10 flex flex-col box-border overflow-y-auto overflow-x-hidden lg:h-[76vh]">
+                <div class="flex items-center gap-2 mb-6 text-[10px] font-black text-black uppercase tracking-[0.2em]">
+                    <span class="w-1.5 h-1.5 bg-black"></span>
+                    Live forced-disconnect demo
+                </div>
+
+                <section x-data="{}" class="space-y-6" data-checkpoint-retry-demo>
+                    <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-[10px] font-black uppercase tracking-[0.14em]" aria-label="Retry sequence">
+                        <span class="border-2 border-black bg-black px-3 py-2 text-center text-white">GET starts</span>
+                        <span aria-hidden="true">→</span>
+                        <span class="border-2 border-black px-3 py-2 text-center">GET resumes</span>
+                    </div>
+
+                    <div class="border-2 border-black bg-gray-50 p-5">
+                        <div class="flex items-start justify-between gap-4 border-b border-black/10 pb-4">
+                            <div>
+                                <div class="text-[10px] uppercase tracking-[0.2em] text-gray-400 mb-1">What this run does</div>
+                                <p class="text-sm font-bold">Disconnect after <code>catalog-loaded</code>, then continue.</p>
+                            </div>
+                            <span class="shrink-0 border border-black px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em]">GET retries by default</span>
+                        </div>
+
+                        <ol id="checkpoint-retry-log" class="mt-4 space-y-3" aria-live="polite">
+                            <li class="border-2 border-dashed border-black/20 p-4 text-sm text-gray-400" data-checkpoint-empty>Run the stream to see its stages.</li>
+                        </ol>
+                    </div>
+
+                    <button
+                        type="button"
+                        hyper-loading-disable="checkpoint-retry-demo"
+                        @click="
+                            document.querySelector('#checkpoint-retry-log').replaceChildren();
+                            $action('stream_checkpoint_report', {}, { method: 'GET', key: 'checkpoint-retry-demo' });
+                        "
+                        class="w-full bg-black text-white px-5 py-3 text-sm font-bold uppercase hover:bg-white hover:text-black hover:ring-2 hover:ring-black transition-all disabled:cursor-wait disabled:opacity-60"
+                    >
+                        <span hyper-loading-hide="checkpoint-retry-demo">Run interrupted stream</span>
+                        <span hyper-loading-show="checkpoint-retry-demo">Reconnecting from checkpoint…</span>
+                    </button>
+
+                    <p class="text-[11px] leading-relaxed text-gray-500">Open the Network panel and you will see two GET requests with the same request ID. Only the second carries <code>Last-Event-ID: …:checkpoint:catalog-loaded</code>.</p>
+                </section>
+            </div>
+        </div>
+    </div>
+</section>

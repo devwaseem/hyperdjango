@@ -10,7 +10,7 @@
     (script && new URL("dev-toolbar.css", script.src).href);
 
   if (window.__hyperdjangoDevtools) {
-    if (initialId) window.__hyperdjangoDevtools.select(initialId);
+    if (initialId) window.__hyperdjangoDevtools.refresh();
     return;
   }
 
@@ -118,6 +118,8 @@
           document.fonts.load('700 12px "HyperDjango IBM Plex Mono"'),
         ]);
       }
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      restoreLauncherX();
       stylesheetReady = true;
       revealHostWhenReady();
     },
@@ -330,7 +332,7 @@
 
   function restoreLauncherX() {
     const saved = Number(localStorage.getItem("hyperdjango.debug.launcherX"));
-    const fallback = window.innerWidth - slots.launcher.getBoundingClientRect().width - 16;
+    const fallback = 8;
     setLauncherX(Number.isFinite(saved) && saved > 0 ? saved : fallback);
   }
 
@@ -695,7 +697,7 @@
           `<code>${esc(item.swap || "—")}</code>`,
           `<code>${esc(item.event || "—")}</code>`,
           `<code>${esc(item.event_id || "—")}</code>`,
-          badge(item.delivered === false ? "resumed / skipped" : "delivered", item.delivered === false ? "warning" : "success"),
+          badge("emitted", "success"),
           `<code>${esc(formatDuration(item.at_ms))}</code>`,
           `<code>${esc(formatDuration(item.gap_ms))}</code>`,
           `<code>${esc(formatBytes(item.payload_bytes))}</code>`,
@@ -711,7 +713,7 @@
     return section(
       "Action results and SSE",
       "OUTPUT TAPE",
-      table(["#", "Result", "Item", "Stream", "Target", "Swap", "Event", "Event ID", "Delivery", "At", "Gap", "Bytes", "Content", "Metadata"], rows, "NO ACTION RESULT WAS RECORDED"),
+      table(["#", "Result", "Item", "Stream", "Target", "Swap", "Event", "Event ID", "Emission", "At", "Gap", "Bytes", "Content", "Metadata"], rows, "NO ACTION RESULT WAS RECORDED"),
       rows.length,
     );
   }
@@ -1310,6 +1312,25 @@
     }
     await loadHistory();
     renderRecord();
+  }
+
+  function isReloadNavigation() {
+    const navigation = performance.getEntriesByType?.("navigation")?.[0];
+    if (navigation) return navigation.type === "reload";
+    return performance.navigation?.type === 1;
+  }
+
+  async function clearUnpinnedHistoryAfterReload() {
+    if (!historyUrl || !isReloadNavigation()) return false;
+    try {
+      await postJSON(debugUrl("controls/clear/"));
+      state.currentId = null;
+      state.record = null;
+      return true;
+    } catch (error) {
+      console.error("HyperDjango could not clear unpinned traces after reload", error);
+      return false;
+    }
   }
 
   async function replayAction() {
@@ -2117,17 +2138,17 @@
       }
       clientRequests.delete(detail.id);
     }
-    if (id) select(id);
+    if (id) loadHistory();
   });
 
   window.__hyperdjangoDevtools = { select, refresh: loadHistory };
   async function initializeToolbar() {
-    restoreLauncherX();
     renderShellState();
     renderTabs();
     renderHistory();
     renderRecord();
-    if (initialId) {
+    const clearedOnReload = await clearUnpinnedHistoryAfterReload();
+    if (initialId && !clearedOnReload) {
       await select(initialId);
     } else {
       await loadHistory();

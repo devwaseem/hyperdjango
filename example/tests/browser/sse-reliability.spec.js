@@ -6,7 +6,7 @@ test.beforeEach(async ({ page }) => {
   await waitForAlpine(page);
 });
 
-test("an interrupted SSE action reconnects and resumes after the last event", async ({ page }) => {
+test("an interrupted GET resumes after its last checkpoint", async ({ page }) => {
   const requests = [];
   page.on("request", (request) => {
     if (request.headers()["x-hyper-action"] === "retry_demo") {
@@ -29,7 +29,7 @@ test("an interrupted SSE action reconnects and resumes after the last event", as
   await expect.poll(() => requests.length).toBe(2);
 
   expect(requests[0]["last-event-id"]).toBeUndefined();
-  expect(requests[1]["last-event-id"]).toMatch(/:1$/);
+  expect(requests[1]["last-event-id"]).toMatch(/:checkpoint:connected$/);
   expect(await page.evaluate(() => window.__sseRetries.length)).toBe(1);
 });
 
@@ -59,6 +59,46 @@ test("retry false opts out of automatic SSE reconnects", async ({ page }) => {
   await expect(page.locator("[data-retry-resumed]")).toHaveCount(0);
 });
 
+test("POST retries require an explicit client opt in", async ({ page }) => {
+  let defaultRequests = 0;
+  await page.route("**/__post_retry_default", async (route) => {
+    defaultRequests += 1;
+    await route.fulfill({
+      status: 200,
+      contentType: "text/event-stream",
+      body: 'event: patch_html\ndata: {"content":"started"}\n\n',
+    });
+  });
+
+  const defaultResult = await page.evaluate(() => window.action("post_default", {}, {
+    url: "/__post_retry_default",
+    method: "POST",
+  }).then(() => "resolved", () => "rejected"));
+
+  expect(defaultResult).toBe("rejected");
+  expect(defaultRequests).toBe(1);
+
+  let optedInRequests = 0;
+  await page.route("**/__post_retry_opt_in", async (route) => {
+    optedInRequests += 1;
+    await route.fulfill({
+      status: 200,
+      contentType: "text/event-stream",
+      body: optedInRequests === 1
+        ? 'event: patch_html\ndata: {"content":"started"}\n\n'
+        : 'event: end\ndata: {}\n\n',
+    });
+  });
+
+  await page.evaluate(() => window.action("post_opt_in", {}, {
+    url: "/__post_retry_opt_in",
+    method: "POST",
+    retry: true,
+  }));
+
+  expect(optedInRequests).toBe(2);
+});
+
 test("SSE actions accept CRLF-framed events", async ({ page }) => {
   await page.route("**/__sse_crlf_fixture", async (route) => {
     await route.fulfill({
@@ -83,6 +123,53 @@ test("SSE actions accept CRLF-framed events", async ({ page }) => {
   }));
 
   await expect(page.locator("[data-crlf-event]")).toHaveText("CRLF event parsed.");
+});
+
+test("only control checkpoints advance the reconnect cursor", async ({ page }) => {
+  const requests = [];
+  await page.route("**/__checkpoint_cursor", async (route) => {
+    const headers = route.request().headers();
+    requests.push(headers);
+    if (requests.length === 1) {
+      const requestId = headers["x-hyper-request-id"];
+      await route.fulfill({
+        status: 200,
+        contentType: "text/event-stream",
+        body: [
+          "event: patch_html\n",
+          `id: ${requestId}:ordinary:1\n`,
+          'data: {"content":"<div data-before-checkpoint>before</div>","target":"#stream-log","swap":"inner"}\n\n',
+          "event: checkpoint\n",
+          `id: ${requestId}:checkpoint:ready\n\n`,
+          "event: patch_html\n",
+          `id: ${requestId}:ordinary:2\n`,
+          'data: {"content":"<div data-after-checkpoint>after</div>","target":"#stream-log","swap":"append"}\n\n',
+        ].join(""),
+      });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "text/event-stream",
+      body: "event: end\ndata: {}\n\n",
+    });
+  });
+
+  const streamEvents = await page.evaluate(async () => {
+    const events = [];
+    const listener = (event) => events.push(event.detail.event);
+    window.addEventListener("hyper:streamEvent", listener);
+    await window.action("checkpoint_cursor", {}, {
+      url: "/__checkpoint_cursor",
+      method: "GET",
+    });
+    window.removeEventListener("hyper:streamEvent", listener);
+    return events;
+  });
+
+  expect(requests).toHaveLength(2);
+  expect(requests[1]["last-event-id"]).toMatch(/:checkpoint:ready$/);
+  expect(streamEvents).toEqual(["patch_html", "patch_html", "end"]);
 });
 
 test("SwitchAction hands a non-retried command to a retryable watcher", async ({ page }) => {
@@ -130,7 +217,7 @@ test("SwitchAction hands a non-retried command to a retryable watcher", async ({
   expect(requests[1].method).toBe("GET");
   expect(requests[0].headers["last-event-id"]).toBeUndefined();
   expect(requests[1].headers["last-event-id"]).toBeUndefined();
-  expect(requests[2].headers["last-event-id"]).toMatch(/:1$/);
+  expect(requests[2].headers["last-event-id"]).toMatch(/:checkpoint:connected$/);
   expect(requests[0].headers["x-hyper-request-id"]).not.toBe(
     requests[1].headers["x-hyper-request-id"],
   );
@@ -159,7 +246,8 @@ test("plain JavaScript action validates switches and starts a clean follow-up", 
     await route.fulfill({
       status: 200,
       contentType: "text/event-stream",
-      body: 'event: switch_action\nid: command:1\ndata: {"name":"query","data":{"job_id":"7"},"method":"POST","url":"/__plain_switch_destination","retry":false}\n\n',
+      // A legacy/server-provided retry value must not enable the switched POST.
+      body: 'event: switch_action\ndata: {"name":"query","data":{"job_id":"7"},"method":"POST","url":"/__plain_switch_destination","retry":true}\n\n',
     });
   });
   await page.route("**/__plain_switch_destination", async (route) => {
@@ -168,21 +256,29 @@ test("plain JavaScript action validates switches and starts a clean follow-up", 
     await route.fulfill({
       status: 200,
       contentType: "text/event-stream",
-      body: 'event: end\nid: query:1\ndata: {}\n\n',
+      body: 'event: end\ndata: {}\n\n',
     });
   });
 
-  await page.evaluate(() => window.action("command", {}, {
-    url: "/__plain_switch",
-    method: "POST",
-    retry: false,
-    key: "plain-switch",
-  }));
+  const switchDetail = await page.evaluate(async () => {
+    let detail = null;
+    window.addEventListener("hyper:actionSwitch", (event) => { detail = event.detail; }, {
+      once: true,
+    });
+    await window.action("command", {}, {
+      url: "/__plain_switch",
+      method: "POST",
+      retry: false,
+      key: "plain-switch",
+    });
+    return detail;
+  });
 
   expect(headers).toHaveLength(2);
   expect(headers[0]["x-hyper-request-id"]).not.toBe(headers[1]["x-hyper-request-id"]);
   expect(headers[1]["last-event-id"]).toBeUndefined();
   expect(JSON.parse(headers[1]["x-hyper-data"])).toEqual({ job_id: "7" });
+  expect(switchDetail).toMatchObject({ method: "POST", retry: false });
 });
 
 test("an external replacement aborts the complete switched workflow", async ({ page }) => {
@@ -192,7 +288,7 @@ test("an external replacement aborts the complete switched workflow", async ({ p
       await route.fulfill({
         status: 200,
         contentType: "text/event-stream",
-        body: 'event: switch_action\ndata: {"name":"watch","method":"GET","retry":false}\n\n',
+        body: 'event: switch_action\ndata: {"name":"watch","method":"GET"}\n\n',
       });
       return;
     }
@@ -258,7 +354,7 @@ test("malformed switches and switch loops fail without retrying", async ({ page 
     await route.fulfill({
       status: 200,
       contentType: "text/event-stream",
-      body: 'event: switch_action\ndata: {"name":"loop","method":"GET","retry":false}\n\n',
+      body: 'event: switch_action\ndata: {"name":"loop","method":"GET"}\n\n',
     });
   });
   const loop = await page.evaluate(() => window.action("loop", {}, {

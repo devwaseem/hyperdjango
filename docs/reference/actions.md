@@ -31,17 +31,15 @@ Behavior:
 Optional transport metadata:
 
 ```python
-@action(method="GET", retry=True)
+@action(method="GET")
 def watch(self, request, job_id):
     ...
 ```
 
 - `method: Literal["GET", "POST"]` declares and enforces the accepted HTTP method
-- `retry: bool` declares the destination SSE retry policy used by `switch_to()`
-- `retry` does not override direct `$action(...)` or `window.action(...)` calls; those
-  retain their client-provided retry option
-- legacy actions may omit both values, but such actions cannot be switch destinations
-- switch call sites cannot override either value
+- actions may omit `method`, but such actions cannot be `switch_to()` destinations
+- retry is not action metadata; the client defaults GET requests to retry and POST
+  requests not to retry, with an explicit client `retry` option taking precedence
 
 ## `Actions(*items)`
 
@@ -188,6 +186,58 @@ Event emitted to the client runtime:
 
 - `redirect`
 
+## `Checkpoint(name)`
+
+Import:
+
+```python
+from hyperdjango import Checkpoint
+```
+
+Arguments:
+
+- `name: str`
+
+Behavior:
+
+- marks a completed stage in a resumable GET action stream
+- emits a control-only `checkpoint` event with ID
+  `<X-Hyper-Request-ID>:checkpoint:<name>`
+- does not produce a DOM update or application event
+- requires a GET request and a valid `X-Hyper-Request-ID`
+- each name may be emitted only once in a response
+- names must match `[A-Za-z0-9][A-Za-z0-9._-]{0,63}`
+
+Yield a checkpoint after the action items for a completed stage. On a reconnect, use
+`get_resume_checkpoint(...)` to select the next stage; HyperDjango does not
+automatically skip action items.
+
+## `get_resume_checkpoint(request, *, allowed)`
+
+Import:
+
+```python
+from hyperdjango import get_resume_checkpoint
+```
+
+Arguments:
+
+- `request: HttpRequest`
+- `allowed: Sequence[str]`, the unique ordered checkpoint names recognized by the
+  current action
+
+Return value:
+
+- `ResumeCheckpoint(name, index)` when `Last-Event-ID` is a valid checkpoint for this
+  GET request and its `X-Hyper-Request-ID`
+- `None` for an initial request or a malformed, stale, cross-request, unknown, or
+  non-GET cursor
+
+`index` is the checkpoint's zero-based position in `allowed`. The header is untrusted
+client input: use it only after normal authentication and authorization, and keep all
+correctness-critical job state in shared durable storage. A retry is a new request, not
+a continuation of the original Python generator.
+
 ## `action.switch_to(*args, **kwargs)`
 
 Preferred API for constructing a terminal `SwitchAction`:
@@ -201,7 +251,7 @@ Behavior:
 - binds arguments against the referenced action's Python signature after `self` and
   `request`
 - validates required, unknown, duplicated route, and positional arguments
-- derives the wire name, HTTP method, and retry policy from `@action`
+- derives the wire name and HTTP method from `@action`
 - inherits the current endpoint and client workflow lane
 - builds `SwitchAction` internally; direct construction is not normally needed
 
@@ -233,7 +283,9 @@ Behavior:
 
 - terminal for the current stream; later items are not delivered
 - starts a normal action request without navigation
-- gives the destination a new request ID and a fresh SSE resume sequence
+- gives the destination a new request ID and no inherited checkpoint
+- omits retry from the wire payload; the client recomputes the destination default from
+  its method (GET retries, POST does not)
 - transfers lane/loading ownership across the logical workflow
 - emits `switch_action` on SSE and `hyper:actionSwitch` in the browser
 - does not make the originating command idempotent

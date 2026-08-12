@@ -132,6 +132,60 @@ HYPER_DEBUG_TOOLBAR_CONFIG = {
 }
 ```
 
+### Inspector access-log filter
+
+Inspector endpoint requests originate from Django's `django.server` logger. They
+remain visible by default: HyperDjango does not mutate Django's global `LOGGING`
+setting or install a process-wide filter. Projects that do not want those internal
+HTTP access-log lines can opt in with this complete Django logging configuration:
+
+```python
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "filters": {
+        "skip_hyperdjango_request_inspector": {
+            "()": "hyperdjango.integrations.devtools.logging.RequestInspectorAccessLogFilter",
+        },
+    },
+    "formatters": {
+        "django.server": {
+            "()": "django.utils.log.ServerFormatter",
+            "format": "[{server_time}] {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "django.server": {
+            "level": "INFO",
+            "class": "logging.StreamHandler",
+            "formatter": "django.server",
+            "filters": ["skip_hyperdjango_request_inspector"],
+        },
+    },
+    "loggers": {
+        "django.server": {
+            "handlers": ["django.server"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+}
+```
+
+For an existing `LOGGING` dictionary, merge the filter definition into `filters` and
+add `"skip_hyperdjango_request_inspector"` to the `filters` list on the handler used by
+`django.server`.
+
+`RequestInspectorAccessLogFilter` normalizes
+`HYPER_DEBUG_TOOLBAR_CONFIG["URL_PREFIX"]` before comparing it with the request path:
+the default `"__hyperdebug__"` setting matches `/__hyperdebug__/` and its descendants,
+and custom prefixes work the same way. It reads `record.request.path_info`, falling
+back safely to `record.request.path`. Only matching records are suppressed. Records
+without an attached request and ordinary page or action paths remain visible. The
+filter belongs on the handler because changing the name of an already-created
+`django.server` record would not re-route it through another logger.
+
 ## `HYPER_SWITCH_ACTION_MAX_DEPTH`
 
 Type: `int`. Default: `4`.

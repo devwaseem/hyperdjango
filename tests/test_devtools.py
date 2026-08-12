@@ -177,8 +177,8 @@ resumed_id = resumed.headers["X-HyperDjango-Debug-ID"]
 list(resumed.streaming_content)
 resumed_result = client.get(f"/__hyperdebug__/requests/{resumed_id}/").json()["record"]["results"][0]
 assert resumed_result["resume_from"] == "resume-1:1"
-assert resumed_result["items"][0]["event_id"] == "resume-1:1"
-assert resumed_result["items"][0]["delivered"] is False
+assert resumed_result["items"][0]["event_id"] is None
+assert resumed_result["items"][0]["delivered"] is True
 assert resumed_result["items"][1]["delivered"] is True
 
 cancelled = client.post("/", HTTP_X_HYPER_ACTION="stream")
@@ -402,6 +402,22 @@ def test_devtools_assets_expose_rich_brutalist_inspector() -> None:
     assert "hdd-json" not in styles
     assert 'data-action="pause"' in runtime
     assert 'data-action="clear"' in runtime
+    stylesheet_ready = runtime.index("stylesheetReady = true;")
+    restore_launcher = runtime.index("restoreLauncherX();")
+    assert restore_launcher < stylesheet_ready
+    initialize_toolbar = runtime[
+        runtime.index("async function initializeToolbar()") :
+    ]
+    assert "restoreLauncherX();" not in initialize_toolbar
+    assert "await new Promise((resolve) => requestAnimationFrame(resolve));" in runtime
+    assert "const fallback = 8;" in runtime
+    assert 'navigation.type === "reload"' in runtime
+    assert "clearUnpinnedHistoryAfterReload" in runtime
+    assert 'await postJSON(debugUrl("controls/clear/"))' in runtime
+    assert "if (initialId && !clearedOnReload)" in runtime
+    assert "if (initialId) window.__hyperdjangoDevtools.refresh();" in runtime
+    assert "if (id) loadHistory();" in runtime
+    assert "if (id) select(id);" not in runtime
     assert 'data-action="fullscreen"' in runtime
     assert 'data-slot="launcher-grip"' in runtime
     assert 'data-slot="launcher-count"' in runtime

@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## 0.41.0 - 2026-08-12
+
+- Cleared unpinned Request Inspector traces on full browser refresh while preserving pinned traces; documented that both traces and pins otherwise live only in Django process memory.
+- Kept the currently selected Request Inspector trace stable when newer traces arrive;
+  incoming traces now update the request tape without stealing the detail view.
+- Restored the collapsed Request Inspector launcher position only after its isolated
+  stylesheet and fonts finish loading, preventing refresh-time left/right jumps caused
+  by measuring an unstyled launcher.
+- Added an opt-in `RequestInspectorAccessLogFilter` for suppressing only the Request
+  Inspector's internal `django.server` access logs while preserving ordinary page and
+  action request logs and leaving Django logging unchanged by default.
+- Changed SSE retry selection to a client-only, method-aware policy: GET actions retry
+  by default, POST actions do not, and an explicit per-call `retry` boolean overrides
+  either default. Removed `retry` from `@action`, action metadata, and the
+  `SwitchAction` wire payload; switched destinations now recompute their default from
+  their own method instead of inheriting source policy.
+- Replaced automatic numeric event IDs and server replay-and-skip behavior with explicit
+  named GET-stream checkpoints. Actions can yield `Checkpoint(name)`, producing the
+  control-only marker `event: checkpoint` with ID
+  `<request-id>:checkpoint:<name>`, and use
+  `get_resume_checkpoint(request, allowed=...)` to skip completed stages on a new retry
+  request. Invalid, stale, cross-request, unknown, and non-GET cursors safely restart.
+
 ## 0.40.1 - 2026-08-12
 
 - Prevented refresh-time Request Inspector flashes by concealing the outgoing toolbar during unload/page-hide, waiting for its independent fonts before reveal, and restoring a persisted open drawer without replaying its entrance animation.

@@ -8,6 +8,7 @@ from typing import Any, Callable, Generic, Literal, ParamSpec, TypeAlias, TypeVa
 from urllib.parse import urlencode, urlsplit
 
 from hyperdjango.integrations.alpine.actions import Signal, Signals
+from hyperdjango.sse import validate_checkpoint_name
 
 
 SwapMode: TypeAlias = Literal[
@@ -72,16 +73,13 @@ class Action(Generic[P, R]):
         *,
         name: str,
         method: ActionMethod | None,
-        retry: bool | None,
     ) -> None:
         self.func = func
         self.action_name = name
         self.method = method
-        self.retry = retry
         self.owner: type[Any] | None = None
         self._hyper_action_name = name
         self._hyper_action_method = method
-        self._hyper_action_retry = retry
         update_wrapper(self, func)
 
     def __set_name__(self, owner: type[Any], name: str) -> None:
@@ -163,11 +161,9 @@ class BoundAction(Generic[P, R]):
         self.instance = instance
         self.action_name = action.action_name
         self.method = action.method
-        self.retry = action.retry
         self.owner = action.owner
         self._hyper_action_name = action.action_name
         self._hyper_action_method = action.method
-        self._hyper_action_retry = action.retry
         self.__self__ = instance
         update_wrapper(self, action.func)
         parameters = list(signature(action.func).parameters.values())
@@ -269,25 +265,33 @@ class Redirect:
     url: str
 
 
+@dataclass(frozen=True, slots=True)
+class Checkpoint:
+    """Mark a completed stage in a resumable GET action stream."""
+
+    name: str
+
+    def __post_init__(self) -> None:
+        validate_checkpoint_name(self.name)
+
+
 @dataclass(slots=True)
 class SwitchAction:
     """Terminate this action stream and start a separate client action.
 
-    This is a command-to-query handoff, not an idempotency mechanism. Callers
-    must disable retries for non-idempotent commands and make the destination
-    safe to execute again.
+    This is a command-to-query handoff, not an idempotency mechanism. The
+    client determines whether the destination request may be retried.
     """
 
     action: Action[Any, Any] | BoundAction[Any, Any]
     arguments: dict[str, Any] = field(default_factory=dict)
     endpoint: ActionEndpoint | None = None
 
-    def resolve(self) -> tuple[str, dict[str, Any], ActionMethod, str | None, bool]:
+    def resolve(self) -> tuple[str, dict[str, Any], ActionMethod, str | None]:
         method = self.action.method
-        retry = self.action.retry
-        if method is None or retry is None:
+        if method is None:
             raise TypeError(
-                f"Action '{self.action.action_name}' must declare method= and retry= "
+                f"Action '{self.action.action_name}' must declare method= "
                 "before it can be used as a SwitchAction destination"
             )
         url = self.endpoint.resolve(self.action) if self.endpoint else None
@@ -296,7 +300,6 @@ class SwitchAction:
             self.arguments,
             cast(ActionMethod, method),
             url,
-            retry,
         )
 
 
@@ -319,6 +322,7 @@ ActionItem = (
     | Event
     | Delete
     | Redirect
+    | Checkpoint
     | SwitchAction
     | History
     | LoadJS
@@ -360,7 +364,6 @@ def action(
     func_or_name: Callable[P, R] | str | None = None,
     *,
     method: ActionMethod | None = None,
-    retry: bool | None = None,
 ) -> Callable[[Callable[P, R]], Action[P, R]] | Action[P, R]:
     normalized_method: ActionMethod | None = None
     if method is not None:
@@ -375,7 +378,6 @@ def action(
             func,
             name=action_name,
             method=normalized_method,
-            retry=retry,
         )
 
     if callable(func_or_name):

@@ -33,19 +33,19 @@ def _read_stream(response) -> bytes:
 
 
 class DestinationPage(HyperView):
-    @action(method="GET", retry=True)
+    @action(method="GET")
     def watch_build(self, request, package_id: str, job_id: str):
         return HTML(content=f"{package_id}:{job_id}")
 
 
 class OtherPage(HyperView):
-    @action(method="GET", retry=True)
+    @action(method="GET")
     def unrelated(self, request):
         return HTML(content="unrelated")
 
 
 class SourcePage(HyperView):
-    @action(method="POST", retry=False)
+    @action(method="POST")
     def start_build(self, request, package_id: str):
         return DestinationPage.watch_build.at(
             "build-detail",
@@ -77,13 +77,12 @@ def test_bound_action_switch_to_builds_internal_switch_action() -> None:
         {"job_id": "job-1"},
         "GET",
         None,
-        True,
     )
 
 
 def test_switch_to_uses_the_decorated_wire_name() -> None:
     class NamedPage(HyperView):
-        @action("build_status", method="GET", retry=True)
+        @action("build_status", method="GET")
         def watch_build(self, request, job_id: str):
             return HTML(content=job_id)
 
@@ -110,7 +109,7 @@ def test_switch_destination_requires_declared_transport_metadata() -> None:
         def watch(self, request):
             return HTML(content="watch")
 
-    with pytest.raises(TypeError, match="must declare method= and retry="):
+    with pytest.raises(TypeError, match="must declare method="):
         LegacyPage().watch.switch_to()
 
 
@@ -128,7 +127,7 @@ def test_cross_endpoint_switch_reverses_and_validates_route_owner() -> None:
 
     assert body == (
         b'event: switch_action\ndata: {"name": "watch_build", "data": '
-        b'{"job_id": "job-42"}, "method": "GET", "retry": true, '
+        b'{"job_id": "job-42"}, "method": "GET", '
         b'"url": "/builds/pkg-1/?panel=status"}\n\n'
     )
 

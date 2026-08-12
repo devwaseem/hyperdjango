@@ -19,16 +19,21 @@ Action responses include no-store/no-cache and `Vary` headers for Hyper request 
 - avoid caching action JSON/partial responses in CDN edge caches
 - preserve `X-Hyper-Request-ID`, `Last-Event-ID`, and `X-Hyper-Switch-Depth`
 
-For command-to-query handoffs, verify the originating mutation uses `retry: false`,
-commits durable state before returning `action.switch_to(...)`, and can be recovered by refresh if
-the response is lost. Audit destination watchers as genuinely side-effect-free and test
-their ordered replay or idempotent replacement-patch contract under reconnection. Set
+For command-to-query handoffs, verify the originating mutation uses POST (which does not
+retry by default), commits durable state before returning `action.switch_to(...)`, and
+can be recovered by refresh if the response is lost. Audit GET destination watchers as
+genuinely side-effect-free and test their named-checkpoint or idempotent
+replacement-patch contract under reconnection. The switch payload must not carry retry;
+the client recomputes the destination default from its method. Set
 `HYPER_SWITCH_ACTION_MAX_DEPTH` only if the default four-switch loop bound is too small.
 
 ## Security
 
 - keep Django CSRF middleware enabled
 - send CSRF cookie or render `{% csrf_token %}` in base layout
+- treat `X-Hyper-Request-ID` and `Last-Event-ID` as untrusted progress metadata; never
+  let a resume checkpoint bypass authentication, authorization, tenant, or resource
+  validation
 - if using CSP, use Django's CSP middleware/context processor or otherwise
   expose `request._csp_nonce` so HyperDjango can nonce rendered asset tags,
   runtime scripts, and dynamically activated scripts
@@ -56,8 +61,13 @@ their ordered replay or idempotent replacement-patch contract under reconnection
 - verify 422 validation flows for form-driven `$action(..., {}, { form })` submits
 - for every command-to-query handoff, interrupt the watcher in an E2E test and assert:
   the command was sent once, the watcher reconnected with a distinct command/watcher
-  request ID pair, only the watcher inherited its own `Last-Event-ID`, and keyed loading
-  remained active until the final watcher completed
+  request ID pair, only the watcher reused its own request ID and named
+  `Last-Event-ID`, and keyed loading remained active until the final watcher completed
+- for each checkpointed GET stream, interrupt after every marker and assert that only
+  later stages execute; also verify stale, malformed, and cross-request cursors restart
+  safely
+- confirm GET actions retry by default, POST actions do not, and any POST that explicitly
+  sets `retry: true` deduplicates side effects in shared durable storage
 - test configured switch-depth rejection and external abort/replacement of the complete
   chain when an application uses multi-switch workflows
 

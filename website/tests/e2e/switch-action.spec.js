@@ -61,7 +61,7 @@ test("website demonstrates a command-to-query SwitchAction handoff", async ({ pa
   expect(requests[1].requestId).toBe(requests[2].requestId);
   expect(requests[0].lastEventId).toBeUndefined();
   expect(requests[1].lastEventId).toBeUndefined();
-  expect(requests[2].lastEventId).toMatch(/:1$/);
+  expect(requests[2].lastEventId).toMatch(/:checkpoint:connected$/);
   expect(requests[0].switchDepth).toBeUndefined();
   expect(requests[1].switchDepth).toBe("1");
   expect(requests[2].switchDepth).toBe("1");

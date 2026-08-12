@@ -78,8 +78,8 @@ test.describe.serial("HyperDjango request inspector", () => {
 
   test("loads independently and supports launcher, drawer, fullscreen, keyboard, and dragging", async ({ page }) => {
     await visit(page);
-    await expect(page.getByText("v0.40.1 · Latest release")).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Command, then watch" })).toBeVisible();
+    await expect(page.getByText("v0.41.0 · Latest release")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Resume what matters" })).toBeVisible();
     await expect(page.getByRole("link", { name: /Open inspector guide/ })).toHaveAttribute("href", "/docs/dev-toolbar");
     const root = toolbar(page);
     await expect(root.locator("[data-slot='launcher-count']")).toHaveText("0");
@@ -170,6 +170,31 @@ test.describe.serial("HyperDjango request inspector", () => {
     await expect(toolbar(page)).toHaveCSS("opacity", "1");
   });
 
+  test("keeps the collapsed launcher position across refreshes", async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.removeItem("hyperdjango.debug.open");
+      localStorage.removeItem("hyperdjango.debug.launcherX");
+    });
+    await page.goto("/", { waitUntil: "networkidle" });
+    await expect(toolbar(page)).toHaveCSS("visibility", "visible");
+
+    const launcher = toolbar(page).locator(".hdd-launcher");
+    const initial = await launcher.boundingBox();
+    expect(initial).not.toBeNull();
+    expect(initial.x).toBeCloseTo(8, 0);
+    expect(initial.x + initial.width).toBeLessThanOrEqual(
+      await page.evaluate(() => window.innerWidth),
+    );
+
+    for (let refresh = 0; refresh < 3; refresh += 1) {
+      await page.reload({ waitUntil: "networkidle" });
+      await expect(toolbar(page)).toHaveCSS("visibility", "visible");
+      const current = await toolbar(page).locator(".hdd-launcher").boundingBox();
+      expect(current.x).toBeCloseTo(initial.x, 0);
+      expect(current.width).toBeCloseTo(initial.width, 0);
+    }
+  });
+
   test("navigates the focused views and exposes complete route, request, database, and copy data", async ({ page, context }) => {
     await context.grantPermissions(["clipboard-read", "clipboard-write"]);
     await context.addCookies([{
@@ -188,7 +213,7 @@ test.describe.serial("HyperDjango request inspector", () => {
     expect(llms).toContain("## Request Inspector");
     expect(llms).toContain("authoritative enablement switch");
     expect(llms).toContain("## Django Debug Toolbar");
-    expect(llms).toContain("## Current Release: 0.40.1");
+    expect(llms).toContain("## Current Release: 0.41.0");
     for (const path of [
       "/docs/history",
       "/docs/cookbook",
@@ -292,7 +317,17 @@ test.describe.serial("HyperDjango request inspector", () => {
     const pin = toolbar(page).locator(`[data-pin-request-id='${actionRecord.id}']`);
     await pin.click();
     await expect(pin).toHaveClass(/is-active/);
+    await page.evaluate(() => window.Hyper.action(
+      "increment_signal_demo",
+      { count: 0 },
+      { method: "POST" },
+    ));
+    await selectTrace(page, (record) => record.action === "increment_signal_demo");
+    await expect.poll(async () => (await latestHistory(page)).length).toBe(2);
     await page.reload({ waitUntil: "networkidle" });
+    await expect.poll(async () => await latestHistory(page)).toEqual([
+      expect.objectContaining({ id: actionRecord.id, pinned: true }),
+    ]);
     await openToolbar(page);
     const unpin = toolbar(page).locator(`[data-pin-request-id='${actionRecord.id}']`);
     await expect(unpin).toBeVisible();
@@ -309,6 +344,37 @@ test.describe.serial("HyperDjango request inspector", () => {
     await expect.poll(async () => (
       await latestHistory(page)
     ).filter((record) => record.action === "toggle_todo").length).toBeGreaterThan(1);
+  });
+
+  test("keeps the selected trace when a newer trace arrives", async ({ page }) => {
+    await visit(page);
+    await page.evaluate(() => window.Hyper.action(
+      "increment_signal_demo",
+      { count: 0 },
+      { method: "POST" },
+    ));
+    const selected = await selectTrace(
+      page,
+      (record) => record.action === "increment_signal_demo",
+    );
+    await openToolbar(page);
+
+    await page.evaluate(() => window.Hyper.action(
+      "increment_signal_demo",
+      { count: 1 },
+      { method: "POST" },
+    ));
+    await expect.poll(async () => (
+      await latestHistory(page)
+    ).filter((record) => record.action === "increment_signal_demo").length).toBe(2);
+    await expect(toolbar(page).locator(".hdd-history-entry")).toHaveCount(2);
+
+    await expect(toolbar(page).locator("[data-slot='header-metrics']")).toContainText(
+      selected.id.slice(0, 8),
+    );
+    await expect(
+      toolbar(page).locator(`[data-request-id='${selected.id}']`),
+    ).toHaveClass(/is-active/);
   });
 
   test("renders a captured HyperDjango exception with traceback details", async ({ page }) => {

@@ -18,7 +18,7 @@ def site_url() -> str:
 
 
 def site_version() -> str:
-    return str(getattr(settings, "SITE_VERSION", "0.40.1"))
+    return str(getattr(settings, "SITE_VERSION", "0.41.0"))
 
 
 def absolute_url(path: str = "/") -> str:

@@ -94,12 +94,12 @@ but the resulting durable state needs a long-lived, retryable watcher.
 ```python
 from hyperdjango.actions import HTML, action
 
-@action(method="POST", retry=False)
+@action(method="POST")
 def start_package_build(self, request, package_id):
     job = start_package_build(package_id=package_id)
     return self.watch_package_build.switch_to(job_id=str(job.pk))
 
-@action(method="GET", retry=True)
+@action(method="GET")
 def watch_package_build(self, request, job_id):
     for snapshot in watch_job(job_id):
         yield HTML(self.render_job(snapshot), target="#package-build-status")
@@ -107,9 +107,13 @@ def watch_package_build(self, request, job_id):
 
 ```html
 <button @click="$action('start_package_build', { package_id }, {
-  method: 'POST', retry: false, key: 'package-build'
+  method: 'POST', key: 'package-build'
 })">Build</button>
 ```
+
+Retry is a client transport policy. GET requests retry by default, while POST requests
+do not; an explicit client `retry: true` or `retry: false` overrides either default.
+The Python `@action` decorator does not accept retry metadata.
 
 `switch_to()` validates the destination's Python signature and returns a `SwitchAction`.
 Use keyword arguments for clarity; they become destination action data. Parameters
@@ -120,8 +124,9 @@ on the server before a switch payload is emitted.
 `SwitchAction` is terminal, like `Redirect`; later yielded items are not delivered. It
 does not navigate. The runtime transfers the request lane and loading lifecycle, emits
 `hyper:actionSwitch`, and starts the destination with a new `X-Hyper-Request-ID`, no
-inherited `Last-Event-ID`, and the destination's own retry policy. `url` defaults to the
-current action URL; `at()` can replace it only with a locally reversed Django route. Chains are limited to four
+inherited `Last-Event-ID`, and a retry default recomputed from the destination method.
+Thus a POST command does not retry, while a switched GET watcher does. `url` defaults to
+the current action URL; `at()` can replace it only with a locally reversed Django route. Chains are limited to four
 switches by default; configure the browser with `switchActionMaxDepth` and Django with
 `HYPER_SWITCH_ACTION_MAX_DEPTH` when a longer legitimate chain is required. Application
 code should normally use `switch_to()` rather than instantiate `SwitchAction` directly.
@@ -145,8 +150,8 @@ return BuildDetailPage.watch_package_build.at(
 ).switch_to(job_id=str(job.pk))
 ```
 
-The action reference still supplies the wire name, HTTP method, and retry policy. `at()`
-supplies only URL routing. HyperDjango resolves the route with Django `reverse()`, checks
+The action reference still supplies the wire name and HTTP method. `at()` supplies only
+URL routing. HyperDjango resolves the route with Django `reverse()`, checks
 that the referenced action belongs to the resolved page, rejects absolute/external
 URLs, and keeps route kwargs separate from action data. This respects namespaces,
 mount prefixes, converters, and normal Django URL escaping. Raw destination URLs are
@@ -161,39 +166,34 @@ return self.watch_package_build.at(
 ).switch_to(job_id=str(job.pk))
 ```
 
-Actions used as switch destinations must explicitly declare both transport properties:
+Actions used as switch destinations must explicitly declare their HTTP method:
 
 ```python
-@action(method="GET", retry=True)
+@action(method="GET")
 ```
 
 Declared methods are enforced by server dispatch. Legacy `@action` declarations remain
-valid for ordinary calls, but cannot be switch destinations until `method` and `retry`
-are declared. There is no per-switch override, preventing a call site from weakening
-the destination action's transport contract. The declared retry value controls
-server-driven switches only; direct JavaScript or Alpine calls still use their own
-`retry` option. The originating command must therefore still be invoked with
-`retry: false` as shown above.
+valid for ordinary calls, but cannot be switch destinations until `method` is declared.
+The switch wire payload does not contain retry metadata. The browser independently
+applies its method-aware policy to the destination, and does not inherit the source
+request's explicit retry option.
 
 Important safety constraints:
 
-- `switch_to()` does not make the command idempotent. Invoke a non-idempotent command
-  with `retry: false`.
+- `switch_to()` does not make the command idempotent. POST requests do not retry by
+  default; enable `retry: true` only when the command is safe to execute again.
 - If the command response is lost before the switch reaches the browser, the watcher
   cannot start. The command must leave durable, queryable state so refresh can discover
   its outcome.
 - The destination must be safe to execute again. A read-only watcher must not write
   database state, enqueue work, initialize a workflow, send messages, or call mutating
   external APIs.
-- Read-only is not the same as deterministic. Sequence-based `Last-Event-ID` resumption
-  assumes a reconnect can reproduce the same ordered events. If a changing read model
-  cannot do that, emit idempotent replacement patches (for example, replace one status
-  node with the latest snapshot) or set `retry=False` and implement an explicit fresh
-  snapshot/reconnect policy by declaring `@action(..., retry=False)` on the destination.
-- HyperDjango never infers mutation safety from the HTTP method and never silently
-  changes retry behavior.
+- Use named `Checkpoint` markers only after completed stages, and emit idempotent
+  replacement patches when a changing read model cannot reproduce incremental output.
+- HTTP method selects the client retry default; it is not proof of safety. GET watchers
+  must remain read-only, and explicitly retryable POST commands must be idempotent.
 
-Use a durable idempotency ledger when the command itself must survive automatic retry,
+Use a durable idempotency ledger when a command explicitly enables automatic retry,
 when losing the handoff response is unacceptable, or when an external side effect needs
 exactly-once coordination.
 
@@ -204,34 +204,88 @@ After upgrading HyperDjango, deploy the updated `hyper.js` with the Python packa
 cache that could keep serving the previous runtime. Projects that copied `hyper.js` into
 their own source tree must replace that copy or switch back to the packaged static file.
 
-No action signature or return type needs to change. The client adds a stable
-`X-Hyper-Request-ID`, the server assigns ordered event IDs, and a reconnect sends
-`Last-Event-ID` so events already applied in the browser are skipped.
+The client owns the retry decision. GET requests retry by default according to
+`Hyper.configure({ sseRetry: ... })`; POST requests do not. A per-call boolean
+`retry` option overrides either method default. A valid SSE `retry:` field may adjust
+the delay, but cannot enable reconnects.
 
-This automatic behavior applies to responses produced through HyperDjango's action
-response pipeline. A view that returns a hand-built `StreamingHttpResponse` must assign
-stable event IDs and honor `Last-Event-ID` itself, or explicitly disable retries for the
-client call.
+### Resume a GET stream from named checkpoints
 
-### Make side effects idempotent
+A retry creates a new Django request; it cannot continue the old generator frame. Yield
+a named `Checkpoint` after each completed stage, then inspect the acknowledged marker at
+the beginning of the next request:
 
-A reconnect is a new HTTP request and can execute the action again. Event resumption
-prevents duplicate DOM patches, but it does not by itself prevent duplicate database
-writes, emails, payments, jobs, or calls to another service.
+```python
+from hyperdjango import Checkpoint, get_resume_checkpoint
+from hyperdjango.actions import HTML, action
 
-For an action with non-idempotent side effects:
+CHECKPOINTS = ("summary", "rows", "complete")
+
+
+@action(method="GET")
+def stream_report(self, request, report_id):
+    resume = get_resume_checkpoint(request, allowed=CHECKPOINTS)
+    completed = resume.index if resume else -1
+
+    if completed < 0:
+        yield HTML(self.render_summary(report_id), target="#summary", swap="inner")
+        yield Checkpoint("summary")
+
+    if completed < 1:
+        yield HTML(self.render_rows(report_id), target="#rows", swap="inner")
+        yield Checkpoint("rows")
+
+    if completed < 2:
+        yield HTML(self.render_status(report_id), target="#status", swap="inner")
+        yield Checkpoint("complete")
+```
+
+Each marker is sent without a data payload:
+
+```
+event: checkpoint
+id: <request-id>:checkpoint:<name>
+
+```
+
+The runtime treats it as a control event, records it only after preceding stream work
+has been processed, and sends it as `Last-Event-ID` if the same GET request reconnects.
+`get_resume_checkpoint(...)` validates the method, request ID, wire format, and ordered
+allow-list. It returns a `ResumeCheckpoint(name, index)` for a recognized marker, or
+`None` so the action safely starts from the beginning.
+
+Checkpoint names must be unique in the allow-list and in each response, and must match
+`[A-Za-z0-9][A-Za-z0-9._-]{0,63}`. Keep names and their order stable across deployments.
+Checkpointing is explicit: ordinary action events have no automatic sequence IDs, and
+HyperDjango neither replays nor skips them for you.
+
+Treat `Last-Event-ID` and `X-Hyper-Request-ID` as untrusted correlation values, never as
+authentication or authorization. Run all permission and tenant checks before skipping a
+stage. A marker lives in the client request lifecycle, not durable server storage; page
+reloads, new action calls, switches, browser changes, and worker restarts do not restore
+application state. Persist correctness-critical progress in the database or another
+shared durable store. Work before a marker must also be safe to repeat if the connection
+drops before the browser acknowledges it.
+
+A hand-built `StreamingHttpResponse` is outside HyperDjango's action-item serializer. It
+must emit and validate its own stable checkpoint contract, or the caller should disable
+retries.
+
+### Make explicitly retried POST actions idempotent
+
+POST requests do not retry unless the client passes `retry: true`. If a POST must be
+retryable, deduplicate its side effects with the stable request ID:
 
 1. Read `X-Hyper-Request-ID` from the request.
 2. Store it with a unique constraint in shared, durable storage.
 3. Reuse the stored outcome when the same ID appears again.
-4. Yield events in the same order when replaying the outcome, allowing
-   `Last-Event-ID` to resume at the correct position.
+4. Use the same ID as the idempotency key for downstream services that support one.
 
 ```python
 from django.db import transaction
 
 
-@action
+@action(method="POST")
 def charge(self, request):
     request_id = request.headers["X-Hyper-Request-ID"]
 
@@ -243,26 +297,20 @@ def charge(self, request):
         if created:
             attempt.complete_once()
 
-    yield HTML(
+    return HTML(
         content=self.render_payment(attempt),
         target="#payment-status",
         swap="inner",
     )
 ```
 
-Use the same request ID as the idempotency key when calling a downstream service that
-supports one. Do not rely on a process-local dictionary or cache for correctness: a
-reconnect may reach another application worker. Treat the header as an opaque correlation
-value, not as authentication or authorization.
-
-If an action cannot safely be retried yet, opt out while migrating it:
-
 ```html
-<button @click="$action('charge', {}, { retry: false })">Pay</button>
+<button @click="$action('charge', {}, { method: 'POST', retry: true })">Pay</button>
 ```
 
-The plain JavaScript equivalent is `action("charge", {}, { retry: false })`. To opt out
-for the whole application, use `Hyper.configure({ sseRetry: false })`.
+Do not rely on a process-local dictionary or cache for correctness: a reconnect may
+reach another worker. Explicitly retried POST actions still need ordinary CSRF,
+authentication, and authorization checks.
 
 ### Check the streaming path
 
@@ -276,17 +324,20 @@ particular:
 - preserve `Content-Type: text/event-stream`, `Cache-Control`, and
   `X-Accel-Buffering: no` response headers.
 
-HyperDjango emits `end` automatically for normal action streams and treats `redirect` and `switch_action` as
-terminal. A custom event-stream response must also finish with an `end`, `redirect`, or `switch_action`
-event; otherwise the client correctly treats the close as an interruption and retries.
+HyperDjango emits `end` automatically for normal action streams and treats `redirect`
+and `switch_action` as terminal. A custom event-stream response must also finish with an
+`end`, `redirect`, or `switch_action` event; otherwise a retry-enabled client correctly
+treats the close as an interruption.
 
 ### Rollout checklist
 
 - Verify a normal streamed action reaches its terminal event.
-- Interrupt a stream after one event and confirm the next request includes
-  `Last-Event-ID`.
-- Confirm the first event is not applied twice after reconnecting.
-- Confirm a `retry: false` action makes only one request when interrupted.
+- Interrupt a GET stream after a checkpoint and confirm the next request includes
+  `<request-id>:checkpoint:<name>` in `Last-Event-ID`.
+- Confirm the resumed action skips the acknowledged block and emits the next checkpoint.
+- Confirm GET retries by default and POST does not.
+- If a POST explicitly enables retries, confirm its idempotency ledger prevents repeated
+  side effects.
 - Test through the same reverse proxy, CDN, and worker topology used in production.
 - Monitor `hyper:requestRetry`, `hyper:requestRetriesFailed`, and
   `hyper:requestException` during rollout.

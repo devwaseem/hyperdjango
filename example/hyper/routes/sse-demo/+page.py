@@ -4,7 +4,8 @@ import asyncio
 
 from hyper.layouts.base import BaseLayout
 
-from hyperdjango.actions import HTML, Signal, Toast, action
+from hyperdjango.actions import Checkpoint, HTML, Signal, Toast, action
+from hyperdjango.sse import get_resume_checkpoint
 
 
 class PageView(BaseLayout):
@@ -75,15 +76,18 @@ class PageView(BaseLayout):
             }
         )
 
-    @action
+    @action(method="GET")
     async def retry_demo(self, request, **params):
-        yield HTML(
-            content="<div data-retry-first>First event delivered.</div>",
-            target="#stream-log",
-            swap="inner",
-        )
+        resume = get_resume_checkpoint(request, allowed=("connected",))
+        if resume is None:
+            yield HTML(
+                content="<div data-retry-first>First event delivered.</div>",
+                target="#stream-log",
+                swap="inner",
+            )
+            yield Checkpoint("connected")
 
-        if not request.headers.get("Last-Event-ID"):
+        if resume is None:
             raise ConnectionResetError("Intentional browser-test stream interruption")
 
         yield HTML(
@@ -92,22 +96,25 @@ class PageView(BaseLayout):
             swap="append",
         )
 
-    @action(method="POST", retry=False)
+    @action(method="POST")
     def start_package_build(self, request, package_id="demo", **params):
         type(self).package_builds_started += 1
         job_id = f"{package_id}-{type(self).package_builds_started}"
         return self.watch_package_build.switch_to(job_id=job_id)
 
-    @action(method="GET", retry=True)
+    @action(method="GET")
     async def watch_package_build(self, request, job_id, **params):
-        yield HTML(
-            content=(
-                f'<div data-build-first data-job-id="{job_id}">Watcher connected.</div>'
-            ),
-            target="#package-build-status",
-            swap="inner",
-        )
-        if not request.headers.get("Last-Event-ID"):
+        resume = get_resume_checkpoint(request, allowed=("connected",))
+        if resume is None:
+            yield HTML(
+                content=(
+                    f'<div data-build-first data-job-id="{job_id}">Watcher connected.</div>'
+                ),
+                target="#package-build-status",
+                swap="inner",
+            )
+            yield Checkpoint("connected")
+        if resume is None:
             raise ConnectionResetError("Intentional switched-watcher interruption")
         yield HTML(
             content=(

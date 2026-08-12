@@ -8,6 +8,12 @@ The toolbar is intended for development and controlled demonstrations. It keeps 
 bounded request history in process memory and injects its interface only into normal
 HTML responses.
 
+Trace snapshots and pin state live in the Django process; they are not written to a
+database, cache, browser storage, or disk. A full browser refresh clears the process
+store's unpinned traces before loading the new request tape. Pinned traces survive the
+refresh, bounded-history eviction, and **Clear**, but all traces and pins disappear when
+the Django process restarts.
+
 ## Enable it
 
 Add the integration app and middleware only in development:
@@ -78,6 +84,62 @@ Inspector endpoints and URLs in Django Debug Toolbar's `djdt` namespace are alwa
 excluded from capture and injection. This prevents DJDT history polling (for example,
 `__debug__/history_sidebar/`) from recursively filling HyperDjango's request tape.
 
+### Optionally hide inspector access logs
+
+Django emits requests to the inspector's own endpoints through the `django.server`
+logger, just like ordinary page and action requests. HyperDjango does not change
+Django's global logging configuration or hide these requests by default. To suppress
+only the inspector endpoint access logs, opt in by attaching
+`RequestInspectorAccessLogFilter` to the `django.server` console handler:
+
+```python
+# settings.py
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "filters": {
+        "skip_hyperdjango_request_inspector": {
+            "()": "hyperdjango.integrations.devtools.logging.RequestInspectorAccessLogFilter",
+        },
+    },
+    "formatters": {
+        "django.server": {
+            "()": "django.utils.log.ServerFormatter",
+            "format": "[{server_time}] {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "django.server": {
+            "level": "INFO",
+            "class": "logging.StreamHandler",
+            "formatter": "django.server",
+            "filters": ["skip_hyperdjango_request_inspector"],
+        },
+    },
+    "loggers": {
+        "django.server": {
+            "handlers": ["django.server"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+}
+```
+
+If the project already defines `LOGGING`, add the filter definition and its name to
+the existing handler used by `django.server` instead of replacing unrelated logging
+configuration.
+
+The filter reads `HYPER_DEBUG_TOOLBAR_CONFIG["URL_PREFIX"]` and normalizes it as a
+request path. The default setting, `"__hyperdebug__"`, therefore matches
+`/__hyperdebug__/` and its descendants; a custom configured prefix is handled the same
+way. It checks `record.request.path_info`, falling back safely to
+`record.request.path`. Records without a request, and normal page or action requests
+outside that prefix, continue to be logged. A handler filter is used because Django
+has already created these records as `django.server`; changing a record's logger name
+at that point would not route it through a different logger configuration.
+
 ### Enabling it independently of `DEBUG`
 
 `HYPER_DEBUG_TOOLBAR` is the authoritative enablement switch. `DEBUG=True` is the
@@ -103,9 +165,12 @@ The inspector is divided into a request tape and a detail workspace:
 
 - filter history by path, method, handler, or action
 - select an earlier request without reloading the page
+- keep inspecting the selected trace while newer traces append to the Request Tape;
+  incoming traces never steal the detail view
 - filter by all requests, actions, SSE responses, or errors
 - pin or unpin an individual trace from the control on its Request Tape item so bounded-history eviction and **Clear** preserve it
-- pause and resume capture, or clear all unpinned traces
+- pause and resume capture, or clear all unpinned traces; a full page refresh performs
+  the same pin-aware clear automatically
 - replay a captured action after an explicit confirmation
 - use **Locate** beside DOM targets, triggers, focus references, and observed nodes to
   close the drawer, scroll the exact element into view, and highlight it briefly; new
@@ -173,7 +238,7 @@ state may belong to a page that is no longer open.
 
 - action name, requested target, and merged arguments
 - typed `HTML`, `Delete`, `Signal`, `Signals`, `Toast`, `Event`, `History`,
-  `Redirect`, `SwitchAction`, and `LoadJS` results
+  `Redirect`, `Checkpoint`, `SwitchAction`, and `LoadJS` results
 - target and swap behavior
 - focus, transition, strict-target, swap-delay, and settle-delay options
 - history/redirect URLs, event names, script sources, statuses, and headers
@@ -181,8 +246,8 @@ state may belong to a page that is no longer open.
 - per-item sequence, event name, request-relative timestamp, gap, and payload bytes
 - client-observed reconnect, cancellation, terminal-event, and target-outcome health
 - command/query chain links with source and destination actions, separate request IDs,
-  retry configuration, and switch depth; malformed handoffs and depth-limit failures
-  appear in request diagnostics
+  the client-derived retry decision, and switch depth; malformed handoffs and
+  depth-limit failures appear in request diagnostics
 - cross-endpoint destination route names and reversed URLs without exposing action data
 
 The website's [live command-to-query demo](/#switch-action-demo) is an immediately

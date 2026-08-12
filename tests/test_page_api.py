@@ -5,6 +5,7 @@ import time
 from pathlib import Path
 
 import django
+import pytest
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse
@@ -16,6 +17,7 @@ from django.views import View
 from hyperdjango.actions import (
     Actions,
     ActionResult,
+    Checkpoint,
     Delete,
     Event,
     HTML,
@@ -34,6 +36,7 @@ from hyperdjango.page import (
 from hyperdjango.routing.compiler import build_route_view
 from hyperdjango.runtime.dispatcher import dispatch_page
 from hyperdjango.runtime.responses import compile_action_result, to_action_http_response
+from hyperdjango.sse import get_resume_checkpoint
 
 
 def _read_streaming_response(response) -> bytes:
@@ -155,7 +158,7 @@ def test_debug_toolbar_bridge_refreshes_after_body_swaps() -> None:
     assert "content.innerHTML = data.content;" in bridge
 
 
-def test_client_runtime_exposes_sse_retry_opt_out() -> None:
+def test_client_runtime_uses_method_aware_sse_retry_defaults() -> None:
     runtime = (
         Path(__file__).resolve().parent.parent
         / "hyperdjango"
@@ -165,8 +168,13 @@ def test_client_runtime_exposes_sse_retry_opt_out() -> None:
     ).read_text()
 
     assert "sseRetry: true" in runtime
-    assert "const retry = options.retry ?? options.sseRetry;" in runtime
+    assert 'return normalizeMethod(method) === "GET" && config.sseRetry;' in runtime
+    assert "const retryEnabled = resolveSSERetry(method, options.sseRetry);" in runtime
+    assert 'const retry = typeof options.retry === "boolean"' in runtime
     assert "const retryable = retryEnabled && expectSSE" in runtime
+    assert "payload.retry" not in runtime
+    assert "retry: switchedAction.retry" not in runtime
+    assert "retry: resolveSSERetry(switchedAction.method)" in runtime
 
 
 def test_client_runtime_exposes_native_network_state() -> None:
@@ -337,40 +345,136 @@ def test_action_http_response_serializes_event_dispatch() -> None:
     )
 
 
-def test_action_sse_ids_allow_an_interrupted_stream_to_resume() -> None:
+def test_action_sse_checkpoints_allow_a_get_stream_to_resume() -> None:
     _ensure_settings()
-    request = RequestFactory().post(
+    request = RequestFactory().get(
         "/demo",
         headers={"X-Hyper-Request-ID": "request-123"},
     )
 
     response = to_action_http_response(
-        [Signal(name="count", value=1), HTML(content="<div>Done</div>")],
+        [
+            Signal(name="count", value=1),
+            Checkpoint("summary"),
+            HTML(content="<div>Done</div>"),
+            Checkpoint("complete"),
+        ],
         request=request,
     )
 
     assert _read_streaming_response(response) == (
-        b'event: patch_signals\nid: request-123:1\ndata: {"count": 1}\n\n'
-        b'event: patch_html\nid: request-123:2\ndata: {"content": "<div>Done</div>", "swap": "outer"}\n\n'
-        b"event: end\nid: request-123:3\ndata: {}\n\n"
+        b'event: patch_signals\ndata: {"count": 1}\n\n'
+        b"event: checkpoint\nid: request-123:checkpoint:summary\n\n"
+        b'event: patch_html\ndata: {"content": "<div>Done</div>", "swap": "outer"}\n\n'
+        b"event: checkpoint\nid: request-123:checkpoint:complete\n\n"
+        b"event: end\ndata: {}\n\n"
     )
 
-    resumed_request = RequestFactory().post(
+    resumed_request = RequestFactory().get(
         "/demo",
         headers={
             "X-Hyper-Request-ID": "request-123",
-            "Last-Event-ID": "request-123:1",
+            "Last-Event-ID": "request-123:checkpoint:summary",
         },
     )
+    resume = get_resume_checkpoint(
+        resumed_request,
+        allowed=("summary", "complete"),
+    )
+    assert resume is not None
+    assert (resume.name, resume.index) == ("summary", 0)
+
     resumed_response = to_action_http_response(
-        [Signal(name="count", value=1), HTML(content="<div>Done</div>")],
+        [HTML(content="<div>Done</div>"), Checkpoint("complete")],
         request=resumed_request,
     )
 
     assert _read_streaming_response(resumed_response) == (
-        b'event: patch_html\nid: request-123:2\ndata: {"content": "<div>Done</div>", "swap": "outer"}\n\n'
-        b"event: end\nid: request-123:3\ndata: {}\n\n"
+        b'event: patch_html\ndata: {"content": "<div>Done</div>", "swap": "outer"}\n\n'
+        b"event: checkpoint\nid: request-123:checkpoint:complete\n\n"
+        b"event: end\ndata: {}\n\n"
     )
+
+
+@pytest.mark.parametrize(
+    "last_event_id",
+    [
+        "",
+        "another-request:checkpoint:summary",
+        "request-123:1",
+        "request-123:checkpoint:unknown",
+        "request-123:checkpoint:has:colon",
+    ],
+)
+def test_invalid_or_stale_resume_checkpoints_restart(
+    last_event_id: str,
+) -> None:
+    request = RequestFactory().get(
+        "/demo",
+        headers={
+            "X-Hyper-Request-ID": "request-123",
+            "Last-Event-ID": last_event_id,
+        },
+    )
+
+    assert get_resume_checkpoint(request, allowed=("summary", "complete")) is None
+
+
+def test_resume_checkpoint_allow_list_must_be_unique() -> None:
+    request = RequestFactory().get("/demo")
+
+    with pytest.raises(ValueError, match="must be unique"):
+        get_resume_checkpoint(request, allowed=("summary", "summary"))
+    with pytest.raises(ValueError, match="ordered sequence"):
+        get_resume_checkpoint(request, allowed="summary")  # type: ignore[arg-type]
+
+
+def test_post_request_cannot_resume_a_checkpoint() -> None:
+    request = RequestFactory().post(
+        "/demo",
+        headers={
+            "X-Hyper-Request-ID": "request-123",
+            "Last-Event-ID": "request-123:checkpoint:summary",
+        },
+    )
+
+    assert get_resume_checkpoint(request, allowed=("summary",)) is None
+
+
+def test_action_sse_checkpoints_require_get_and_unique_names() -> None:
+    _ensure_settings()
+    post_request = RequestFactory().post(
+        "/demo",
+        headers={"X-Hyper-Request-ID": "request-123"},
+    )
+    post_response = to_action_http_response(
+        [Checkpoint("saved")],
+        request=post_request,
+    )
+    with pytest.raises(ValueError, match="only supported for GET"):
+        _read_streaming_response(post_response)
+
+    get_request = RequestFactory().get(
+        "/demo",
+        headers={"X-Hyper-Request-ID": "request-123"},
+    )
+    duplicate_response = to_action_http_response(
+        [Checkpoint("saved"), Checkpoint("saved")],
+        request=get_request,
+    )
+    with pytest.raises(ValueError, match="emitted more than once"):
+        _read_streaming_response(duplicate_response)
+
+    invalid_id_request = RequestFactory().get(
+        "/demo",
+        headers={"X-Hyper-Request-ID": "invalid:request:id"},
+    )
+    invalid_id_response = to_action_http_response(
+        [Checkpoint("saved")],
+        request=invalid_id_request,
+    )
+    with pytest.raises(ValueError, match="valid X-Hyper-Request-ID"):
+        _read_streaming_response(invalid_id_response)
 
 
 def test_action_response_rejects_redirect_with_swap_fields() -> None:
@@ -593,11 +697,46 @@ def test_dispatch_page_supports_generator_actions() -> None:
     )
 
 
+def test_resumed_get_action_does_not_execute_completed_checkpoint_blocks() -> None:
+    _ensure_settings()
+    executed: list[str] = []
+    checkpoints = ("summary", "rows")
+
+    class DemoPage(HyperView):
+        @action(method="GET")
+        def watch(self, request, **params):
+            resume = get_resume_checkpoint(request, allowed=checkpoints)
+            completed = resume.index if resume else -1
+            if completed < 0:
+                executed.append("summary")
+                yield HTML(content="summary")
+                yield Checkpoint("summary")
+            if completed < 1:
+                executed.append("rows")
+                yield HTML(content="rows")
+                yield Checkpoint("rows")
+
+    request = RequestFactory().get(
+        "/demo",
+        HTTP_X_HYPER_ACTION="watch",
+        HTTP_X_HYPER_REQUEST_ID="watch-123",
+        HTTP_LAST_EVENT_ID="watch-123:checkpoint:summary",
+    )
+    response = dispatch_page(DemoPage(), request)
+
+    assert _read_streaming_response(response) == (
+        b'event: patch_html\ndata: {"content": "rows", "swap": "outer"}\n\n'
+        b"event: checkpoint\nid: watch-123:checkpoint:rows\n\n"
+        b"event: end\ndata: {}\n\n"
+    )
+    assert executed == ["rows"]
+
+
 def test_switch_action_is_typed_serialized_and_terminal_for_sync_streams() -> None:
     seen: list[str] = []
 
     class DemoPage(HyperView):
-        @action(method="GET", retry=True)
+        @action(method="GET")
         def watch(self, request, job_id):
             return HTML(content=job_id)
 
@@ -612,7 +751,7 @@ def test_switch_action_is_typed_serialized_and_terminal_for_sync_streams() -> No
     assert _read_streaming_response(response) == (
         b'event: patch_html\ndata: {"content": "before", "swap": "outer"}\n\n'
         b'event: switch_action\ndata: {"name": "watch", "data": {"job_id": "42"}, '
-        b'"method": "GET", "retry": true}\n\n'
+        b'"method": "GET"}\n\n'
     )
     assert seen == []
 
@@ -621,7 +760,7 @@ def test_switch_action_is_terminal_for_async_streams() -> None:
     seen: list[str] = []
 
     class DemoPage(HyperView):
-        @action(method="GET", retry=False)
+        @action(method="GET")
         def watch(self, request):
             return HTML(content="watching")
 
@@ -633,8 +772,8 @@ def test_switch_action_is_terminal_for_async_streams() -> None:
     response = to_action_http_response(items())
 
     assert _read_streaming_response(response) == (
-        b'event: switch_action\ndata: {"name": "watch", "data": {}, "method": "GET", '
-        b'"retry": false}\n\n'
+        b'event: switch_action\ndata: {"name": "watch", "data": {}, '
+        b'"method": "GET"}\n\n'
     )
     assert seen == []
 

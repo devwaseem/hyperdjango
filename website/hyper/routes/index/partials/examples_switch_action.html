@@ -15,22 +15,29 @@
                         <span class="w-1.5 h-1.5 bg-black/20"></span>
                         +page.py
                     </div>
-                    <pre class="text-[12px] leading-relaxed overflow-x-auto"><code class="language-python">from hyperdjango.actions import Signal, action
+                    <pre class="text-[12px] leading-relaxed overflow-x-auto"><code class="language-python">from hyperdjango.actions import Checkpoint, Signal, action
+from hyperdjango.sse import get_resume_checkpoint
 
 
 class PageView(HyperView):
-    @action(method="POST", retry=False)
+    @action(method="POST")
     def start_build(self, request, package_id: str):
         # Commit a bounded transaction or durably enqueue work.
         job = start_package_build(package_id=package_id)
 
         # The Python reference supplies the action name, GET method,
-        # retry policy, and current endpoint automatically.
+        # and current endpoint automatically.
         return self.watch_build.switch_to(job_id=str(job.pk))
 
-    @action(method="GET", retry=True)
+    @action(method="GET")
     def watch_build(self, request, job_id: str):
-        # Read-only and safe to execute again after reconnecting.
+        resume = get_resume_checkpoint(request, allowed=("connected",))
+        if resume is None:
+            yield Signal(name="build", value=read_job(job_id))
+            yield Checkpoint("connected")
+
+        # A retried GET jumps directly here after the client acknowledges
+        # the checkpoint above.
         for snapshot in watch_job(job_id):
             yield Signal(name="build", value=snapshot)</code></pre>
                 </div>
@@ -47,7 +54,6 @@ class PageView(HyperView):
     { package_id },
     {
       method: 'POST',
-      retry: false,
       key: 'package-build'
     }
   )"
@@ -62,7 +68,7 @@ class PageView(HyperView):
 
                 <div class="border-2 border-black bg-white p-4 text-xs leading-relaxed">
                     <strong class="block uppercase tracking-[0.14em] mb-2">Safety boundary</strong>
-                    <p><code>switch_to()</code> does not make the POST idempotent. Disable retry on the command, persist a discoverable outcome before switching, and keep the destination strictly read-only and replay-safe.</p>
+                    <p><code>POST</code> does not retry unless the client explicitly opts in. Persist a discoverable outcome before switching, and keep the destination strictly read-only with independently reconstructible checkpoint stages.</p>
                 </div>
             </div>
         </div>
@@ -157,7 +163,7 @@ class PageView(HyperView):
                             switched = false;
                             originalRequestId = '—';
                             destinationRequestId = '—';
-                            $action('start_switch_build', { package: 'hyperdjango' }, { method: 'POST', retry: false, key: 'switch-action-demo' });
+                            $action('start_switch_build', { package: 'hyperdjango' }, { method: 'POST', key: 'switch-action-demo' });
                         "
                         class="w-full bg-black text-white px-5 py-3 text-sm font-bold uppercase hover:bg-white hover:text-black hover:ring-2 hover:ring-black transition-all disabled:cursor-wait disabled:opacity-60"
                     >
@@ -165,7 +171,7 @@ class PageView(HyperView):
                         <span hyper-loading-show="switch-action-demo">Command handed off · watching…</span>
                     </button>
 
-                    <p class="text-[11px] leading-relaxed text-gray-500">This demo deliberately drops the watcher after its first event. HyperDjango reconnects the GET with the same watcher request ID and <code>Last-Event-ID</code>; the POST remains at exactly one execution.</p>
+                    <p class="text-[11px] leading-relaxed text-gray-500">This demo deliberately drops the watcher after its first checkpoint. HyperDjango reconnects the GET with that named checkpoint in <code>Last-Event-ID</code>, skips the completed stage, and leaves the POST at exactly one execution.</p>
                 </section>
             </div>
         </div>

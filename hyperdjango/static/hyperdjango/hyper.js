@@ -154,6 +154,17 @@ const Hyper = (() => {
     return "replace";
   }
 
+  function normalizeMethod(method, fallback = "GET") {
+    return String(method || fallback).trim().toUpperCase();
+  }
+
+  function resolveSSERetry(method, explicitRetry = undefined) {
+    if (typeof explicitRetry === "boolean") {
+      return explicitRetry;
+    }
+    return normalizeMethod(method) === "GET" && config.sseRetry;
+  }
+
   function elementRequestKey(el) {
     if (!(el instanceof Element)) {
       return "";
@@ -961,7 +972,7 @@ const Hyper = (() => {
   }
 
   async function request(url, options = {}) {
-    const method = (options.method || "GET").toUpperCase();
+    const method = normalizeMethod(options.method);
     const headers = {
       "X-Requested-With": "XMLHttpRequest",
       ...(options.headers || {}),
@@ -1067,7 +1078,7 @@ const Hyper = (() => {
         const retryScaler = Number(options.sseRetryScaler ?? config.sseRetryScaler);
         const retryMaxWait = Number(options.sseRetryMaxWait ?? config.sseRetryMaxWait);
         const retryMaxCount = Number(options.sseRetryMaxCount ?? config.sseRetryMaxCount);
-        const retryEnabled = options.sseRetry ?? config.sseRetry;
+        const retryEnabled = resolveSSERetry(method, options.sseRetry);
         let retryCount = 0;
         let terminalEventSeen = false;
 
@@ -1079,13 +1090,6 @@ const Hyper = (() => {
         }
 
         const onSSEEvent = async (event) => {
-          if (event.idPresent) {
-            if (event.id) {
-              headers["Last-Event-ID"] = event.id;
-            } else {
-              delete headers["Last-Event-ID"];
-            }
-          }
           if (Number.isFinite(event.retry) && event.retry >= 0) {
             retryInterval = event.retry;
           }
@@ -1093,6 +1097,17 @@ const Hyper = (() => {
             terminalEventSeen = true;
           }
           if (event.controlOnly) {
+            const checkpointPrefix = `${requestId}:checkpoint:`;
+            const checkpointName = typeof event.id === "string" && event.id.startsWith(checkpointPrefix)
+              ? event.id.slice(checkpointPrefix.length)
+              : "";
+            if (
+              event.event === "checkpoint" &&
+              event.idPresent &&
+              /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(checkpointName)
+            ) {
+              headers["Last-Event-ID"] = event.id;
+            }
             return;
           }
           try {
@@ -1314,12 +1329,9 @@ const Hyper = (() => {
     )) {
       throw switchError("Malformed SwitchAction payload: data must be an object.", context);
     }
-    const method = String(payload.method || "GET").toUpperCase();
+    const method = normalizeMethod(payload.method);
     if (method !== "GET" && method !== "POST") {
       throw switchError("Malformed SwitchAction payload: method must be GET or POST.", context);
-    }
-    if (payload.retry !== undefined && typeof payload.retry !== "boolean") {
-      throw switchError("Malformed SwitchAction payload: retry must be a boolean.", context);
     }
     if (payload.key !== undefined && payload.key !== null && typeof payload.key !== "string") {
       throw switchError("Malformed SwitchAction payload: key must be a string.", context);
@@ -1340,7 +1352,6 @@ const Hyper = (() => {
       data: payload.data || {},
       method,
       url,
-      retry: payload.retry === undefined ? true : payload.retry,
       key: payload.key == null || payload.key === "" ? context.key : payload.key,
     };
   }
@@ -2046,6 +2057,7 @@ const Hyper = (() => {
     workflow = null,
     handoff = false,
   }) {
+    method = normalizeMethod(method, "POST");
     const resolvedUrl = url || window.location.pathname;
     const resolvedRequestId = requestId || newRequestId();
     const resolvedWorkflow = workflow || { loadingContext: {} };
@@ -2166,7 +2178,7 @@ const Hyper = (() => {
           key: switchedAction.key || null,
           method: switchedAction.method,
           url: switchedAction.url,
-          retry: switchedAction.retry,
+          retry: resolveSSERetry(switchedAction.method),
           depth: nextDepth,
         });
         return runAction({
@@ -2189,7 +2201,6 @@ const Hyper = (() => {
           swapDelay,
           settleDelay,
           focus,
-          retry: switchedAction.retry,
           requestId: nextRequestId,
           switchDepth: nextDepth,
           workflow: resolvedWorkflow,
@@ -2572,8 +2583,8 @@ const Hyper = (() => {
 
   async function actionRequest(action, data = {}, options = {}) {
     const form = resolveForm(options.form || null);
-    const inferredMethod = form ? (form.getAttribute("method") || "GET").toUpperCase() : "GET";
-    const method = String(options.method || inferredMethod || "GET").toUpperCase();
+    const inferredMethod = form ? form.getAttribute("method") || "GET" : "GET";
+    const method = normalizeMethod(options.method, inferredMethod);
     const url =
       options.url ||
       (form ? form.getAttribute("action") || window.location.pathname : window.location.pathname);
@@ -2581,7 +2592,9 @@ const Hyper = (() => {
     const key = options.key || null;
     const sourceEl = resolveSourceEl(options.sourceEl || null);
     const onUploadProgress = options.onUploadProgress || null;
-    const retry = options.retry ?? options.sseRetry;
+    const retry = typeof options.retry === "boolean"
+      ? options.retry
+      : typeof options.sseRetry === "boolean" ? options.sseRetry : undefined;
     const extraData = data && typeof data === "object" ? data : null;
 
     if (typeof options.onBeforeSubmit === "function") {
@@ -2633,17 +2646,17 @@ const Hyper = (() => {
 
     if (method !== "GET" && method !== "HEAD") {
       return runAction({
-      url,
-      action,
-      method,
-      sourceEl,
-      kwargs: extraData,
-      body: buildActionSearchParams(action, extraData),
-      sync,
-      key,
-      onUploadProgress,
-      retry,
-    });
+        url,
+        action,
+        method,
+        sourceEl,
+        kwargs: extraData,
+        body: buildActionSearchParams(action, extraData),
+        sync,
+        key,
+        onUploadProgress,
+        retry,
+      });
     }
 
     return runAction({

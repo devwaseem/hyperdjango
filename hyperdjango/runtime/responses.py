@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import re
 from collections.abc import AsyncIterable, AsyncIterator, Iterable, Iterator
 from queue import Queue
 from threading import Thread
@@ -16,6 +15,7 @@ from hyperdjango.actions import (
     ActionItem,
     Actions,
     ActionResult,
+    Checkpoint,
     Delete,
     Event,
     HTML,
@@ -28,6 +28,10 @@ from hyperdjango.actions import (
     Toast,
 )
 from hyperdjango.integrations.debug_toolbar.tracing import record_stream_item
+from hyperdjango.sse import (
+    format_checkpoint_event_id,
+    is_valid_sse_request_id,
+)
 
 
 ACTION_VARY_HEADERS = [
@@ -41,7 +45,6 @@ ACTION_VARY_HEADERS = [
 ]
 
 _ITERATION_DONE = object()
-_VALID_SSE_REQUEST_ID = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
 
 
 def ensure_action_response_headers(response: HttpResponse) -> HttpResponse:
@@ -56,15 +59,20 @@ def to_action_http_response(
 ) -> HttpResponse:
     items, status, headers = normalize_action_result(result)
     items = _observe_action_items(items, request=request)
-    event_id_prefix, skip_events = _sse_resume_context(request)
+    request_id = _sse_request_id(request)
+    allow_checkpoints = _request_allows_checkpoints(request)
     streaming_content: Iterable[str] | AsyncIterator[str]
     if _is_asgi_request(request):
         streaming_content = stream_action_sse_async(
-            items, event_id_prefix=event_id_prefix, skip_events=skip_events
+            items,
+            request_id=request_id,
+            allow_checkpoints=allow_checkpoints,
         )
     else:
         streaming_content = stream_action_sse_sync(
-            items, event_id_prefix=event_id_prefix, skip_events=skip_events
+            items,
+            request_id=request_id,
+            allow_checkpoints=allow_checkpoints,
         )
     response = StreamingHttpResponse(
         streaming_content,
@@ -106,21 +114,10 @@ def _action_error_event(status: int, message: str) -> tuple[str, dict[str, Any]]
 def to_action_exception_response(
     status: int, message: str, *, request: HttpRequest | None = None
 ) -> HttpResponse:
-    event_id_prefix, skip_events = _sse_resume_context(request)
     response = StreamingHttpResponse(
-        stream_action_exception_sse_async(
-            status,
-            message,
-            event_id_prefix=event_id_prefix,
-            skip_events=skip_events,
-        )
+        stream_action_exception_sse_async(status, message)
         if _is_asgi_request(request)
-        else stream_action_exception_sse_sync(
-            status,
-            message,
-            event_id_prefix=event_id_prefix,
-            skip_events=skip_events,
-        ),
+        else stream_action_exception_sse_sync(status, message),
         status=status,
         content_type="text/event-stream",
     )
@@ -155,6 +152,7 @@ def is_action_item(value: Any) -> bool:
             Event,
             Delete,
             Redirect,
+            Checkpoint,
             SwitchAction,
             History,
             LoadJS,
@@ -206,61 +204,66 @@ def is_terminal_action_item(item: ActionItem) -> bool:
 
 
 def stream_action_sse(
-    items: Iterable[ActionItem], *, event_id_prefix: str = "", skip_events: int = 0
+    items: Iterable[ActionItem],
+    *,
+    request_id: str = "",
+    allow_checkpoints: bool = False,
 ) -> Iterator[str]:
     terminal_seen = False
-    event_index = 0
+    checkpoints: set[str] = set()
     for item in items:
-        event_index += 1
-        event_name, payload = serialize_action_item(item)
-        if event_index > skip_events:
-            yield _format_sse_event(
-                event_name, payload, _event_id(event_id_prefix, event_index)
-            )
+        yield _format_action_item(
+            item,
+            request_id=request_id,
+            allow_checkpoints=allow_checkpoints,
+            checkpoints=checkpoints,
+        )
         if is_terminal_action_item(item):
             terminal_seen = True
             break
     if not terminal_seen:
-        event_index += 1
-        if event_index > skip_events:
-            yield _format_sse_event("end", {}, _event_id(event_id_prefix, event_index))
+        yield _format_sse_event("end", {})
 
 
 def stream_action_sse_sync(
     items: Iterable[ActionItem] | AsyncIterable[ActionItem],
     *,
-    event_id_prefix: str = "",
-    skip_events: int = 0,
+    request_id: str = "",
+    allow_checkpoints: bool = False,
 ) -> Iterator[str]:
     if isinstance(items, AsyncIterable):
         return _stream_action_sse_sync_from_async(
-            items, event_id_prefix=event_id_prefix, skip_events=skip_events
+            items,
+            request_id=request_id,
+            allow_checkpoints=allow_checkpoints,
         )
     return stream_action_sse(
-        items, event_id_prefix=event_id_prefix, skip_events=skip_events
+        items,
+        request_id=request_id,
+        allow_checkpoints=allow_checkpoints,
     )
 
 
 async def stream_action_sse_async(
     items: Iterable[ActionItem] | AsyncIterable[ActionItem],
     *,
-    event_id_prefix: str = "",
-    skip_events: int = 0,
+    request_id: str = "",
+    allow_checkpoints: bool = False,
 ) -> AsyncIterator[str]:
     terminal_seen = False
-    event_index = 0
+    checkpoints: set[str] = set()
     if isinstance(items, AsyncIterable):
         async_iterator = items.__aiter__()
         while True:
             item = await _next_async_action_item(async_iterator)
             if item is _ITERATION_DONE:
                 break
-            event_index += 1
-            event_name, payload = serialize_action_item(item)
-            if event_index > skip_events:
-                yield _format_sse_event(
-                    event_name, payload, _event_id(event_id_prefix, event_index)
-                )
+            yield _format_action_item(
+                item,
+                request_id=request_id,
+                allow_checkpoints=allow_checkpoints,
+                checkpoints=checkpoints,
+            )
             if is_terminal_action_item(item):
                 terminal_seen = True
                 break
@@ -272,27 +275,25 @@ async def stream_action_sse_async(
             )
             if item is _ITERATION_DONE:
                 break
-            event_index += 1
-            event_name, payload = serialize_action_item(item)
-            if event_index > skip_events:
-                yield _format_sse_event(
-                    event_name, payload, _event_id(event_id_prefix, event_index)
-                )
+            yield _format_action_item(
+                item,
+                request_id=request_id,
+                allow_checkpoints=allow_checkpoints,
+                checkpoints=checkpoints,
+            )
             if is_terminal_action_item(item):
                 terminal_seen = True
                 break
 
     if not terminal_seen:
-        event_index += 1
-        if event_index > skip_events:
-            yield _format_sse_event("end", {}, _event_id(event_id_prefix, event_index))
+        yield _format_sse_event("end", {})
 
 
 def _stream_action_sse_sync_from_async(
     items: AsyncIterable[ActionItem],
     *,
-    event_id_prefix: str = "",
-    skip_events: int = 0,
+    request_id: str = "",
+    allow_checkpoints: bool = False,
 ) -> Iterator[str]:
     queue: Queue[tuple[str, str | BaseException | None]] = Queue()
 
@@ -302,8 +303,8 @@ def _stream_action_sse_sync_from_async(
                 _produce_action_sse(
                     items,
                     queue,
-                    event_id_prefix=event_id_prefix,
-                    skip_events=skip_events,
+                    request_id=request_id,
+                    allow_checkpoints=allow_checkpoints,
                 )
             )
         except BaseException as exc:  # pragma: no cover - defensive bridge
@@ -330,75 +331,77 @@ async def _produce_action_sse(
     items: AsyncIterable[ActionItem],
     queue: Queue[tuple[str, str | BaseException | None]],
     *,
-    event_id_prefix: str = "",
-    skip_events: int = 0,
+    request_id: str = "",
+    allow_checkpoints: bool = False,
 ) -> None:
     terminal_seen = False
-    event_index = 0
+    checkpoints: set[str] = set()
     async_iterator = items.__aiter__()
     while True:
         item = await _next_async_action_item(async_iterator)
         if item is _ITERATION_DONE:
             break
-        event_index += 1
-        event_name, payload = serialize_action_item(item)
-        if event_index > skip_events:
-            queue.put(
-                (
-                    "event",
-                    _format_sse_event(
-                        event_name,
-                        payload,
-                        _event_id(event_id_prefix, event_index),
-                    ),
-                )
+        queue.put(
+            (
+                "event",
+                _format_action_item(
+                    item,
+                    request_id=request_id,
+                    allow_checkpoints=allow_checkpoints,
+                    checkpoints=checkpoints,
+                ),
             )
+        )
         if is_terminal_action_item(item):
             terminal_seen = True
             break
 
     if not terminal_seen:
-        event_index += 1
-        if event_index > skip_events:
-            queue.put(
-                (
-                    "event",
-                    _format_sse_event(
-                        "end", {}, _event_id(event_id_prefix, event_index)
-                    ),
-                )
-            )
+        queue.put(("event", _format_sse_event("end", {})))
 
 
 async def stream_action_exception_sse_async(
     status: int,
     message: str,
-    *,
-    event_id_prefix: str = "",
-    skip_events: int = 0,
 ) -> AsyncIterator[str]:
-    for chunk in stream_action_exception_sse_sync(
-        status,
-        message,
-        event_id_prefix=event_id_prefix,
-        skip_events=skip_events,
-    ):
+    for chunk in stream_action_exception_sse_sync(status, message):
         yield chunk
 
 
 def stream_action_exception_sse_sync(
     status: int,
     message: str,
-    *,
-    event_id_prefix: str = "",
-    skip_events: int = 0,
 ) -> Iterator[str]:
     events = [(_action_error_event(status, message)), ("end", {})]
-    for event_index, (event_name, payload) in enumerate(events, start=1):
-        if event_index > skip_events:
-            yield _format_sse_event(
-                event_name, payload, _event_id(event_id_prefix, event_index)
+    for event_name, payload in events:
+        yield _format_sse_event(event_name, payload)
+
+
+def _format_action_item(
+    item: ActionItem,
+    *,
+    request_id: str,
+    allow_checkpoints: bool,
+    checkpoints: set[str],
+) -> str:
+    if isinstance(item, Checkpoint):
+        if not allow_checkpoints:
+            raise ValueError("SSE checkpoints are only supported for GET actions")
+        if not request_id:
+            raise ValueError(
+                "SSE checkpoints require a valid X-Hyper-Request-ID"
             )
+        if item.name in checkpoints:
+            raise ValueError(
+                f"SSE checkpoint '{item.name}' was emitted more than once"
+            )
+        checkpoints.add(item.name)
+        return _format_sse_checkpoint(
+            format_checkpoint_event_id(request_id, item.name)
+        )
+
+    event_name, payload = serialize_action_item(item)
+    return _format_sse_event(event_name, payload)
 
 
 def serialize_action_item(item: ActionItem) -> tuple[str, dict[str, Any]]:
@@ -441,13 +444,14 @@ def serialize_action_item(item: ActionItem) -> tuple[str, dict[str, Any]]:
         }
     if isinstance(item, Redirect):
         return "redirect", {"url": item.url}
+    if isinstance(item, Checkpoint):
+        return "checkpoint", {}
     if isinstance(item, SwitchAction):
-        name, data, method, url, retry = item.resolve()
+        name, data, method, url = item.resolve()
         payload: dict[str, Any] = {
             "name": name,
             "data": data,
             "method": method,
-            "retry": retry,
         }
         if url is not None:
             payload["url"] = url
@@ -472,23 +476,22 @@ def _format_sse_event(
     return f"event: {event_name}\n{id_line}data: {body}\n\n"
 
 
-def _event_id(prefix: str, event_index: int) -> str:
-    return f"{prefix}:{event_index}" if prefix else ""
+def _format_sse_checkpoint(event_id: str) -> str:
+    return f"event: checkpoint\nid: {event_id}\n\n"
 
 
-def _sse_resume_context(request: HttpRequest | None) -> tuple[str, int]:
+def _sse_request_id(request: HttpRequest | None) -> str:
     if request is None:
-        return "", 0
+        return ""
 
     request_id = request.headers.get("X-Hyper-Request-ID", "").strip()
-    if not _VALID_SSE_REQUEST_ID.fullmatch(request_id):
-        return "", 0
+    return request_id if is_valid_sse_request_id(request_id) else ""
 
-    last_event_id = request.headers.get("Last-Event-ID", "").strip()
-    prefix, separator, raw_index = last_event_id.rpartition(":")
-    if separator and prefix == request_id and raw_index.isdigit():
-        return request_id, int(raw_index)
-    return request_id, 0
+
+def _request_allows_checkpoints(request: HttpRequest | None) -> bool:
+    if request is None or not isinstance(request.method, str):
+        return False
+    return request.method.upper() == "GET"
 
 
 def _is_asgi_request(request: HttpRequest | None) -> bool:

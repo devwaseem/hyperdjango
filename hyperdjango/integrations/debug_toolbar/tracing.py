@@ -553,12 +553,11 @@ def _item_metadata(item: Any) -> dict[str, Any]:
     metadata: dict[str, Any] = {"type": item.__class__.__name__}
     if item.__class__.__name__ == "SwitchAction":
         try:
-            name, _, method, url, retry = item.resolve()
+            name, _, method, url = item.resolve()
             metadata.update(
                 {
                     "destination_action": name,
                     "method": method,
-                    "retry": retry,
                 }
             )
             endpoint = getattr(item, "endpoint", None)
@@ -584,7 +583,6 @@ def _item_metadata(item: Any) -> dict[str, Any]:
         "redirect_to",
         "status",
         "method",
-        "retry",
         "key",
     ):
         value = getattr(item, attribute, None)
@@ -634,6 +632,7 @@ def describe_result(result: Any) -> dict[str, Any]:
     from hyperdjango.actions import (
         ActionResult,
         Actions,
+        Checkpoint,
         Delete,
         Event,
         History,
@@ -695,6 +694,7 @@ def describe_result(result: Any) -> dict[str, Any]:
             Event,
             Delete,
             Redirect,
+            Checkpoint,
             SwitchAction,
             History,
             LoadJS,
@@ -773,18 +773,18 @@ def record_stream_item(request: HttpRequest | None, item: Any) -> None:
         from hyperdjango.runtime.responses import serialize_action_item
 
         event_name, payload = serialize_action_item(item)
-        payload_bytes = len(json.dumps(payload, default=str).encode())
+        payload_bytes = (
+            0
+            if item.__class__.__name__ == "Checkpoint"
+            else len(json.dumps(payload, default=str).encode())
+        )
     except Exception:
         event_name, payload_bytes = metadata["type"], 0
     metadata.update(
         {
             "sequence": sequence,
             "event": event_name,
-            "event_id": (
-                f"{result['request_id']}:{sequence}"
-                if result.get("request_id")
-                else None
-            ),
+            "event_id": None,
             "at_ms": now_ms,
             "gap_ms": round(now_ms - previous_ms, 3)
             if previous_ms is not None
@@ -792,14 +792,16 @@ def record_stream_item(request: HttpRequest | None, item: Any) -> None:
             "payload_bytes": payload_bytes,
         }
     )
-    resume_index = 0
-    resume_from = result.get("resume_from") or ""
-    if result.get("request_id") and resume_from.startswith(f"{result['request_id']}:"):
+    if metadata["type"] == "Checkpoint" and result.get("request_id"):
         try:
-            resume_index = int(resume_from.rsplit(":", 1)[1])
+            from hyperdjango.sse import format_checkpoint_event_id
+
+            metadata["event_id"] = format_checkpoint_event_id(
+                result["request_id"], item.name
+            )
         except ValueError:
-            resume_index = 0
-    metadata["delivered"] = sequence > resume_index
+            pass
+    metadata["delivered"] = True
     result["items"].append(metadata)
     result["item_types"].append(metadata["type"])
     result["iteration_status"] = "streaming"

@@ -20,23 +20,29 @@ Request metadata sent by the runtime can include:
 - `X-Hyper-Data`
 - `X-Requested-With`
 - `X-Hyper-Request-ID`
-- `Last-Event-ID` on an SSE reconnect
+- `Last-Event-ID` with the latest acknowledged checkpoint on a GET SSE reconnect
 - `X-Hyper-Switch-Depth` on a `SwitchAction` destination
 
 ## SSE Reconnection
 
-Action streams reconnect automatically after a network or response-body read failure,
-or when the connection closes before an `end`, `redirect`, or `switch_action` event. While the browser is
-offline, the stream pauses without consuming retry attempts and reconnects immediately
-after `hyper:network:online`. Other failures use bounded exponential backoff: 1 second
-initially, doubling to a maximum of 30 seconds, with at most 10 reconnect attempts. A
-valid SSE `retry:` field changes the next retry delay.
+GET action streams reconnect by default after a network or response-body read failure,
+or when the connection closes before an `end`, `redirect`, or `switch_action` event.
+POST action streams do not reconnect unless the caller explicitly passes `retry: true`.
+An explicit boolean `retry` option always wins over the method-based default. Retry is a
+client transport policy; `@action` and `SwitchAction` do not declare it.
 
-Every action request carries a stable `X-Hyper-Request-ID`. Response events are assigned
-IDs, and a reconnect sends `Last-Event-ID`; the response stream skips events the browser
-already processed. The server may execute the action again during a reconnect, so actions
-with non-idempotent external side effects should use `X-Hyper-Request-ID` as an idempotency
-key.
+While the browser is offline, a retry-enabled stream pauses without consuming attempts
+and reconnects immediately after `hyper:network:online`. Other failures use bounded
+exponential backoff: 1 second initially, doubling to a maximum of 30 seconds, with at
+most 10 reconnect attempts. A valid SSE `retry:` field changes the delay for an already
+enabled retry policy; it cannot enable retries.
+
+Every action request carries a stable `X-Hyper-Request-ID`. Ordinary response events do
+not receive automatic sequence IDs. A GET action can yield named `Checkpoint` markers;
+the runtime records the latest marker and sends it in `Last-Event-ID` on reconnect. The
+new server request calls `get_resume_checkpoint(...)` and explicitly skips completed
+stages. No Python generator state is preserved, and HyperDjango does not automatically
+replay or discard action items.
 
 The defaults can be changed globally:
 
@@ -51,24 +57,31 @@ Hyper.configure({
 });
 ```
 
-To disable reconnect attempts for one action:
+`sseRetry` controls the implicit GET default. It does not override an explicit per-call
+`retry` value. To override either method default for one action:
 
 ```js
-action("save", data, { retry: false });
+action("search", data, { method: "GET", retry: false });
+action("idempotent_import", data, { method: "POST", retry: true });
 ```
 
-To disable them globally, call `Hyper.configure({ sseRetry: false })`.
+To disable implicit GET retries application-wide, call
+`Hyper.configure({ sseRetry: false })`.
 
-For a server-driven handoff, the destination's method and retry policy come from its
-Python declaration rather than client inference or switch-payload overrides:
+For a server-driven handoff, the destination method comes from its Python declaration.
+Retry is absent from the `switch_action` payload and is recomputed on the client from
+that method, independently of the source request:
 
 ```python
-@action(method="GET", retry=True)
+@action(method="GET")
 def watch_build(self, request, job_id):
     ...
 
 return self.watch_build.switch_to(job_id=job.pk)
 ```
+
+The switched GET retries according to the client's GET default; a switched POST does
+not. The source call's explicit `retry` option is not inherited by either destination.
 
 For another page endpoint, use the action reference's `at()` builder with a Django route
 name. The browser still receives an ordinary `switch_action` event and runs the resolved
@@ -103,7 +116,7 @@ These options define how the client runtime orchestrates request lifecycle, stat
 ### `method`
 - **Type**: `str` (e.g., `"GET"`, `"POST"`)
 - **Purpose**: Explicitly overrides the request method.
-- **Default**: Derived from the associated `form` if present, otherwise `"POST"` for actions.
+- **Default**: Derived from the associated `form` if present, otherwise `"GET"`.
 
 ### `url`
 - **Type**: `str`
@@ -141,7 +154,10 @@ These options define how the client runtime orchestrates request lifecycle, stat
 ### `retry`
 - **Type**: `boolean`
 - **Purpose**: Enables or disables automatic SSE reconnect attempts for this action.
-- **Default**: `true`, unless disabled globally with `Hyper.configure({ sseRetry: false })`.
+- **Default**: GET uses `Hyper.configure({ sseRetry: ... })`, which is `true` initially;
+  POST defaults to `false`.
+- **Override**: Explicit `true` or `false` takes precedence over the method default and
+  global GET default.
 
 ## Outcomes
 
@@ -187,6 +203,9 @@ The HyperDjango client runtime dispatches events to `window` for lifecycle monit
 | `hyper:network:offline` | When the browser loses network availability. | `online`, `offline` |
 | `hyper:history:restore:before` | Before a Back/Forward restore fetch starts. | `url`, `target`, `state` |
 | `hyper:history:restore:after` | After a Back/Forward restore finishes or fails. | `url`, `target`, `state`, `success`, `error` |
+
+Control-only `checkpoint` frames update the reconnect cursor internally and are not
+emitted as `hyper:streamEvent` application events.
 
 ## Network Availability
 
