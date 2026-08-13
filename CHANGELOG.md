@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## 0.41.1 - 2026-08-13
+
+- Kept `hyper_runserver` alive across Django reloads when an environment sync
+  makes its custom management-command module briefly unavailable; reload children
+  now enter through Django's standard `runserver` command while the stable parent
+  continues supervising Vite and prefixing Django output.
+
 ## 0.41.0 - 2026-08-12
 
 - Cleared unpinned Request Inspector traces on full browser refresh while preserving pinned traces; documented that both traces and pins otherwise live only in Django process memory.

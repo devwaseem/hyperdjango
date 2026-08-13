@@ -4,21 +4,19 @@ HyperDjango gives Django a server-first workflow with file routing, colocated as
 
 Use it when you want interactive UX without splitting your app into separate backend API and SPA frontend codebases.
 
-## Current Release: 0.41.0
+## Current Release: 0.41.1
 
-HyperDjango 0.41.0 makes SSE retries safer and resumable:
+HyperDjango 0.41.1 keeps the unified development server stable during reloads:
 
-- GET actions retry by default while POST actions require an explicit client opt-in
-- retry policy now belongs entirely to the client; `@action` and `SwitchAction` no
-  longer carry server retry metadata
-- named `Checkpoint(...)` markers let a retried GET continue after browser-acknowledged
-  stages instead of replaying and suppressing a numeric event sequence
-- unpinned Request Inspector traces are cleared on a full browser refresh while pinned
-  traces remain available
+- Django reload children enter through the standard `runserver` command, so a
+  concurrent environment sync cannot make `hyper_runserver` briefly undiscoverable
+- the stable parent continues supervising Vite and prefixing Django output across
+  reloads
+- terminal colors, debugger prompts, request diagnostics, and coordinated shutdown
+  remain intact
 
-See [Pages and Actions](actions.md#resume-a-get-stream-from-named-checkpoints) for the
-checkpoint API and the [client runtime reference](reference/client-runtime.md#retry) for
-the method-aware retry policy.
+See the [`hyper_runserver` command reference](reference/commands.md#python-managepy-hyper_runserver)
+for the unified development workflow.
 
 Existing projects should also review the [0.38.0 project upgrade notes](https://github.com/devwaseem/hyperdjango/blob/main/CHANGELOG.md#project-upgrade-notes), especially the Vite 8 and Node.js requirements. The [production checklist](production-checklist.md) covers the final validation steps.
 

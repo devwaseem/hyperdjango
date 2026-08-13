@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import copy
 import atexit
+import codecs
+import copy
 import logging
 import os
 import re
@@ -10,13 +11,14 @@ import shutil
 import signal
 import socket
 import subprocess
+import sys
 import threading
 import time
 import webbrowser
 from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, TextIO
+from typing import Any, BinaryIO, TextIO
 
 from django.apps import apps
 from django.conf import settings
@@ -27,16 +29,44 @@ from django.core.management.base import CommandError
 from django.core.management.commands.runserver import Command as DjangoRunserverCommand
 from django.utils import autoreload
 
+from hyperdjango.integrations.devtools.request_logging import (
+    SUPERVISED_RUNSERVER_ENV,
+    enrich_request_log_record,
+)
+
 
 VITE_URL_ENV = "HYPER_VITE_DEV_SERVER_URL"
 DJANGO_PORT_ENV = "HYPER_DJANGO_DEV_SERVER_PORT"
 ANSI_ESCAPE_RE = re.compile(r"\x1b(?:\[[0-?]*[ -/]*[@-~]|\][^\x07]*(?:\x07|\x1b\\))")
 VITE_LOCAL_URL_RE = re.compile(r"(?:Local:\s+)(https?://[^\s]+)")
 VITE_STARTUP_LINES = ("VITE v", "Local:", "Network:", "press h + enter")
+HYPER_BOOLEAN_OPTIONS = frozenset(
+    ("--no-vite", "--auto-port", "--open", "--verbose")
+)
+HYPER_VALUE_OPTIONS = frozenset(
+    (
+        "--vite-host",
+        "--vite-public-host",
+        "--vite-port",
+        "--vite-timeout",
+        "--package-manager",
+    )
+)
+DJANGO_VALUE_OPTIONS = frozenset(("--verbosity", "-v", "--settings", "--pythonpath"))
+STATICFILES_OPTIONS = frozenset(("--nostatic", "--insecure"))
 
 
 class Command(StaticRunserverCommand):
     help = "Start the Django development server and a project-local Vite server"
+
+    def create_parser(
+        self, prog_name: str, subcommand: str, **kwargs: Any
+    ) -> Any:
+        # The reload child receives only Django's built-in options. Disallow
+        # argparse abbreviations so every HyperDjango-only option can be
+        # removed from that child command without guessing what it meant.
+        kwargs.setdefault("allow_abbrev", False)
+        return super().create_parser(prog_name, subcommand, **kwargs)
 
     def add_arguments(self, parser) -> None:
         super().add_arguments(parser)
@@ -107,9 +137,8 @@ class Command(StaticRunserverCommand):
             self._run_django(**options)
             return
 
-        # The autoreloader executes the management command again in its child.
-        # Vite belongs to the parent so it survives Python code reloads; the URL
-        # is inherited through the child's environment.
+        # A process started by an older HyperDjango parent may still re-execute
+        # this command. Do not start another Vite server in that child.
         if os.environ.get(autoreload.DJANGO_AUTORELOAD_ENV) == "true":
             self._run_django(**options)
             return
@@ -186,7 +215,23 @@ class Command(StaticRunserverCommand):
         for logger in loggers:
             logger.addFilter(log_filter)
         try:
-            super().run(**options)
+            if options.get("use_reloader") and not _is_autoreload_child():
+                child_args = _django_child_arguments(
+                    sys.argv,
+                    addr=self.addr,
+                    port=int(self.port),
+                    original_addrport=options.get("addrport"),
+                    use_staticfiles=apps.is_installed("django.contrib.staticfiles"),
+                )
+                child_args = _preserve_child_color(
+                    child_args,
+                    output=stdout,
+                    no_color=bool(options.get("no_color")),
+                    force_color=bool(options.get("force_color")),
+                )
+                _run_django_reloader(child_args, stdout)
+            else:
+                super().run(**options)
         finally:
             for logger in loggers:
                 logger.removeFilter(log_filter)
@@ -222,35 +267,10 @@ class _DjangoLogPrefixFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> logging.LogRecord:
         if not record.name.startswith("django"):
             return record
-        prefixed_record = copy.copy(record)
-        suffix = ""
         if record.name == "django.server":
-            try:
-                from hyperdjango.integrations.devtools.request_logging import (
-                    consume_request_log_context,
-                )
-
-                context = consume_request_log_context()
-            except ImportError:
-                context = None
-            if context:
-                action = f" · action {context['action']}" if context.get("action") else ""
-                sql = (
-                    f" · {context['sql_queries']} SQL/{context['sql_ms']:.1f} ms"
-                    if context.get("sql_queries")
-                    else ""
-                )
-                render = (
-                    f" · render {context['render_ms']:.1f} ms"
-                    if context.get("render_ms")
-                    else ""
-                )
-                suffix = (
-                    f" · {context['duration_ms']:.1f} ms"
-                    f"{action}{sql}{render}"
-                    f" · {context['trace_url']}"
-                )
-        prefixed_record.msg = f"[django] {record.msg}{suffix}"
+            record = enrich_request_log_record(record)
+        prefixed_record = copy.copy(record)
+        prefixed_record.msg = f"[django] {record.msg}"
         return prefixed_record
 
 
@@ -548,6 +568,200 @@ def _forward_vite_output(stream: TextIO | None, output: Any) -> None:
         message = line.rstrip("\r\n")
         if message:
             output.write(f"[vite] {message}\n")
+
+
+def _is_autoreload_child() -> bool:
+    return os.environ.get(autoreload.DJANGO_AUTORELOAD_ENV) == "true"
+
+
+def _django_child_arguments(
+    argv: list[str],
+    *,
+    addr: str,
+    port: int,
+    original_addrport: Any = None,
+    use_staticfiles: bool = True,
+) -> list[str]:
+    django_argv = _django_runserver_argv(
+        argv,
+        addr=addr,
+        port=port,
+        original_addrport=original_addrport,
+        use_staticfiles=use_staticfiles,
+    )
+    previous_argv = sys.argv
+    try:
+        sys.argv = django_argv
+        return autoreload.get_child_arguments()
+    finally:
+        sys.argv = previous_argv
+
+
+def _django_runserver_argv(
+    argv: list[str],
+    *,
+    addr: str,
+    port: int,
+    original_addrport: Any = None,
+    use_staticfiles: bool = True,
+) -> list[str]:
+    """Translate a hyper_runserver invocation into a built-in runserver one."""
+    if len(argv) < 2:
+        raise CommandError("Could not construct the Django autoreload command")
+
+    translated = [argv[0], "runserver"]
+    original_addrport = (
+        str(original_addrport) if original_addrport is not None else None
+    )
+    index = 2
+    while index < len(argv):
+        argument = argv[index]
+        if argument in HYPER_BOOLEAN_OPTIONS:
+            index += 1
+            continue
+        if argument in HYPER_VALUE_OPTIONS:
+            index += 2
+            continue
+        if any(argument.startswith(f"{option}=") for option in HYPER_VALUE_OPTIONS):
+            index += 1
+            continue
+        if not use_staticfiles and argument in STATICFILES_OPTIONS:
+            index += 1
+            continue
+        if argument in DJANGO_VALUE_OPTIONS and index + 1 < len(argv):
+            translated.extend((argument, argv[index + 1]))
+            index += 2
+            continue
+        if original_addrport is not None and argument == original_addrport:
+            index += 1
+            continue
+        translated.append(argument)
+        index += 1
+
+    translated.append(_server_addrport(addr, port))
+    return translated
+
+
+def _server_addrport(addr: str, port: int) -> str:
+    shown_addr = f"[{addr}]" if ":" in addr and not addr.startswith("[") else addr
+    return f"{shown_addr}:{port}"
+
+
+def _preserve_child_color(
+    child_args: list[str],
+    *,
+    output: Any,
+    no_color: bool,
+    force_color: bool,
+) -> list[str]:
+    isatty = getattr(output, "isatty", None)
+    if (
+        not no_color
+        and not force_color
+        and callable(isatty)
+        and bool(isatty())
+    ):
+        color_args = list(child_args)
+        try:
+            separator = color_args.index("--")
+        except ValueError:
+            color_args.append("--force-color")
+        else:
+            color_args.insert(separator, "--force-color")
+        return color_args
+    return child_args
+
+
+def _run_django_reloader(child_args: list[str], output: Any) -> None:
+    # Match Django's parent-reloader signal behavior while keeping this process
+    # alive as the Vite and output supervisor.
+    previous_sigterm = signal.getsignal(signal.SIGTERM)
+
+    def handle_sigterm(_signum: int, _frame: Any) -> None:
+        raise SystemExit(0)
+
+    signal.signal(signal.SIGTERM, handle_sigterm)
+    try:
+        return_code = _restart_django_with_reloader(child_args, output)
+        raise SystemExit(return_code)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        if signal.getsignal(signal.SIGTERM) is handle_sigterm:
+            signal.signal(signal.SIGTERM, previous_sigterm)
+
+
+def _restart_django_with_reloader(child_args: list[str], output: Any) -> int:
+    child_env = {
+        **os.environ,
+        autoreload.DJANGO_AUTORELOAD_ENV: "true",
+        SUPERVISED_RUNSERVER_ENV: "true",
+    }
+    # Python uses block buffering when stdout is piped. Force prompt output so
+    # startup messages and request logs remain useful in the unified terminal.
+    child_env["PYTHONUNBUFFERED"] = "1"
+
+    while True:
+        popen_options: dict[str, Any] = {}
+        if os.name == "posix":
+            popen_options["start_new_session"] = True
+        elif os.name == "nt":  # pragma: no cover - exercised on Windows CI
+            popen_options["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
+        try:
+            process = subprocess.Popen(
+                child_args,
+                env=child_env,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                **popen_options,
+            )
+        except OSError as exc:
+            raise CommandError(f"Could not start Django: {exc}") from exc
+
+        try:
+            _forward_django_output(process.stdout, output)
+            return_code = process.wait()
+        finally:
+            if process.poll() is None:
+                _stop_process(process)
+        if return_code != 3:
+            return return_code
+
+
+def _forward_django_output(stream: BinaryIO | TextIO | None, output: Any) -> None:
+    if stream is None:
+        return
+    prefix = "[django] "
+    at_line_start = True
+    decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
+
+    def forward(chunk: str) -> None:
+        nonlocal at_line_start
+        rendered: list[str] = []
+        for character in chunk:
+            if at_line_start and character not in "\r\n":
+                rendered.append(prefix)
+                at_line_start = False
+            rendered.append(character)
+            if character in "\r\n":
+                at_line_start = True
+        if rendered:
+            output.write("".join(rendered), ending="")
+            output.flush()
+
+    read1 = getattr(stream, "read1", None)
+    if callable(read1):
+        while chunk := read1(4096):
+            forward(decoder.decode(chunk) if isinstance(chunk, bytes) else chunk)
+        forward(decoder.decode(b"", final=True))
+        return
+
+    while True:
+        chunk = stream.read(1)
+        if not chunk:
+            break
+        forward(decoder.decode(chunk) if isinstance(chunk, bytes) else chunk)
+    forward(decoder.decode(b"", final=True))
 
 
 def _available_port(host: str) -> int:

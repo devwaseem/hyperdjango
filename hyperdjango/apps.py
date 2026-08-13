@@ -21,6 +21,11 @@ class HyperDjangoConfig(AppConfig):
 
     def ready(self) -> None:
         from hyperdjango import checks  # noqa: F401
+        from hyperdjango.integrations.devtools.request_logging import (
+            install_supervised_request_log_filter,
+        )
+
+        install_supervised_request_log_filter()
 
 
 def _watch_hyper_frontend(sender, **kwargs) -> None:

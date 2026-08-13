@@ -37,11 +37,15 @@ provide the reachable hostname separately:
 python manage.py hyper_runserver 0.0.0.0:8000 --vite-public-host devbox.local
 ```
 
-The Vite process stays alive across Django autoreloads and is stopped when the
-development server exits. Vite's terminal clearing is disabled so its output
-does not replace Django's logs, and its messages are merged into the command's
-output with a `[vite]` prefix. Django startup messages use a `[django]` prefix,
-and a compact banner lists local and network URLs.
+The HyperDjango supervisor and Vite process stay alive across Django
+autoreloads and stop together when the development server exits. Reload
+children use Django's standard `runserver` entry point, so a temporary package
+replacement cannot make the reload fail merely because its
+`hyper_runserver` command module is briefly undiscoverable. Vite's terminal
+clearing is disabled so its output does not replace Django's logs, and its
+messages are merged into the command's output with a `[vite]` prefix. Django
+startup messages use a `[django]` prefix, and a compact banner lists local and
+network URLs.
 
 HyperDjango detects Bun, pnpm, Yarn, or npm from the project's lockfile. It
 prints the exact install command when `node_modules` is absent. An explicit
