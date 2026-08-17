@@ -76,7 +76,7 @@ wheels = [
 
 [[package]]
 name = "hyperdjango"
-version = "0.41.1"
+version = "0.42.0"
 source = { editable = "." }
 dependencies = [
     { name = "django" },

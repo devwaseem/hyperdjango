@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## 0.42.0 - 2026-08-17
+
+- Added configurable SSE comment heartbeats for idle generator action streams. Sync and
+  async responses now emit `: heartbeat` every 15 seconds by default without dispatching
+  application events or advancing resume checkpoints; set
+  `HYPER_SSE_HEARTBEAT_INTERVAL` to another number of seconds, or `0` to disable them.
+
 ## 0.41.1 - 2026-08-13
 
 - Kept `hyper_runserver` alive across Django reloads when an environment sync

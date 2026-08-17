@@ -125,6 +125,38 @@ test("SSE actions accept CRLF-framed events", async ({ page }) => {
   await expect(page.locator("[data-crlf-event]")).toHaveText("CRLF event parsed.");
 });
 
+test("SSE heartbeat comments do not dispatch application events", async ({ page }) => {
+  await page.route("**/__sse_heartbeat_fixture", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "text/event-stream",
+      body: [
+        ": heartbeat\n\n",
+        "event: patch_html\n",
+        'data: {"content":"<div data-heartbeat-event>Still connected.</div>","target":"#stream-log","swap":"inner"}\n\n',
+        ": heartbeat\n\n",
+        "event: end\n",
+        "data: {}\n\n",
+      ].join(""),
+    });
+  });
+
+  const streamEvents = await page.evaluate(async () => {
+    const events = [];
+    const listener = (event) => events.push(event.detail.event);
+    window.addEventListener("hyper:streamEvent", listener);
+    await window.action("heartbeat_fixture", {}, {
+      url: "/__sse_heartbeat_fixture",
+      method: "GET",
+    });
+    window.removeEventListener("hyper:streamEvent", listener);
+    return events;
+  });
+
+  await expect(page.locator("[data-heartbeat-event]")).toHaveText("Still connected.");
+  expect(streamEvents).toEqual(["patch_html", "end"]);
+});
+
 test("only control checkpoints advance the reconnect cursor", async ({ page }) => {
   const requests = [];
   await page.route("**/__checkpoint_cursor", async (route) => {

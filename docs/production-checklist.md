@@ -18,6 +18,9 @@ Action responses include no-store/no-cache and `Vary` headers for Hyper request 
 - keep reverse proxies from overriding these headers on action endpoints
 - avoid caching action JSON/partial responses in CDN edge caches
 - preserve `X-Hyper-Request-ID`, `Last-Event-ID`, and `X-Hyper-Switch-Depth`
+- set `HYPER_SSE_HEARTBEAT_INTERVAL` below the smallest proxy, CDN, or application-server
+  idle timeout (the default is 15 seconds), and verify `: heartbeat` comments are not
+  buffered in production
 
 For command-to-query handoffs, verify the originating mutation uses POST (which does not
 retry by default), commits durable state before returning `action.switch_to(...)`, and

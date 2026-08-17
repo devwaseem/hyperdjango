@@ -78,9 +78,9 @@ test.describe.serial("HyperDjango request inspector", () => {
 
   test("loads independently and supports launcher, drawer, fullscreen, keyboard, and dragging", async ({ page }) => {
     await visit(page);
-    await expect(page.getByText("v0.41.1 · Latest release")).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Resume what matters" })).toBeVisible();
-    await expect(page.getByRole("link", { name: /Open inspector guide/ })).toHaveAttribute("href", "/docs/dev-toolbar");
+    await expect(page.getByText("v0.42.0 · Latest release")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Stay connected" })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Configure heartbeats/ })).toHaveAttribute("href", "/docs/reference/settings#hyper_sse_heartbeat_interval");
     const root = toolbar(page);
     await expect(root.locator("[data-slot='launcher-count']")).toHaveText("0");
     await expect(root.locator(".hdd-launcher-copy")).toContainText("HYPERDJANGO");
@@ -213,7 +213,7 @@ test.describe.serial("HyperDjango request inspector", () => {
     expect(llms).toContain("## Request Inspector");
     expect(llms).toContain("authoritative enablement switch");
     expect(llms).toContain("## Django Debug Toolbar");
-    expect(llms).toContain("## Current Release: 0.41.1");
+    expect(llms).toContain("## Current Release: 0.42.0");
     for (const path of [
       "/docs/history",
       "/docs/cookbook",

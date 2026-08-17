@@ -28,6 +28,23 @@ stages it can skip; the server does not automatically replay or discard action i
 
 The parser accepts LF, CRLF, and CR line endings as required by the SSE format.
 
+## Heartbeat Comments
+
+While a generator action is idle, HyperDjango emits a standard SSE comment at the
+configured heartbeat interval:
+
+```
+: heartbeat
+
+```
+
+The default interval is 15 seconds and can be changed with
+`HYPER_SSE_HEARTBEAT_INTERVAL`; set it to `0` to disable heartbeats. Comments are
+transport-only frames: the client parser ignores them, they carry no event ID or data,
+and they do not advance `Last-Event-ID`, dispatch `hyper:streamEvent`, or change the
+retry policy. Heartbeats keep an otherwise idle connection active, while the existing
+reconnect and checkpoint behavior handles connections that still fail.
+
 ## Action SSE Events
 
 | Event Name | Item Type | Payload Example |

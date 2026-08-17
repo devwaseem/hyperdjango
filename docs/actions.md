@@ -319,7 +319,8 @@ particular:
 
 - keep proxy buffering and caching disabled for action streams;
 - exclude `text/event-stream` responses from middleware that buffers compression output;
-- set the upstream read timeout longer than the longest expected pause between events;
+- set `HYPER_SSE_HEARTBEAT_INTERVAL` below the smallest idle timeout in the complete
+  proxy/CDN/server path, and keep the upstream read timeout longer than that interval;
 - preserve `X-Hyper-Request-ID` and `Last-Event-ID` request headers;
 - preserve `Content-Type: text/event-stream`, `Cache-Control`, and
   `X-Accel-Buffering: no` response headers.
@@ -332,6 +333,8 @@ treats the close as an interruption.
 ### Rollout checklist
 
 - Verify a normal streamed action reaches its terminal event.
+- Leave a generator idle beyond `HYPER_SSE_HEARTBEAT_INTERVAL` and confirm heartbeat
+  comments reach the browser through the production proxy without application events.
 - Interrupt a GET stream after a checkpoint and confirm the next request includes
   `<request-id>:checkpoint:<name>` in `Last-Event-ID`.
 - Confirm the resumed action skips the acknowledged block and emits the next checkpoint.

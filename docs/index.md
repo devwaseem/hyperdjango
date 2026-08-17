@@ -4,19 +4,20 @@ HyperDjango gives Django a server-first workflow with file routing, colocated as
 
 Use it when you want interactive UX without splitting your app into separate backend API and SPA frontend codebases.
 
-## Current Release: 0.41.1
+## Current Release: 0.42.0
 
-HyperDjango 0.41.1 keeps the unified development server stable during reloads:
+HyperDjango 0.42.0 keeps idle SSE action streams connected through proxies:
 
-- Django reload children enter through the standard `runserver` command, so a
-  concurrent environment sync cannot make `hyper_runserver` briefly undiscoverable
-- the stable parent continues supervising Vite and prefixing Django output across
-  reloads
-- terminal colors, debugger prompts, request diagnostics, and coordinated shutdown
-  remain intact
+- generator streams emit standard `: heartbeat` SSE comments every 15 seconds while
+  idle, across sync and async actions under WSGI and ASGI
+- heartbeat comments stay transport-only: they do not dispatch application events,
+  advance resume checkpoints, or change retry behavior
+- `HYPER_SSE_HEARTBEAT_INTERVAL` controls the interval and accepts `0` to disable
+  heartbeats
 
-See the [`hyper_runserver` command reference](reference/commands.md#python-managepy-hyper_runserver)
-for the unified development workflow.
+See the [SSE payload reference](reference/sse-payloads.md#heartbeat-comments) for the
+wire contract and [settings reference](reference/settings.md#hyper_sse_heartbeat_interval)
+for deployment configuration.
 
 Existing projects should also review the [0.38.0 project upgrade notes](https://github.com/devwaseem/hyperdjango/blob/main/CHANGELOG.md#project-upgrade-notes), especially the Vite 8 and Node.js requirements. The [production checklist](production-checklist.md) covers the final validation steps.
 

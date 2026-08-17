@@ -2,8 +2,17 @@ from __future__ import annotations
 
 import asyncio
 import json
-from collections.abc import AsyncIterable, AsyncIterator, Iterable, Iterator
-from queue import Queue
+from collections.abc import (
+    AsyncIterable,
+    AsyncIterator,
+    Awaitable,
+    Callable,
+    Iterable,
+    Iterator,
+)
+from contextvars import copy_context
+from queue import Empty, Full, Queue
+from threading import Event as ThreadEvent
 from threading import Thread
 from typing import Any
 
@@ -27,6 +36,7 @@ from hyperdjango.actions import (
     Signals,
     Toast,
 )
+from hyperdjango.conf import get_sse_heartbeat_interval
 from hyperdjango.integrations.debug_toolbar.tracing import record_stream_item
 from hyperdjango.sse import (
     format_checkpoint_event_id,
@@ -45,6 +55,8 @@ ACTION_VARY_HEADERS = [
 ]
 
 _ITERATION_DONE = object()
+_HEARTBEAT_DUE = object()
+_SSE_HEARTBEAT = ": heartbeat\n\n"
 
 
 def ensure_action_response_headers(response: HttpResponse) -> HttpResponse:
@@ -58,6 +70,11 @@ def to_action_http_response(
     result: Any, *, request: HttpRequest | None = None
 ) -> HttpResponse:
     items, status, headers = normalize_action_result(result)
+    heartbeat_interval = (
+        get_sse_heartbeat_interval()
+        if isinstance(items, (Iterator, AsyncIterable))
+        else 0.0
+    )
     items = _observe_action_items(items, request=request)
     request_id = _sse_request_id(request)
     allow_checkpoints = _request_allows_checkpoints(request)
@@ -67,12 +84,14 @@ def to_action_http_response(
             items,
             request_id=request_id,
             allow_checkpoints=allow_checkpoints,
+            heartbeat_interval=heartbeat_interval,
         )
     else:
         streaming_content = stream_action_sse_sync(
             items,
             request_id=request_id,
             allow_checkpoints=allow_checkpoints,
+            heartbeat_interval=heartbeat_interval,
         )
     response = StreamingHttpResponse(
         streaming_content,
@@ -230,18 +249,23 @@ def stream_action_sse_sync(
     *,
     request_id: str = "",
     allow_checkpoints: bool = False,
+    heartbeat_interval: float = 0.0,
 ) -> Iterator[str]:
     if isinstance(items, AsyncIterable):
         return _stream_action_sse_sync_from_async(
             items,
             request_id=request_id,
             allow_checkpoints=allow_checkpoints,
+            heartbeat_interval=heartbeat_interval,
         )
-    return stream_action_sse(
+    chunks = stream_action_sse(
         items,
         request_id=request_id,
         allow_checkpoints=allow_checkpoints,
     )
+    if heartbeat_interval <= 0:
+        return chunks
+    return _stream_sync_with_heartbeats(chunks, heartbeat_interval)
 
 
 async def stream_action_sse_async(
@@ -249,13 +273,23 @@ async def stream_action_sse_async(
     *,
     request_id: str = "",
     allow_checkpoints: bool = False,
+    heartbeat_interval: float = 0.0,
 ) -> AsyncIterator[str]:
     terminal_seen = False
     checkpoints: set[str] = set()
     if isinstance(items, AsyncIterable):
         async_iterator = items.__aiter__()
-        while True:
-            item = await _next_async_action_item(async_iterator)
+
+        async def next_async_item() -> ActionItem | object:
+            return await _next_async_action_item(async_iterator)
+
+        async for item in _iterate_with_heartbeats(
+            next_async_item,
+            heartbeat_interval,
+        ):
+            if item is _HEARTBEAT_DUE:
+                yield _SSE_HEARTBEAT
+                continue
             if item is _ITERATION_DONE:
                 break
             yield _format_action_item(
@@ -269,10 +303,20 @@ async def stream_action_sse_async(
                 break
     else:
         iterator = iter(items)
-        while True:
-            item = await sync_to_async(_next_action_item, thread_sensitive=True)(
-                iterator
-            )
+
+        async def next_sync_item() -> ActionItem | object:
+            return await sync_to_async(
+                _next_action_item,
+                thread_sensitive=True,
+            )(iterator)
+
+        async for item in _iterate_with_heartbeats(
+            next_sync_item,
+            heartbeat_interval,
+        ):
+            if item is _HEARTBEAT_DUE:
+                yield _SSE_HEARTBEAT
+                continue
             if item is _ITERATION_DONE:
                 break
             yield _format_action_item(
@@ -294,6 +338,7 @@ def _stream_action_sse_sync_from_async(
     *,
     request_id: str = "",
     allow_checkpoints: bool = False,
+    heartbeat_interval: float = 0.0,
 ) -> Iterator[str]:
     queue: Queue[tuple[str, str | BaseException | None]] = Queue()
 
@@ -312,11 +357,18 @@ def _stream_action_sse_sync_from_async(
         finally:
             queue.put(("done", None))
 
-    thread = Thread(target=producer, daemon=True)
+    context = copy_context()
+    thread = Thread(target=context.run, args=(producer,), daemon=True)
     thread.start()
     try:
         while True:
-            kind, payload = queue.get()
+            try:
+                kind, payload = queue.get(
+                    timeout=heartbeat_interval if heartbeat_interval > 0 else None
+                )
+            except Empty:
+                yield _SSE_HEARTBEAT
+                continue
             if kind == "done":
                 break
             if kind == "error":
@@ -325,6 +377,98 @@ def _stream_action_sse_sync_from_async(
             yield payload
     finally:
         thread.join(timeout=0.1)
+
+
+def _stream_sync_with_heartbeats(
+    chunks: Iterator[str],
+    heartbeat_interval: float,
+) -> Iterator[str]:
+    queue: Queue[tuple[str, str | BaseException | None]] = Queue(maxsize=1)
+    stopped = ThreadEvent()
+    next_requested = ThreadEvent()
+
+    def put(kind: str, payload: str | BaseException | None) -> bool:
+        while not stopped.is_set():
+            try:
+                queue.put((kind, payload), timeout=0.1)
+            except Full:
+                continue
+            return True
+        return False
+
+    def producer() -> None:
+        try:
+            while not stopped.is_set():
+                next_requested.wait()
+                next_requested.clear()
+                if stopped.is_set():
+                    return
+                try:
+                    chunk = next(chunks)
+                except StopIteration:
+                    put("done", None)
+                    return
+                if not put("event", chunk):
+                    return
+        except BaseException as exc:  # pragma: no cover - defensive bridge
+            put("error", exc)
+
+    context = copy_context()
+    thread = Thread(target=context.run, args=(producer,), daemon=True)
+    thread.start()
+    waiting_for_next = False
+    try:
+        while True:
+            if not waiting_for_next:
+                waiting_for_next = True
+                next_requested.set()
+            try:
+                kind, payload = queue.get(timeout=heartbeat_interval)
+            except Empty:
+                yield _SSE_HEARTBEAT
+                continue
+            waiting_for_next = False
+            if kind == "done":
+                break
+            if kind == "error":
+                assert isinstance(payload, BaseException)
+                raise payload
+            assert isinstance(payload, str)
+            yield payload
+    finally:
+        stopped.set()
+        next_requested.set()
+        thread.join(timeout=0.1)
+
+
+async def _iterate_with_heartbeats(
+    next_item: Callable[[], Awaitable[ActionItem | object]],
+    heartbeat_interval: float,
+) -> AsyncIterator[ActionItem | object]:
+    pending: asyncio.Task[ActionItem | object] | None = None
+    try:
+        while True:
+            pending = asyncio.create_task(next_item())
+            while heartbeat_interval > 0:
+                done, _ = await asyncio.wait(
+                    (pending,),
+                    timeout=heartbeat_interval,
+                )
+                if done:
+                    break
+                yield _HEARTBEAT_DUE
+            item = await pending
+            pending = None
+            yield item
+            if item is _ITERATION_DONE:
+                return
+    finally:
+        if pending is not None and not pending.done():
+            pending.cancel()
+            try:
+                await pending
+            except BaseException:
+                pass
 
 
 async def _produce_action_sse(

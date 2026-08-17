@@ -5,7 +5,6 @@ from typing import Any, Final
 
 from django.conf import settings
 
-
 SITE_NAME: Final[str] = "HyperDjango"
 
 
@@ -18,7 +17,7 @@ def site_url() -> str:
 
 
 def site_version() -> str:
-    return str(getattr(settings, "SITE_VERSION", "0.41.1"))
+    return str(getattr(settings, "SITE_VERSION", "0.42.0"))
 
 
 def absolute_url(path: str = "/") -> str:

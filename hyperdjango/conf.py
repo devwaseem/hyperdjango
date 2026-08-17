@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import os
 from pathlib import Path
 
@@ -77,3 +78,14 @@ def get_switch_action_max_depth() -> int:
     except (ImproperlyConfigured, TypeError, ValueError):
         return 4
     return max(0, value)
+
+
+def get_sse_heartbeat_interval() -> float:
+    """Return the idle interval between SSE heartbeat comments, in seconds."""
+    try:
+        value = float(getattr(settings, "HYPER_SSE_HEARTBEAT_INTERVAL", 15))
+    except (ImproperlyConfigured, TypeError, ValueError):
+        return 15.0
+    if not math.isfinite(value):
+        return 15.0
+    return max(0.0, value)

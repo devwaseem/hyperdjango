@@ -851,6 +851,102 @@ def test_sync_response_streams_async_generator_with_pause() -> None:
     assert second_at >= 0.2
 
 
+@override_settings(HYPER_SSE_HEARTBEAT_INTERVAL=0.02)
+def test_sync_stream_emits_heartbeat_comments_while_generator_is_idle() -> None:
+    _ensure_settings()
+
+    def items():
+        yield Signal(name="phase", value="start")
+        time.sleep(0.06)
+        yield Signal(name="phase", value="done")
+
+    chunks = list(to_action_http_response(items()).streaming_content)
+
+    assert chunks[0] == b'event: patch_signals\ndata: {"phase": "start"}\n\n'
+    assert b": heartbeat\n\n" in chunks[1:-2]
+    assert chunks[-2] == b'event: patch_signals\ndata: {"phase": "done"}\n\n'
+    assert chunks[-1] == b"event: end\ndata: {}\n\n"
+
+
+@override_settings(HYPER_SSE_HEARTBEAT_INTERVAL=0.02)
+def test_wsgi_stream_emits_heartbeat_comments_for_async_generator() -> None:
+    _ensure_settings()
+
+    async def items():
+        yield Signal(name="phase", value="start")
+        await asyncio.sleep(0.06)
+        yield Signal(name="phase", value="done")
+
+    chunks = list(to_action_http_response(items()).streaming_content)
+
+    assert chunks[0] == b'event: patch_signals\ndata: {"phase": "start"}\n\n'
+    assert b": heartbeat\n\n" in chunks[1:-2]
+    assert chunks[-2] == b'event: patch_signals\ndata: {"phase": "done"}\n\n'
+    assert chunks[-1] == b"event: end\ndata: {}\n\n"
+
+
+@override_settings(HYPER_SSE_HEARTBEAT_INTERVAL=0.02)
+def test_asgi_stream_emits_heartbeat_comments_while_async_generator_is_idle() -> None:
+    _ensure_settings()
+
+    async def items():
+        yield Signal(name="phase", value="start")
+        await asyncio.sleep(0.06)
+        yield Signal(name="phase", value="done")
+
+    request = RequestFactory().get("/demo")
+    request.scope = {}
+    response = to_action_http_response(items(), request=request)
+
+    async def consume() -> list[bytes]:
+        return [chunk async for chunk in response.streaming_content]
+
+    chunks = asyncio.run(consume())
+
+    assert chunks[0] == b'event: patch_signals\ndata: {"phase": "start"}\n\n'
+    assert b": heartbeat\n\n" in chunks[1:-2]
+    assert chunks[-2] == b'event: patch_signals\ndata: {"phase": "done"}\n\n'
+    assert chunks[-1] == b"event: end\ndata: {}\n\n"
+
+
+@override_settings(HYPER_SSE_HEARTBEAT_INTERVAL=0.02)
+def test_asgi_stream_emits_heartbeat_comments_for_sync_generator() -> None:
+    _ensure_settings()
+
+    def items():
+        yield Signal(name="phase", value="start")
+        time.sleep(0.06)
+        yield Signal(name="phase", value="done")
+
+    request = RequestFactory().get("/demo")
+    request.scope = {}
+    response = to_action_http_response(items(), request=request)
+
+    async def consume() -> list[bytes]:
+        return [chunk async for chunk in response.streaming_content]
+
+    chunks = asyncio.run(consume())
+
+    assert chunks[0] == b'event: patch_signals\ndata: {"phase": "start"}\n\n'
+    assert b": heartbeat\n\n" in chunks[1:-2]
+    assert chunks[-2] == b'event: patch_signals\ndata: {"phase": "done"}\n\n'
+    assert chunks[-1] == b"event: end\ndata: {}\n\n"
+
+
+@override_settings(HYPER_SSE_HEARTBEAT_INTERVAL=0)
+def test_sse_heartbeats_can_be_disabled() -> None:
+    _ensure_settings()
+
+    def items():
+        yield Signal(name="phase", value="start")
+        time.sleep(0.03)
+        yield Signal(name="phase", value="done")
+
+    chunks = list(to_action_http_response(items()).streaming_content)
+
+    assert b": heartbeat\n\n" not in chunks
+
+
 def test_dispatch_page_converts_permission_denied_to_error_event() -> None:
     class DemoPage(HyperView):
         @action

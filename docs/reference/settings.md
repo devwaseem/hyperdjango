@@ -194,6 +194,20 @@ Maximum accepted `SwitchAction` depth. Requests beyond the limit receive a struc
 409 action error. Keep this aligned with the client runtime's `switchActionMaxDepth`
 configuration. Increase it only for an intentional longer command/query chain.
 
+## `HYPER_SSE_HEARTBEAT_INTERVAL`
+
+Type: `int | float`. Default: `15`.
+
+Number of idle seconds between SSE heartbeat comments for generator action streams.
+HyperDjango emits `: heartbeat` when a sync or async generator has not produced an
+action item during this interval. The comment keeps otherwise silent connections active
+through proxies and is ignored by the browser runtime: it does not dispatch an event,
+change the latest checkpoint, or reset the client's reconnect-attempt count.
+
+Choose an interval shorter than the smallest idle timeout in the reverse-proxy, CDN, and
+application-server path. Set the value to `0` to disable server heartbeats. One-shot
+actions and already-active streams do not emit unnecessary heartbeat frames.
+
 ## `HYPER_DEV`
 
 Type:
