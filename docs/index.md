@@ -4,9 +4,10 @@ HyperDjango gives Django a server-first workflow with file routing, colocated as
 
 Use it when you want interactive UX without splitting your app into separate backend API and SPA frontend codebases.
 
-## Current Release: 0.42.0
+## Current Release: 0.42.1
 
-HyperDjango 0.42.0 keeps idle SSE action streams connected through proxies:
+HyperDjango 0.42.1 includes the SSE heartbeat support introduced in 0.42.0 and
+refreshes the locked development and website dependencies to patched releases:
 
 - generator streams emit standard `: heartbeat` SSE comments every 15 seconds while
   idle, across sync and async actions under WSGI and ASGI

@@ -78,7 +78,7 @@ test.describe.serial("HyperDjango request inspector", () => {
 
   test("loads independently and supports launcher, drawer, fullscreen, keyboard, and dragging", async ({ page }) => {
     await visit(page);
-    await expect(page.getByText("v0.42.0 · Latest release")).toBeVisible();
+    await expect(page.getByText("v0.42.1 · Latest release")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Stay connected" })).toBeVisible();
     await expect(page.getByRole("link", { name: /Configure heartbeats/ })).toHaveAttribute("href", "/docs/reference/settings#hyper_sse_heartbeat_interval");
     const root = toolbar(page);
@@ -213,7 +213,7 @@ test.describe.serial("HyperDjango request inspector", () => {
     expect(llms).toContain("## Request Inspector");
     expect(llms).toContain("authoritative enablement switch");
     expect(llms).toContain("## Django Debug Toolbar");
-    expect(llms).toContain("## Current Release: 0.42.0");
+    expect(llms).toContain("## Current Release: 0.42.1");
     for (const path of [
       "/docs/history",
       "/docs/cookbook",

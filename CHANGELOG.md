@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## 0.42.1 - 2026-08-17
+
+- Refreshed the locked development and website dependencies to patched Django and
+  nanoid releases so the release security scan is clean at HIGH and CRITICAL severity.
+
 ## 0.42.0 - 2026-08-17
 
 - Added configurable SSE comment heartbeats for idle generator action streams. Sync and
