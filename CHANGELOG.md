@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## 0.42.2 - 2026-08-29
+
+- Made `hyper_runserver` start Django on port 8000 by default and advance to the
+  next available port when 8000 is occupied.
+
 ## 0.42.1 - 2026-08-17
 
 - Refreshed the locked development and website dependencies to patched Django and

@@ -4,21 +4,18 @@ HyperDjango gives Django a server-first workflow with file routing, colocated as
 
 Use it when you want interactive UX without splitting your app into separate backend API and SPA frontend codebases.
 
-## Current Release: 0.42.1
+## Current Release: 0.42.2
 
-HyperDjango 0.42.1 includes the SSE heartbeat support introduced in 0.42.0 and
-refreshes the locked development and website dependencies to patched releases:
+HyperDjango 0.42.2 makes local startup predictable when Django's default port
+is already in use:
 
-- generator streams emit standard `: heartbeat` SSE comments every 15 seconds while
-  idle, across sync and async actions under WSGI and ASGI
-- heartbeat comments stay transport-only: they do not dispatch application events,
-  advance resume checkpoints, or change retry behavior
-- `HYPER_SSE_HEARTBEAT_INTERVAL` controls the interval and accepts `0` to disable
-  heartbeats
+- `hyper_runserver` starts Django on port 8000 when no address is provided
+- an occupied default port advances to the next available port in sequence
+- explicit addresses stay fixed unless `--auto-port` requests the same fallback
 
-See the [SSE payload reference](reference/sse-payloads.md#heartbeat-comments) for the
-wire contract and [settings reference](reference/settings.md#hyper_sse_heartbeat_interval)
-for deployment configuration.
+Vite continues to select its own free port independently. See the
+[`hyper_runserver` command reference](reference/commands.md#python-managepy-hyper_runserver)
+for address, port, and Vite options.
 
 Existing projects should also review the [0.38.0 project upgrade notes](https://github.com/devwaseem/hyperdjango/blob/main/CHANGELOG.md#project-upgrade-notes), especially the Vite 8 and Node.js requirements. The [production checklist](production-checklist.md) covers the final validation steps.
 

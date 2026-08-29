@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import errno
 import logging
 import os
 import signal
@@ -7,7 +8,7 @@ import subprocess
 import sys
 from io import StringIO
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, call, patch
 
 import pytest
 from django.core.management.base import CommandError
@@ -42,13 +43,54 @@ from hyperdjango.management.commands.hyper_runserver import (
 )
 
 
-def test_available_port_returns_bindable_port() -> None:
-    with patch("hyperdjango.management.commands.hyper_runserver.socket.socket") as factory:
-        sock = factory.return_value.__enter__.return_value
-        sock.getsockname.return_value = ("127.0.0.1", 43123)
+def test_available_port_returns_first_bindable_port() -> None:
+    occupied = MagicMock()
+    occupied.__enter__.return_value.bind.side_effect = OSError(
+        errno.EADDRINUSE, "Address already in use"
+    )
+    available = MagicMock()
+    available.__enter__.return_value.getsockname.return_value = (
+        "127.0.0.1",
+        8001,
+    )
 
-        assert _available_port("127.0.0.1") == 43123
-        sock.bind.assert_called_once_with(("127.0.0.1", 0))
+    with patch(
+        "hyperdjango.management.commands.hyper_runserver.socket.socket",
+        side_effect=(occupied, available),
+    ):
+        assert _available_port("127.0.0.1", 8000) == 8001
+
+    assert occupied.__enter__.return_value.bind.call_args == call(
+        ("127.0.0.1", 8000)
+    )
+    assert available.__enter__.return_value.bind.call_args == call(
+        ("127.0.0.1", 8001)
+    )
+
+
+def test_default_django_port_uses_first_available_from_8000(monkeypatch) -> None:
+    command = Command()
+    command.addr = "127.0.0.1"
+    command.port = "8000"
+    run_django = Mock()
+    monkeypatch.delenv("HYPER_DJANGO_DEV_SERVER_PORT", raising=False)
+    monkeypatch.setattr(command, "_run_django", run_django)
+
+    with patch(
+        "hyperdjango.management.commands.hyper_runserver._available_port",
+        return_value=8002,
+    ) as available_port:
+        command.run(
+            addrport=None,
+            auto_port=False,
+            no_vite=True,
+            open=False,
+        )
+
+    available_port.assert_called_once_with("127.0.0.1", 8000)
+    assert command.port == "8002"
+    assert os.environ["HYPER_DJANGO_DEV_SERVER_PORT"] == "8002"
+    run_django.assert_called_once()
 
 
 def test_vite_url_uses_browser_address_for_wildcard_host() -> None:
@@ -139,7 +181,7 @@ def test_autoreload_child_does_not_start_another_vite(monkeypatch) -> None:
     monkeypatch.setenv("RUN_MAIN", "true")
     monkeypatch.setattr(command, "_run_django", lambda **options: called.append(options))
 
-    command.run(auto_port=False, no_vite=False)
+    command.run(addrport="8000", auto_port=False, no_vite=False)
 
     assert len(called) == 1
 

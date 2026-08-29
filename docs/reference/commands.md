@@ -4,8 +4,8 @@
 
 Purpose:
 
-- start Django and Vite together for local development
-- automatically select a free Vite port and make its URL available to HyperDjango
+- start Django on port 8000, or the next available port if 8000 is occupied
+- start Vite on a free port and make its URL available to HyperDjango
 
 Useful flags:
 
@@ -14,7 +14,7 @@ Useful flags:
 - `--vite-public-host devbox.local` to set the hostname injected into browser URLs
 - `--vite-timeout 15` to control the readiness deadline
 - `--package-manager npm|pnpm|yarn|bun` to override lockfile detection
-- `--auto-port` to select an available Django port too
+- `--auto-port` to use the next available port when an explicit Django port is occupied
 - `--open` to open the app after Django begins accepting connections
 - `--verbose` to include Vite startup details
 - `--no-vite` to run only Django

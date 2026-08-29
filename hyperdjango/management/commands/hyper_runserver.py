@@ -3,6 +3,7 @@ from __future__ import annotations
 import atexit
 import codecs
 import copy
+import errno
 import logging
 import os
 import re
@@ -106,7 +107,7 @@ class Command(StaticRunserverCommand):
         parser.add_argument(
             "--auto-port",
             action="store_true",
-            help="Select an available Django port as well as a Vite port",
+            help="Fall forward if an explicitly requested Django port is occupied",
         )
         parser.add_argument(
             "--open",
@@ -128,8 +129,8 @@ class Command(StaticRunserverCommand):
         inherited_port = os.environ.get(DJANGO_PORT_ENV)
         if inherited_port:
             self.port = inherited_port
-        elif options.get("auto_port"):
-            self.port = str(_available_port(self.addr))
+        elif options.get("addrport") is None or options.get("auto_port"):
+            self.port = str(_available_port(self.addr, int(self.port)))
             os.environ[DJANGO_PORT_ENV] = self.port
         if options.get("no_vite"):
             if options.get("open"):
@@ -764,14 +765,22 @@ def _forward_django_output(stream: BinaryIO | TextIO | None, output: Any) -> Non
     forward(decoder.decode(b"", final=True))
 
 
-def _available_port(host: str) -> int:
-    try:
-        family = socket.AF_INET6 if ":" in host else socket.AF_INET
-        with socket.socket(family, socket.SOCK_STREAM) as sock:
-            sock.bind((host, 0))
-            return int(sock.getsockname()[1])
-    except OSError as exc:
-        raise CommandError(f"Could not select a Vite port on {host}: {exc}") from exc
+def _available_port(host: str, start_port: int) -> int:
+    family = socket.AF_INET6 if ":" in host else socket.AF_INET
+    for port in range(start_port, 65536):
+        try:
+            with socket.socket(family, socket.SOCK_STREAM) as sock:
+                sock.bind((host, port))
+                return int(sock.getsockname()[1])
+        except OSError as exc:
+            if exc.errno == errno.EADDRINUSE:
+                continue
+            raise CommandError(
+                f"Could not test Django port {port} on {host}: {exc}"
+            ) from exc
+    raise CommandError(
+        f"No available Django port found on {host} from {start_port} through 65535"
+    )
 
 
 def _vite_url(host: str, port: int) -> str:
