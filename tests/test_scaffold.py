@@ -63,6 +63,7 @@ def test_wire_settings_is_idempotent(tmp_path: Path) -> None:
     assert changed_first is True
     assert changed_second is False
     assert 'HYPER_FRONTEND_DIR = BASE_DIR / "hyper"' in content
+    assert "HYPER_VITE_DEV_SERVER_URL" not in content
     assert 'INSTALLED_APPS.append("hyperdjango")' in content
 
 

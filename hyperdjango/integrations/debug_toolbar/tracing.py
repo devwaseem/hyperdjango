@@ -209,7 +209,7 @@ def _route_details(page: Any) -> dict[str, Any]:
                 {
                     "section": section,
                     "type": tag.__class__.__name__.removesuffix("Tag"),
-                    "url": str(tag.src),
+                    "url": str(tag.resolved_src),
                 }
             )
 

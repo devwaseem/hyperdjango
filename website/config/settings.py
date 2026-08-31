@@ -88,12 +88,11 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 HYPER_FRONTEND_DIR = BASE_DIR / "hyper"
 HYPER_VITE_OUTPUT_DIR = BASE_DIR / "dist"
-HYPER_VITE_DEV_SERVER_URL = "http://localhost:5173/"
 HYPER_DEV = os.getenv("HYPER_DEV", "True") == "True"
 SITE_URL = os.getenv(
     "SITE_URL", "https://hyperdjango.charingcrosscapital.com"
 ).rstrip("/")
-SITE_VERSION = os.getenv("SITE_VERSION", "0.42.2")
+SITE_VERSION = os.getenv("SITE_VERSION", "0.42.3")
 GITHUB_URL = os.getenv(
     "GITHUB_URL", "https://github.com/devwaseem/hyperdjango"
 ).rstrip("/")

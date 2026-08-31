@@ -9,7 +9,6 @@ Pages, layouts, and template packages can load nearby Vite entries without hand-
 ```python
 HYPER_FRONTEND_DIR = BASE_DIR / "hyper"
 HYPER_VITE_OUTPUT_DIR = BASE_DIR / "dist"
-HYPER_VITE_DEV_SERVER_URL = "http://localhost:5173/"
 HYPER_DEV = DEBUG
 
 TEMPLATES[0]["DIRS"].append(HYPER_FRONTEND_DIR)
@@ -24,9 +23,12 @@ Where HyperDjango finds your `hyper/` tree.
 
 Where Vite writes built assets. In production, HyperDjango reads the manifest here.
 
-### `HYPER_VITE_DEV_SERVER_URL`
+### `HYPER_VITE_DEV_SERVER_URL` (optional)
 
-Which Vite dev server URL should be injected during development.
+Fallback Vite dev server URL when development assets are used without
+`hyper_runserver`. The default is `http://localhost:5173/`.
+`hyper_runserver` discovers Vite's actual URL and makes it authoritative at
+runtime, including when Vite selects another free port.
 
 ### `HYPER_DEV`
 
@@ -61,7 +63,8 @@ In development:
 
 - HyperDjango injects the Vite dev server URL
 - Vite client is added automatically where needed
-- `python manage.py hyper_runserver` starts both servers and assigns Vite a free port
+- `python manage.py hyper_runserver` starts both servers, discovers Vite's
+  actual URL, and uses it for every asset
 - Vite readiness is confirmed before Django starts, with startup failures surfaced inline
 
 In production:

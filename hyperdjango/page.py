@@ -20,7 +20,7 @@ from hyperdjango.assets import (
     StyleSheetTag,
     ViteAssetResolver,
 )
-from hyperdjango.conf import get_frontend_dir, get_vite_dev_server_url, is_dev_env
+from hyperdjango.conf import get_frontend_dir, is_dev_env
 from hyperdjango.integrations.debug_toolbar.tracing import (
     operation as debug_operation,
     record_render as debug_record_render,
@@ -63,8 +63,8 @@ class HyperPageTemplateMeta(type):
         body_files = ["entry.js", "entry.ts"]
 
         if is_dev_env():
-            cls._assets["head"].append(
-                ModuleTag(src=f"{get_vite_dev_server_url()}@vite/client")
+            cls._assets["head"].extend(
+                ViteAssetResolver.get_imports(file="@vite/client")
             )
 
         seen: set[AssetTag] = set()
@@ -289,7 +289,7 @@ class HyperPageTemplate(metaclass=HyperPageTemplateMeta):
                 raise FileNotLoadedFromViteError(file_name=file_name)
             for tag in ViteAssetResolver.get_imports(file=manifest_name):
                 if isinstance(tag, ModuleTag) and not tag.src.endswith("@vite/client"):
-                    return tag.src
+                    return tag.resolved_src
             break
         return None
 

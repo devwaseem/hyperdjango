@@ -2,7 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 0.42.3 - 2026-08-31
+
+- Fixed development asset URLs when Vite selects a port other than 5173.
+  Vite-backed module tags now resolve the runtime server URL when rendered
+  instead of freezing the configured fallback during page-class import.
 
 ## 0.42.2 - 2026-08-29
 

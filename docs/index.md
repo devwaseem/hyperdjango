@@ -4,18 +4,19 @@ HyperDjango gives Django a server-first workflow with file routing, colocated as
 
 Use it when you want interactive UX without splitting your app into separate backend API and SPA frontend codebases.
 
-## Current Release: 0.42.2
+## Current Release: 0.42.3
 
-HyperDjango 0.42.2 makes local startup predictable when Django's default port
-is already in use:
+HyperDjango 0.42.3 keeps development assets connected when Vite selects a port
+other than 5173:
 
-- `hyper_runserver` starts Django on port 8000 when no address is provided
-- an occupied default port advances to the next available port in sequence
-- explicit addresses stay fixed unless `--auto-port` requests the same fallback
+- Vite-backed module URLs resolve from the server discovered by `hyper_runserver`
+  when tags are rendered instead of when page classes are imported
+- generated settings no longer freeze the conventional 5173 fallback
+- `HYPER_VITE_DEV_SERVER_URL` remains available for development workflows that
+  use Django's ordinary `runserver`
 
-Vite continues to select its own free port independently. See the
-[`hyper_runserver` command reference](reference/commands.md#python-managepy-hyper_runserver)
-for address, port, and Vite options.
+See [Assets and Vite](assets-and-vite.md) for development and production asset
+configuration.
 
 Existing projects should also review the [0.38.0 project upgrade notes](https://github.com/devwaseem/hyperdjango/blob/main/CHANGELOG.md#project-upgrade-notes), especially the Vite 8 and Node.js requirements. The [production checklist](production-checklist.md) covers the final validation steps.
 

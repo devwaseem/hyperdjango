@@ -16,6 +16,10 @@ from hyperdjango.conf import get_vite_dev_server_url, is_dev_env
 class AssetTag(ABC):
     src: str
 
+    @property
+    def resolved_src(self) -> str:
+        return self.src
+
     @abstractmethod
     def render(self, nonce: str | None = None) -> SafeString:
         raise NotImplementedError
@@ -32,8 +36,17 @@ class ModuleTag(AssetTag):
     def render(self, nonce: str | None = None) -> SafeString:
         nonce_attr = format_html(' nonce="{}"', nonce) if nonce else ""
         return format_html(
-            '<script type="module" src="{}"{}></script>', self.src, nonce_attr
+            '<script type="module" src="{}"{}></script>',
+            self.resolved_src,
+            nonce_attr,
         )
+
+
+@dataclass(frozen=True)
+class ViteDevServerModuleTag(ModuleTag):
+    @property
+    def resolved_src(self) -> str:
+        return f"{get_vite_dev_server_url()}{self.src}"
 
 
 @dataclass(frozen=True)
@@ -53,8 +66,7 @@ class AssetResolver(ABC):
 
 class ViteDevServerAssetResolver(AssetResolver):
     def get_imports(self, file: str) -> Generator[AssetTag, None, None]:
-        base = get_vite_dev_server_url()
-        yield ModuleTag(src=f"{base}{file}")
+        yield ViteDevServerModuleTag(src=file)
 
 
 class ManifestAssetResolver(AssetResolver):

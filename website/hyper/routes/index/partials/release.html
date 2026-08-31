@@ -4,44 +4,44 @@
             <div>
                 <div class="font-mono text-[10px] font-black uppercase tracking-[0.3em] text-blue-600">Latest release · v{{ site_version }}</div>
                 <h2 id="latest-release-title" class="mt-3 font-doto text-5xl font-black uppercase leading-none tracking-tight text-black">
-                    Start clean
+                    Follow Vite
                 </h2>
             </div>
             <div class="max-w-2xl font-mono text-sm leading-7 text-gray-600 lg:justify-self-end">
-                <p>HyperDjango 0.42.2 starts Django on port 8000 and moves to the next available port when another process is already there, while keeping explicit port choices under your control.</p>
-                <a href="https://github.com/devwaseem/hyperdjango/blob/main/CHANGELOG.md#0422---2026-08-29"
+                <p>HyperDjango 0.42.3 keeps development assets on Vite's actual server when it selects a free port beyond 5173, without freezing a stale URL during Django imports.</p>
+                <a href="https://github.com/devwaseem/hyperdjango/blob/main/CHANGELOG.md#0423---2026-08-31"
                    target="_blank"
                    rel="noreferrer"
                    class="mt-4 inline-block font-bold uppercase tracking-[0.12em] text-black underline decoration-black/30 underline-offset-4 hover:decoration-black">
-                    Full 0.42.2 release notes ↗
+                    Full 0.42.3 release notes ↗
                 </a>
             </div>
         </div>
 
         <div class="mt-10 grid border-l border-t border-black/10 sm:grid-cols-2 xl:grid-cols-4">
-            <a href="/docs/reference/commands" class="group border-b border-r border-black/10 bg-white p-6 transition-colors hover:bg-black hover:text-white">
-                <span class="font-mono text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 group-hover:text-blue-300">01 · Default</span>
-                <h3 class="mt-5 font-doto text-2xl font-black uppercase leading-none">Begin at 8000</h3>
-                <p class="mt-4 font-mono text-xs leading-6 text-gray-500 group-hover:text-gray-300">Run one command without choosing a port. Django starts from its familiar development default.</p>
-                <span class="mt-6 block font-mono text-[11px] font-bold uppercase tracking-[0.15em]">Review command options →</span>
+            <a href="/docs/assets-and-vite" class="group border-b border-r border-black/10 bg-white p-6 transition-colors hover:bg-black hover:text-white">
+                <span class="font-mono text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 group-hover:text-blue-300">01 · Runtime discovery</span>
+                <h3 class="mt-5 font-doto text-2xl font-black uppercase leading-none">Use the live port</h3>
+                <p class="mt-4 font-mono text-xs leading-6 text-gray-500 group-hover:text-gray-300">HyperDjango follows the Vite URL reported by <code>hyper_runserver</code>, including automatically selected ports.</p>
+                <span class="mt-6 block font-mono text-[11px] font-bold uppercase tracking-[0.15em]">Review asset setup →</span>
             </a>
-            <a href="/docs/reference/commands" class="group border-b border-r border-black/10 bg-white p-6 transition-colors hover:bg-black hover:text-white">
-                <span class="font-mono text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 group-hover:text-blue-300">02 · Collision handling</span>
-                <h3 class="mt-5 font-doto text-2xl font-black uppercase leading-none">Take the next port</h3>
-                <p class="mt-4 font-mono text-xs leading-6 text-gray-500 group-hover:text-gray-300">If 8000 is busy, HyperDjango checks 8001 and continues upward until Django can bind.</p>
-                <span class="mt-6 block font-mono text-[11px] font-bold uppercase tracking-[0.15em]">See fallback behavior →</span>
+            <a href="/docs/assets-and-vite" class="group border-b border-r border-black/10 bg-white p-6 transition-colors hover:bg-black hover:text-white">
+                <span class="font-mono text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 group-hover:text-blue-300">02 · Late resolution</span>
+                <h3 class="mt-5 font-doto text-2xl font-black uppercase leading-none">Render fresh URLs</h3>
+                <p class="mt-4 font-mono text-xs leading-6 text-gray-500 group-hover:text-gray-300">Development module tags resolve their full URL at render time instead of page-class import time.</p>
+                <span class="mt-6 block font-mono text-[11px] font-bold uppercase tracking-[0.15em]">See Vite behavior →</span>
             </a>
-            <a href="/docs/reference/commands" class="group border-b border-r border-black/10 bg-white p-6 transition-colors hover:bg-black hover:text-white">
-                <span class="font-mono text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 group-hover:text-blue-300">03 · Explicit control</span>
-                <h3 class="mt-5 font-doto text-2xl font-black uppercase leading-none">Keep fixed ports fixed</h3>
-                <p class="mt-4 font-mono text-xs leading-6 text-gray-500 group-hover:text-gray-300">Provided addresses remain strict by default. Add <code>--auto-port</code> only when fallback is wanted.</p>
-                <span class="mt-6 block font-mono text-[11px] font-bold uppercase tracking-[0.15em]">Choose an address →</span>
+            <a href="/docs/installation" class="group border-b border-r border-black/10 bg-white p-6 transition-colors hover:bg-black hover:text-white">
+                <span class="font-mono text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 group-hover:text-blue-300">03 · Clean scaffolds</span>
+                <h3 class="mt-5 font-doto text-2xl font-black uppercase leading-none">Skip frozen defaults</h3>
+                <p class="mt-4 font-mono text-xs leading-6 text-gray-500 group-hover:text-gray-300">New projects rely on managed runtime discovery rather than writing a fixed 5173 setting.</p>
+                <span class="mt-6 block font-mono text-[11px] font-bold uppercase tracking-[0.15em]">Open installation guide →</span>
             </a>
-            <a href="/docs/reference/commands" class="group border-b border-r border-black/10 bg-white p-6 transition-colors hover:bg-black hover:text-white">
-                <span class="font-mono text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 group-hover:text-blue-300">04 · Vite pairing</span>
-                <h3 class="mt-5 font-doto text-2xl font-black uppercase leading-none">Run both together</h3>
-                <p class="mt-4 font-mono text-xs leading-6 text-gray-500 group-hover:text-gray-300">Vite still selects its own free port while HyperDjango supervises both development servers.</p>
-                <span class="mt-6 block font-mono text-[11px] font-bold uppercase tracking-[0.15em]">Open command reference →</span>
+            <a href="/docs/reference/settings" class="group border-b border-r border-black/10 bg-white p-6 transition-colors hover:bg-black hover:text-white">
+                <span class="font-mono text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 group-hover:text-blue-300">04 · Manual fallback</span>
+                <h3 class="mt-5 font-doto text-2xl font-black uppercase leading-none">Keep plain runserver</h3>
+                <p class="mt-4 font-mono text-xs leading-6 text-gray-500 group-hover:text-gray-300">The optional URL setting remains available when Django and Vite are started outside <code>hyper_runserver</code>.</p>
+                <span class="mt-6 block font-mono text-[11px] font-bold uppercase tracking-[0.15em]">Review settings →</span>
             </a>
         </div>
     </div>

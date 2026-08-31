@@ -31,7 +31,6 @@ INSTALLED_APPS = [
 ```python
 HYPER_FRONTEND_DIR = BASE_DIR / "hyper"
 HYPER_VITE_OUTPUT_DIR = BASE_DIR / "dist"
-HYPER_VITE_DEV_SERVER_URL = "http://localhost:5173/"
 HYPER_DEV = DEBUG
 
 TEMPLATES[0]["DIRS"].append(HYPER_FRONTEND_DIR)
@@ -42,8 +41,11 @@ What these do:
 
 - `HYPER_FRONTEND_DIR`: where HyperDjango finds `routes/`, `layouts/`, `templates/`, and shared frontend files
 - `HYPER_VITE_OUTPUT_DIR`: where Vite writes built assets
-- `HYPER_VITE_DEV_SERVER_URL`: which Vite dev server URL to inject in development
 - `HYPER_DEV`: whether to use development assets or manifest-built production assets
+
+`hyper_runserver` discovers Vite's runtime URL automatically. Set the optional
+`HYPER_VITE_DEV_SERVER_URL` only when using development assets with another
+server workflow.
 
 ## Mount Routes
 

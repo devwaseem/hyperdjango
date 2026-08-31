@@ -102,6 +102,53 @@ def test_asset_tags_escape_attribute_values() -> None:
     assert '" onclick="' not in rendered
 
 
+def test_dev_assets_use_runtime_vite_url_after_discovery(
+    monkeypatch, tmp_path: Path
+) -> None:
+    _ensure_settings()
+    frontend_dir = tmp_path / "hyper"
+    page_file = frontend_dir / "routes" / "dashboard" / "+page.py"
+    entry_file = page_file.parent / "entry.ts"
+    page_file.parent.mkdir(parents=True)
+    page_file.write_text("# test")
+    entry_file.write_text("console.log('dashboard')")
+
+    monkeypatch.setattr("hyperdjango.page.get_frontend_dir", lambda: frontend_dir)
+    monkeypatch.delenv("HYPER_VITE_DEV_SERVER_URL", raising=False)
+
+    with override_settings(
+        HYPER_DEV=True,
+        HYPER_VITE_DEV_SERVER_URL="http://localhost:5173/",
+    ):
+        class DashboardPage(HyperPageTemplate):
+            @classmethod
+            def _get_file_path(cls) -> str:
+                return str(page_file)
+
+        page = DashboardPage()
+        monkeypatch.setenv(
+            "HYPER_VITE_DEV_SERVER_URL", "http://127.0.0.1:43123"
+        )
+
+        assert [tag.src for tag in page.head_imports] == ["@vite/client"]
+        assert [tag.src for tag in page.body_imports] == [
+            "hyper/routes/dashboard/entry.ts"
+        ]
+        assert [tag.resolved_src for tag in page.head_imports] == [
+            "http://127.0.0.1:43123/@vite/client"
+        ]
+        assert [tag.resolved_src for tag in page.body_imports] == [
+            "http://127.0.0.1:43123/hyper/routes/dashboard/entry.ts"
+        ]
+        assert 'src="http://127.0.0.1:43123/@vite/client"' in str(
+            page.head_imports[0].render()
+        )
+        assert (
+            'src="http://127.0.0.1:43123/hyper/routes/dashboard/entry.ts"'
+            in str(page.body_imports[0].render())
+        )
+
+
 def test_base_template_adds_nonce_to_runtime_scripts() -> None:
     template = (
         Path(__file__).resolve().parent.parent

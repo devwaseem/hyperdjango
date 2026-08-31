@@ -47,17 +47,19 @@ Type:
 
 Purpose:
 
-- tells HyperDjango which Vite dev server URL to inject during development
+- provides a fallback Vite dev server URL when development assets are used
+  without `hyper_runserver`
 
-Example:
+Default:
 
 ```python
-HYPER_VITE_DEV_SERVER_URL = "http://localhost:5173/"
+"http://localhost:5173/"
 ```
 
-`python manage.py hyper_runserver` overrides this value at runtime with the
-automatically assigned Vite URL. An explicit `HYPER_VITE_DEV_SERVER_URL`
-environment variable also takes precedence over the setting.
+`python manage.py hyper_runserver` discovers Vite's actual URL and makes it
+authoritative at runtime, including when Vite selects a different free port.
+An explicit `HYPER_VITE_DEV_SERVER_URL` environment variable also takes
+precedence over the Django setting.
 
 ## `HYPER_VITE_COMMAND`
 
