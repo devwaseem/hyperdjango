@@ -8,6 +8,7 @@ on:
       - "example/**"
       - "pyproject.toml"
       - "uv.lock"
+      - "website/package-lock.json"
       - ".python-version"
       - ".github/workflows/library-ci.yml"
   pull_request:
@@ -18,6 +19,7 @@ on:
       - "pyproject.toml"
       - "uv.lock"
       - ".python-version"
+      - "website/package-lock.json"
       - ".github/workflows/library-ci.yml"
 
 env:
