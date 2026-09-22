@@ -4,19 +4,18 @@ HyperDjango gives Django a server-first workflow with file routing, colocated as
 
 Use it when you want interactive UX without splitting your app into separate backend API and SPA frontend codebases.
 
-## Current Release: 0.42.3
+## Current Release: 0.42.4
 
-HyperDjango 0.42.3 keeps development assets connected when Vite selects a port
-other than 5173:
+HyperDjango 0.42.4 makes unexpected action failures visible to Django's
+standard exception integrations:
 
-- Vite-backed module URLs resolve from the server discovered by `hyper_runserver`
-  when tags are rendered instead of when page classes are imported
-- generated settings no longer freeze the conventional 5173 fallback
-- `HYPER_VITE_DEV_SERVER_URL` remains available for development workflows that
-  use Django's ordinary `runserver`
+- synchronous and asynchronous action failures emit `got_request_exception`
+  while the original exception context and traceback are active
+- existing `django.request` logging and HTTP 500 action responses are unchanged
+- expected `PermissionDenied` and `Http404` action responses remain outside the
+  unexpected-exception signal path
 
-See [Assets and Vite](assets-and-vite.md) for development and production asset
-configuration.
+See [Actions](actions.md) for action behavior and response conventions.
 
 Existing projects should also review the [0.38.0 project upgrade notes](https://github.com/devwaseem/hyperdjango/blob/main/CHANGELOG.md#project-upgrade-notes), especially the Vite 8 and Node.js requirements. The [production checklist](production-checklist.md) covers the final validation steps.
 

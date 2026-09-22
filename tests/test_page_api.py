@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import sys
 import time
 from pathlib import Path
 
@@ -8,7 +9,8 @@ import django
 import pytest
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
-from django.http import HttpResponse
+from django.core.signals import got_request_exception
+from django.http import Http404, HttpResponse
 from django.template import Context, Engine
 from django.test import override_settings
 from django.test import RequestFactory
@@ -34,7 +36,7 @@ from hyperdjango.page import (
     Page,
 )
 from hyperdjango.routing.compiler import build_route_view
-from hyperdjango.runtime.dispatcher import dispatch_page
+from hyperdjango.runtime.dispatcher import dispatch_page, dispatch_page_async
 from hyperdjango.runtime.responses import compile_action_result, to_action_http_response
 from hyperdjango.sse import get_resume_checkpoint
 
@@ -994,18 +996,129 @@ def test_sse_heartbeats_can_be_disabled() -> None:
     assert b": heartbeat\n\n" not in chunks
 
 
-def test_dispatch_page_converts_permission_denied_to_error_event() -> None:
+def test_sync_action_exception_emits_request_exception_signal() -> None:
+    _ensure_settings()
+
+    class DemoPage(HyperView):
+        @action
+        def save(self, request, **params):
+            raise TypeError("broken action")
+
+    observed = []
+
+    def capture_exception(sender, request, **kwargs):
+        observed.append((sender, request, sys.exc_info()))
+
+    request = RequestFactory().get("/demo", HTTP_X_HYPER_ACTION="save")
+    got_request_exception.connect(capture_exception, weak=False)
+    try:
+        response = dispatch_page(DemoPage(), request)
+    finally:
+        got_request_exception.disconnect(capture_exception)
+
+    assert len(observed) == 1
+    sender, signal_request, exc_info = observed[0]
+    assert sender is None
+    assert signal_request is request
+    assert exc_info[0] is TypeError
+    assert isinstance(exc_info[1], TypeError)
+    assert exc_info[2] is not None
+    assert response.status_code == 500
+    assert _read_streaming_response(response) == (
+        b'event: error\ndata: {"status": 500, "message": '
+        b'"Internal server error"}\n\n'
+        b"event: end\ndata: {}\n\n"
+    )
+
+
+def test_async_action_exception_emits_request_exception_signal() -> None:
+    _ensure_settings()
+
+    class DemoPage(HyperView):
+        @action
+        async def save(self, request, **params):
+            await asyncio.sleep(0)
+            raise ValueError("broken async action")
+
+    observed = []
+
+    def capture_exception(sender, request, **kwargs):
+        observed.append((sender, request, sys.exc_info()))
+
+    request = RequestFactory().get("/demo", HTTP_X_HYPER_ACTION="save")
+    got_request_exception.connect(capture_exception, weak=False)
+    try:
+        response = asyncio.run(dispatch_page_async(DemoPage(), request))
+    finally:
+        got_request_exception.disconnect(capture_exception)
+
+    assert len(observed) == 1
+    sender, signal_request, exc_info = observed[0]
+    assert sender is None
+    assert signal_request is request
+    assert exc_info[0] is ValueError
+    assert isinstance(exc_info[1], ValueError)
+    assert exc_info[2] is not None
+    assert response.status_code == 500
+    assert _read_streaming_response(response) == (
+        b'event: error\ndata: {"status": 500, "message": '
+        b'"Internal server error"}\n\n'
+        b"event: end\ndata: {}\n\n"
+    )
+
+
+def test_permission_denied_action_does_not_emit_request_exception_signal() -> None:
+    _ensure_settings()
+
     class DemoPage(HyperView):
         @action
         def save(self, request, **params):
             raise PermissionDenied("Not allowed")
 
-    request = RequestFactory().get("/demo", HTTP_X_HYPER_ACTION="save")
-    response = dispatch_page(DemoPage(), request)
+    observed = []
 
+    def capture_exception(sender, request, **kwargs):
+        observed.append((sender, request))
+
+    request = RequestFactory().get("/demo", HTTP_X_HYPER_ACTION="save")
+    got_request_exception.connect(capture_exception, weak=False)
+    try:
+        response = dispatch_page(DemoPage(), request)
+    finally:
+        got_request_exception.disconnect(capture_exception)
+
+    assert observed == []
     assert response.status_code == 403
     assert _read_streaming_response(response) == (
         b'event: error\ndata: {"status": 403, "message": "Not allowed"}\n\n'
+        b"event: end\ndata: {}\n\n"
+    )
+
+
+def test_http_404_action_does_not_emit_request_exception_signal() -> None:
+    _ensure_settings()
+
+    class DemoPage(HyperView):
+        @action
+        def save(self, request, **params):
+            raise Http404("Missing")
+
+    observed = []
+
+    def capture_exception(sender, request, **kwargs):
+        observed.append((sender, request))
+
+    request = RequestFactory().get("/demo", HTTP_X_HYPER_ACTION="save")
+    got_request_exception.connect(capture_exception, weak=False)
+    try:
+        response = dispatch_page(DemoPage(), request)
+    finally:
+        got_request_exception.disconnect(capture_exception)
+
+    assert observed == []
+    assert response.status_code == 404
+    assert _read_streaming_response(response) == (
+        b'event: error\ndata: {"status": 404, "message": "Missing"}\n\n'
         b"event: end\ndata: {}\n\n"
     )
 

@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.42.4 - 2026-09-22
+
+- Emitted Django's `got_request_exception` signal for unexpected synchronous
+  and asynchronous action failures while the original exception context is
+  active. Standard Django exception integrations can now capture these errors
+  without changing HyperDjango's existing logged HTTP 500 action response.
+
 ## 0.42.3 - 2026-08-31
 
 - Fixed development asset URLs when Vite selects a port other than 5173.

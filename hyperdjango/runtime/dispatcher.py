@@ -6,6 +6,7 @@ import logging
 from typing import Any
 
 from asgiref.sync import async_to_sync
+from django.core import signals
 from django.core.exceptions import PermissionDenied
 from django.http import HttpRequest, HttpResponse
 from django.http import Http404
@@ -186,6 +187,7 @@ def _dispatch_action_sync(
         return _prepare_action_exception_response(request, status=404, message=message)
     except Exception as exc:
         debug_record_exception(request, exc, phase="action")
+        signals.got_request_exception.send(sender=None, request=request)
         logger.exception(
             "Unhandled exception in hyper action '%s' on %s",
             action_name,
@@ -257,6 +259,7 @@ async def _dispatch_action_async(
         return _prepare_action_exception_response(request, status=404, message=message)
     except Exception as exc:
         debug_record_exception(request, exc, phase="action")
+        signals.got_request_exception.send(sender=None, request=request)
         logger.exception(
             "Unhandled exception in hyper action '%s' on %s",
             action_name,
