@@ -7,6 +7,7 @@ from django.utils.html import format_html_join
 from django.utils.safestring import SafeString
 
 from hyperdjango.assets import AssetTag
+from hyperdjango.integrations.devtools import is_enabled
 from hyperdjango.page import HyperPageTemplate
 
 
@@ -39,6 +40,11 @@ def _get_csp_nonce(context: template.Context) -> str | None:
 @register.simple_tag(takes_context=True)
 def hyper_csp_nonce(context: template.Context) -> str:
     return _get_csp_nonce(context) or ""
+
+
+@register.simple_tag
+def hyper_debug_toolbar_enabled() -> bool:
+    return is_enabled()
 
 
 @register.simple_tag(takes_context=True)

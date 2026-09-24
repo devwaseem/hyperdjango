@@ -4,6 +4,7 @@ import asyncio
 import sys
 import time
 from pathlib import Path
+from types import SimpleNamespace
 
 import django
 import pytest
@@ -149,6 +150,85 @@ def test_dev_assets_use_runtime_vite_url_after_discovery(
             'src="http://127.0.0.1:43123/hyper/routes/dashboard/entry.ts"'
             in str(page.body_imports[0].render())
         )
+
+
+def _render_hyperdjango_base_template() -> str:
+    _ensure_settings()
+    root = Path(__file__).resolve().parent.parent
+    engine = Engine(
+        dirs=[root / "hyperdjango" / "templates"],
+        libraries={
+            "hyper_tags": "hyperdjango.templatetags.hyper_tags",
+            "static": "django.templatetags.static",
+        },
+    )
+    template = engine.get_template("hyperdjango/base.html")
+    request = RequestFactory().get("/demo")
+    setattr(request, "_csp_nonce", "request-nonce")
+    page = SimpleNamespace(
+        preload_imports=[],
+        stylesheets=[],
+        head_imports=[],
+        body_imports=[ModuleTag(src="/application.js")],
+    )
+    with override_settings(STATIC_URL="/static/"):
+        return template.render(
+            Context(
+                {
+                    "csrf_token": "test-token",
+                    "page": page,
+                    "request": request,
+                }
+            )
+        )
+
+
+def test_base_template_omits_debug_toolbar_script_when_setting_is_absent() -> None:
+    _ensure_settings()
+    assert not hasattr(settings, "HYPER_DEBUG_TOOLBAR")
+
+    with override_settings(DEBUG=False):
+        html = _render_hyperdjango_base_template()
+
+    assert "hyper-debug-toolbar.js" not in html
+
+
+@pytest.mark.parametrize(
+    ("debug", "debug_toolbar_enabled"),
+    [
+        (False, False),
+        (True, False),
+        (False, True),
+        (True, True),
+    ],
+)
+def test_base_template_uses_debug_toolbar_setting_for_script_inclusion(
+    debug: bool, debug_toolbar_enabled: bool
+) -> None:
+    with override_settings(
+        DEBUG=debug,
+        HYPER_DEBUG_TOOLBAR=debug_toolbar_enabled,
+    ):
+        html = _render_hyperdjango_base_template()
+
+    assert ("hyper-debug-toolbar.js" in html) is debug_toolbar_enabled
+    assert html.count("hyper-debug-toolbar.js") == int(debug_toolbar_enabled)
+    assert html.count("hyperdjango/hyper.js") == 1
+    assert html.count("hyperdjango/hyper-alpine.js") == 1
+    assert html.count("/application.js") == 1
+
+    if debug_toolbar_enabled:
+        assert (
+            '<script src="/static/hyperdjango/hyper-debug-toolbar.js" '
+            'nonce="request-nonce"></script>'
+        ) in html
+        assert (
+            html.index("hyperdjango/hyper.js")
+            < html.index("hyperdjango/hyper-debug-toolbar.js")
+            < html.index("hyperdjango/hyper-alpine.js")
+            < html.index("/application.js")
+        )
+
 
 
 def test_base_template_adds_nonce_to_runtime_scripts() -> None:

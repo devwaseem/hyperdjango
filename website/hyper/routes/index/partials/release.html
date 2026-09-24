@@ -4,44 +4,44 @@
             <div>
                 <div class="font-mono text-[10px] font-black uppercase tracking-[0.3em] text-blue-600">Latest release · v{{ site_version }}</div>
                 <h2 id="latest-release-title" class="mt-3 font-doto text-5xl font-black uppercase leading-none tracking-tight text-black">
-                    Respect toolbar state
+                    Load debug code explicitly
                 </h2>
             </div>
             <div class="max-w-2xl font-mono text-sm leading-7 text-gray-600 lg:justify-self-end">
-                <p>HyperDjango 0.42.5 preserves the developer's Django Debug Toolbar visibility choice across body-targeted actions while keeping full-body and streamed panel refreshes working.</p>
-                <a href="https://github.com/devwaseem/hyperdjango/blob/main/CHANGELOG.md#0425---2026-09-24"
+                <p>HyperDjango 0.42.6 includes the Django Debug Toolbar bridge only when <code>HYPER_DEBUG_TOOLBAR</code> is enabled, keeping debug-only JavaScript out of production pages by default.</p>
+                <a href="https://github.com/devwaseem/hyperdjango/blob/main/CHANGELOG.md#0426---2026-09-24"
                    target="_blank"
                    rel="noreferrer"
                    class="mt-4 inline-block font-bold uppercase tracking-[0.12em] text-black underline decoration-black/30 underline-offset-4 hover:decoration-black">
-                    Full 0.42.5 release notes ↗
+                    Full 0.42.6 release notes ↗
                 </a>
             </div>
         </div>
 
         <div class="mt-10 grid border-l border-t border-black/10 sm:grid-cols-2 xl:grid-cols-4">
             <a href="/docs/debug-toolbar" class="group border-b border-r border-black/10 bg-white p-6 transition-colors hover:bg-black hover:text-white">
-                <span class="font-mono text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 group-hover:text-blue-300">01 · Explicit choice</span>
-                <h3 class="mt-5 font-doto text-2xl font-black uppercase leading-none">Stay hidden</h3>
-                <p class="mt-4 font-mono text-xs leading-6 text-gray-500 group-hover:text-gray-300">A developer-hidden Django Debug Toolbar remains hidden when Hyper actions settle against the document body.</p>
-                <span class="mt-6 block font-mono text-[11px] font-bold uppercase tracking-[0.15em]">Review toolbar setup →</span>
+                <span class="font-mono text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 group-hover:text-blue-300">01 · Explicit switch</span>
+                <h3 class="mt-5 font-doto text-2xl font-black uppercase leading-none">Disabled by default</h3>
+                <p class="mt-4 font-mono text-xs leading-6 text-gray-500 group-hover:text-gray-300"><code>HYPER_DEBUG_TOOLBAR</code> is the single switch controlling whether the browser bridge is included.</p>
+                <span class="mt-6 block font-mono text-[11px] font-bold uppercase tracking-[0.15em]">Configure integration →</span>
             </a>
             <a href="/docs/debug-toolbar" class="group border-b border-r border-black/10 bg-white p-6 transition-colors hover:bg-black hover:text-white">
-                <span class="font-mono text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 group-hover:text-blue-300">02 · Body inserts</span>
-                <h3 class="mt-5 font-doto text-2xl font-black uppercase leading-none">Append safely</h3>
-                <p class="mt-4 font-mono text-xs leading-6 text-gray-500 group-hover:text-gray-300">Append and prepend swaps can add modals or overlays to <code>body</code> without changing toolbar visibility.</p>
-                <span class="mt-6 block font-mono text-[11px] font-bold uppercase tracking-[0.15em]">See body swap behavior →</span>
+                <span class="font-mono text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 group-hover:text-blue-300">02 · Production HTML</span>
+                <h3 class="mt-5 font-doto text-2xl font-black uppercase leading-none">No debug request</h3>
+                <p class="mt-4 font-mono text-xs leading-6 text-gray-500 group-hover:text-gray-300">False or absent settings omit the bridge reference entirely, regardless of Django's <code>DEBUG</code> value.</p>
+                <span class="mt-6 block font-mono text-[11px] font-bold uppercase tracking-[0.15em]">Review production behavior →</span>
             </a>
             <a href="/docs/debug-toolbar" class="group border-b border-r border-black/10 bg-white p-6 transition-colors hover:bg-black hover:text-white">
-                <span class="font-mono text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 group-hover:text-blue-300">03 · Full replacement</span>
-                <h3 class="mt-5 font-doto text-2xl font-black uppercase leading-none">Restore when visible</h3>
-                <p class="mt-4 font-mono text-xs leading-6 text-gray-500 group-hover:text-gray-300">Full-body navigation still restores a previously visible toolbar while respecting a stored hidden state.</p>
-                <span class="mt-6 block font-mono text-[11px] font-bold uppercase tracking-[0.15em]">Review navigation support →</span>
+                <span class="font-mono text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 group-hover:text-blue-300">03 · Enabled path</span>
+                <h3 class="mt-5 font-doto text-2xl font-black uppercase leading-none">Nonce preserved</h3>
+                <p class="mt-4 font-mono text-xs leading-6 text-gray-500 group-hover:text-gray-300">Enabled pages load the bridge exactly once, with the request CSP nonce and existing core-script order intact.</p>
+                <span class="mt-6 block font-mono text-[11px] font-bold uppercase tracking-[0.15em]">Review CSP setup →</span>
             </a>
             <a href="/docs/debug-toolbar" class="group border-b border-r border-black/10 bg-white p-6 transition-colors hover:bg-black hover:text-white">
-                <span class="font-mono text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 group-hover:text-blue-300">04 · Stream refresh</span>
-                <h3 class="mt-5 font-doto text-2xl font-black uppercase leading-none">Keep panels current</h3>
-                <p class="mt-4 font-mono text-xs leading-6 text-gray-500 group-hover:text-gray-300">The HyperDjango panel continues refreshing after streamed responses complete through <code>hyper:afterRequest</code>.</p>
-                <span class="mt-6 block font-mono text-[11px] font-bold uppercase tracking-[0.15em]">Open panel guide →</span>
+                <span class="font-mono text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 group-hover:text-blue-300">04 · Runtime stability</span>
+                <h3 class="mt-5 font-doto text-2xl font-black uppercase leading-none">State intact</h3>
+                <p class="mt-4 font-mono text-xs leading-6 text-gray-500 group-hover:text-gray-300">The visibility preservation and streamed panel refresh behavior introduced in 0.42.5 remain unchanged.</p>
+                <span class="mt-6 block font-mono text-[11px] font-bold uppercase tracking-[0.15em]">See toolbar behavior →</span>
             </a>
         </div>
     </div>

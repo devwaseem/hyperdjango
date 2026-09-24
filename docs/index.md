@@ -4,15 +4,17 @@ HyperDjango gives Django a server-first workflow with file routing, colocated as
 
 Use it when you want interactive UX without splitting your app into separate backend API and SPA frontend codebases.
 
-## Current Release: 0.42.5
+## Current Release: 0.42.6
 
-HyperDjango 0.42.5 preserves Django Debug Toolbar visibility across Hyper
-actions:
+HyperDjango 0.42.6 keeps the Django Debug Toolbar bridge out of pages unless
+the integration is explicitly enabled:
 
-- body-targeted append and prepend swaps no longer force a hidden toolbar open
-- full-body replacements restore the toolbar only when it was previously visible
-- streamed Hyper responses continue refreshing the HyperDjango panel through
-  `hyper:afterRequest`
+- false or absent `HYPER_DEBUG_TOOLBAR` settings omit the debug-only script,
+  regardless of `DEBUG`
+- enabled integrations include the bridge exactly once with the request CSP
+  nonce and its established script ordering
+- toolbar visibility preservation and streamed panel refreshes from 0.42.5
+  remain unchanged
 
 See [Django Debug Toolbar](debug-toolbar.md) for integration and troubleshooting
 guidance.

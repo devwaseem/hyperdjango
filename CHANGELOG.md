@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.42.6 - 2026-09-24
+
+- Stopped `hyperdjango/base.html` from referencing the Django Debug Toolbar
+  bridge unless `HYPER_DEBUG_TOOLBAR` is enabled. Disabled production pages no
+  longer request the debug-only asset, while enabled pages retain CSP nonces,
+  script ordering, and the toolbar state handling introduced in 0.42.5.
+
 ## 0.42.5 - 2026-09-24
 
 - Preserved the developer's Django Debug Toolbar visibility choice across

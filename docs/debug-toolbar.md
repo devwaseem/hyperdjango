@@ -47,6 +47,8 @@ if DEBUG:
     DEBUG_TOOLBAR_CONFIG = {
         "UPDATE_ON_FETCH": True,
     }
+
+    HYPER_DEBUG_TOOLBAR = True
 ```
 
 `UPDATE_ON_FETCH` is required for the visible toolbar to switch to the most recent
@@ -124,27 +126,35 @@ HyperDjango routes.
 
 ## Keep the toolbar across HyperDjango navigation
 
-The default HyperDjango base template loads a small bridge that preserves Django Debug
-Toolbar visibility across a full `<body>` replacement. A toolbar that was visible is
-re-shown after the replacement, while a toolbar the developer explicitly hid remains
-hidden. Body-targeted append and prepend actions leave the current visibility unchanged:
+The default HyperDjango base template loads a small bridge only when
+`HYPER_DEBUG_TOOLBAR` is true. The bridge preserves Django Debug Toolbar
+visibility across a full `<body>` replacement. A toolbar that was visible is
+re-shown after the replacement, while a toolbar the developer explicitly hid
+remains hidden. Body-targeted append and prepend actions leave the current
+visibility unchanged:
 
 ```django
 {% extends "hyperdjango/base.html" %}
 ```
 
-If your project owns the entire base document instead, load the bridge after
-`hyper.js`:
+If your project owns the entire base document instead, use the same enablement
+tag and load the bridge after `hyper.js`:
 
 ```django
-{% load static %}
+{% load static hyper_tags %}
+{% hyper_debug_toolbar_enabled as hyper_debug_toolbar_enabled %}
 
 <script src="{% static 'hyperdjango/hyper.js' %}"></script>
-<script src="{% static 'hyperdjango/hyper-debug-toolbar.js' %}"></script>
+{% if hyper_debug_toolbar_enabled %}
+    <script src="{% static 'hyperdjango/hyper-debug-toolbar.js' %}"></script>
+{% endif %}
 ```
 
 Projects using a CSP nonce should apply the same nonce to both scripts. The shipped
 `hyperdjango/base.html` does this automatically through `{% hyper_csp_nonce %}`.
+
+When `HYPER_DEBUG_TOOLBAR` is false or absent, the shipped base template omits
+the bridge entirely, regardless of `DEBUG`.
 
 ## Use the panel
 

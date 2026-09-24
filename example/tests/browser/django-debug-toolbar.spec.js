@@ -1,7 +1,14 @@
 import { expect, test } from "@playwright/test";
 
+const toolbarBridgePath = "/static/hyperdjango/hyper-debug-toolbar.js";
+
+async function loadToolbarBridge(page) {
+  await page.addScriptTag({ url: toolbarBridgePath });
+}
+
 async function prepareToolbar(page, { visible, hidden = !visible }) {
   await page.goto("/runtime-fixtures/");
+  await loadToolbarBridge(page);
   await page.evaluate(
     ({ visible: shouldBeVisible, hidden: initiallyHidden }) => {
       localStorage.setItem("djdt.show", String(shouldBeVisible));
@@ -29,6 +36,22 @@ async function toolbarState(page) {
     showToolbarCalls: window.__showToolbarCalls,
   }));
 }
+
+test("disabled integration neither renders nor requests the toolbar bridge", async ({ page }) => {
+  const bridgeRequests = [];
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname === toolbarBridgePath) {
+      bridgeRequests.push(request.url());
+    }
+  });
+
+  await page.goto("/runtime-fixtures/");
+
+  await expect(
+    page.locator('script[src$="hyperdjango/hyper-debug-toolbar.js"]'),
+  ).toHaveCount(0);
+  expect(bridgeRequests).toEqual([]);
+});
 
 test("body append preserves an explicitly hidden Django Debug Toolbar", async ({ page }) => {
   await prepareToolbar(page, { visible: false });
@@ -100,6 +123,7 @@ test("full body replacement restores a previously visible Django Debug Toolbar",
 
 test("streamed Hyper responses still refresh the HyperDjango panel", async ({ page }) => {
   await page.goto("/runtime-fixtures/");
+  await loadToolbarBridge(page);
   await page.evaluate(() => {
     document.getElementById("djDebug")?.remove();
     const toolbar = document.createElement("div");
