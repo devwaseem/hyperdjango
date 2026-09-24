@@ -124,8 +124,10 @@ HyperDjango routes.
 
 ## Keep the toolbar across HyperDjango navigation
 
-The default HyperDjango base template loads a small bridge that re-shows Django Debug
-Toolbar after a full `<body>` swap:
+The default HyperDjango base template loads a small bridge that preserves Django Debug
+Toolbar visibility across a full `<body>` replacement. A toolbar that was visible is
+re-shown after the replacement, while a toolbar the developer explicitly hid remains
+hidden. Body-targeted append and prepend actions leave the current visibility unchanged:
 
 ```django
 {% extends "hyperdjango/base.html" %}

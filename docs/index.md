@@ -4,18 +4,18 @@ HyperDjango gives Django a server-first workflow with file routing, colocated as
 
 Use it when you want interactive UX without splitting your app into separate backend API and SPA frontend codebases.
 
-## Current Release: 0.42.4
+## Current Release: 0.42.5
 
-HyperDjango 0.42.4 makes unexpected action failures visible to Django's
-standard exception integrations:
+HyperDjango 0.42.5 preserves Django Debug Toolbar visibility across Hyper
+actions:
 
-- synchronous and asynchronous action failures emit `got_request_exception`
-  while the original exception context and traceback are active
-- existing `django.request` logging and HTTP 500 action responses are unchanged
-- expected `PermissionDenied` and `Http404` action responses remain outside the
-  unexpected-exception signal path
+- body-targeted append and prepend swaps no longer force a hidden toolbar open
+- full-body replacements restore the toolbar only when it was previously visible
+- streamed Hyper responses continue refreshing the HyperDjango panel through
+  `hyper:afterRequest`
 
-See [Actions](actions.md) for action behavior and response conventions.
+See [Django Debug Toolbar](debug-toolbar.md) for integration and troubleshooting
+guidance.
 
 Existing projects should also review the [0.38.0 project upgrade notes](https://github.com/devwaseem/hyperdjango/blob/main/CHANGELOG.md#project-upgrade-notes), especially the Vite 8 and Node.js requirements. The [production checklist](production-checklist.md) covers the final validation steps.
 

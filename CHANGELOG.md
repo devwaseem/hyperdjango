@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.42.5 - 2026-09-24
+
+- Preserved the developer's Django Debug Toolbar visibility choice across
+  body-targeted Hyper actions. Append and prepend swaps no longer force the
+  toolbar open, full-body replacements restore it only when it was previously
+  visible, and streamed HyperDjango panel refreshes continue unchanged.
+
 ## 0.42.4 - 2026-09-22
 
 - Emitted Django's `got_request_exception` signal for unexpected synchronous

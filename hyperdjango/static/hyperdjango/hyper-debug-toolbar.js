@@ -19,8 +19,17 @@
     }
   }
 
+  function replacesBodyContent(swap) {
+    const mode = String(swap || "inner").toLowerCase();
+    return ["inner", "innerhtml", "outer", "outerhtml", "replace"].includes(mode);
+  }
+
   window.addEventListener("hyper:settle:end", (event) => {
-    if (!targetsBody(event.detail && event.detail.target)) {
+    const detail = event.detail || {};
+    if (!targetsBody(detail.target) || !replacesBodyContent(detail.swap)) {
+      return;
+    }
+    if (window.localStorage.getItem("djdt.show") === "false") {
       return;
     }
     if (
