@@ -81,8 +81,8 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = os.getenv("STATIC_ROOT", str(BASE_DIR / "staticfiles"))
 STATICFILES_DIRS = [BASE_DIR / "static"]
-if (BASE_DIR / "dist").exists():
-    STATICFILES_DIRS.append(BASE_DIR / "dist")
+if (BASE_DIR / "dist" / "assets").exists():
+    STATICFILES_DIRS.append(("assets", BASE_DIR / "dist" / "assets"))
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

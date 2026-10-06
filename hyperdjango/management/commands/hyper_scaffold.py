@@ -146,15 +146,18 @@ HYPER_FRONTEND_DIR = BASE_DIR / "hyper"
 HYPER_VITE_OUTPUT_DIR = BASE_DIR / "dist"
 HYPER_DEV = DEBUG
 
+HYPER_VITE_ASSETS_DIR = HYPER_VITE_OUTPUT_DIR / "assets"
+HYPER_VITE_STATIC_DIR = ("assets", HYPER_VITE_ASSETS_DIR)
+
 if HYPER_FRONTEND_DIR not in TEMPLATES[0]["DIRS"]:
     TEMPLATES[0]["DIRS"].append(HYPER_FRONTEND_DIR)
 
 if "STATICFILES_DIRS" in globals():
-    if HYPER_VITE_OUTPUT_DIR.exists() and HYPER_VITE_OUTPUT_DIR not in STATICFILES_DIRS:
-        STATICFILES_DIRS.append(HYPER_VITE_OUTPUT_DIR)
+    if HYPER_VITE_ASSETS_DIR.exists() and HYPER_VITE_STATIC_DIR not in STATICFILES_DIRS:
+        STATICFILES_DIRS.append(HYPER_VITE_STATIC_DIR)
 else:
     STATICFILES_DIRS = (
-        [HYPER_VITE_OUTPUT_DIR] if HYPER_VITE_OUTPUT_DIR.exists() else []
+        [HYPER_VITE_STATIC_DIR] if HYPER_VITE_ASSETS_DIR.exists() else []
     )
 {SCAFFOLD_MARKER_END}
 """
@@ -403,6 +406,11 @@ export default defineConfig(({ mode }) => {
       manifest: true,
       rollupOptions: {
         input: inputs,
+        output: {
+          entryFileNames: \"assets/entry-[hash].js\",
+          chunkFileNames: \"assets/chunk-[hash].js\",
+          assetFileNames: \"assets/asset-[hash][extname]\",
+        },
       },
     },
   };

@@ -71,6 +71,11 @@ export default defineConfig(({ mode }) => {
       manifest: true,
       rollupOptions: {
         input: inputs,
+        output: {
+          entryFileNames: "assets/entry-[hash].js",
+          chunkFileNames: "assets/chunk-[hash].js",
+          assetFileNames: "assets/asset-[hash][extname]",
+        },
       },
     },
   };

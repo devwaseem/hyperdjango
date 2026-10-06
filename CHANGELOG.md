@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+- Flattened generated production asset filenames and limited scaffolded Django
+  staticfiles configuration to `dist/assets/`. Public URLs no longer expose the
+  frontend source tree, and `.vite/manifest.json` remains server-side.
+
 ## 0.42.6 - 2026-09-24
 
 - Stopped `hyperdjango/base.html` from referencing the Django Debug Toolbar

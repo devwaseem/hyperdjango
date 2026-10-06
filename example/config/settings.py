@@ -61,7 +61,7 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = "static/"
-STATICFILES_DIRS = [REPO_DIR / "dist"]
+STATICFILES_DIRS = [("assets", REPO_DIR / "dist" / "assets")]
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

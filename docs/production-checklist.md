@@ -8,6 +8,10 @@ HyperDjango spans template rendering, runtime JS, and caching layers. Small conf
 - Set `HYPER_VITE_OUTPUT_DIR` to built static asset output.
 - Set `HYPER_DEV = False` in production.
 - Ensure collectstatic includes Vite output and `hyperdjango/static`.
+- Publish the built `assets/` directory, not the whole Vite output tree; keep
+  `.vite/manifest.json` private.
+- Use hashed output names and keep production source maps disabled unless their
+  source disclosure is intentional.
 
 See the Assets and Vite page for the main asset build and manifest flow.
 
