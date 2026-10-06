@@ -12,6 +12,10 @@ const Hyper = (() => {
   let nextElementRequestKey = 0;
   let networkOnline = typeof navigator === "undefined" ? true : navigator.onLine;
   let networkInitialized = false;
+  const lazyActionElements = new WeakSet();
+  let lazyActionObserver = null;
+  let managedHeadNodes = new Set(Array.from(document.head.children).filter(isHeadAsset));
+  let preserveSlotCounter = 0;
   const config = {
     strictTargets: false,
     sseRetry: true,
@@ -633,13 +637,13 @@ const Hyper = (() => {
     setLoadingElementsVisible();
   }
 
-  function updateHistory({ pushUrl = null, replaceUrl = null } = {}) {
+  function updateHistory({ pushUrl = null, replaceUrl = null, state = {} } = {}) {
     if (replaceUrl) {
-      history.replaceState({}, "", replaceUrl);
+      history.replaceState(state, "", replaceUrl);
       return;
     }
     if (pushUrl) {
-      history.pushState({}, "", pushUrl);
+      history.pushState(state, "", pushUrl);
     }
   }
 
@@ -971,6 +975,37 @@ const Hyper = (() => {
     });
   }
 
+  function waitForVisibility(signal) {
+    return new Promise((resolve, reject) => {
+      if (signal.aborted) {
+        reject(new DOMException("The operation was aborted.", "AbortError"));
+        return;
+      }
+      if (!document.hidden) {
+        resolve();
+        return;
+      }
+
+      const cleanup = () => {
+        document.removeEventListener("visibilitychange", onVisibility);
+        signal.removeEventListener("abort", onAbort);
+      };
+      const onVisibility = () => {
+        if (document.hidden) {
+          return;
+        }
+        cleanup();
+        resolve();
+      };
+      const onAbort = () => {
+        cleanup();
+        reject(new DOMException("The operation was aborted.", "AbortError"));
+      };
+      document.addEventListener("visibilitychange", onVisibility);
+      signal.addEventListener("abort", onAbort, { once: true });
+    });
+  }
+
   async function request(url, options = {}) {
     const method = normalizeMethod(options.method);
     const headers = {
@@ -1036,10 +1071,14 @@ const Hyper = (() => {
     }
 
     const controller = new AbortController();
+    let attemptController = null;
     const requestControl = {
       xhr: null,
       abort() {
         controller.abort();
+        if (attemptController) {
+          attemptController.abort();
+        }
         if (this.xhr) {
           this.xhr.abort();
         }
@@ -1081,6 +1120,7 @@ const Hyper = (() => {
         const retryEnabled = resolveSSERetry(method, options.sseRetry);
         let retryCount = 0;
         let terminalEventSeen = false;
+        let pauseCurrentAttempt = null;
 
         if (expectSSE && !headers.Accept && !headers.accept) {
           headers.Accept = "text/event-stream";
@@ -1107,6 +1147,9 @@ const Hyper = (() => {
               /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(checkpointName)
             ) {
               headers["Last-Event-ID"] = event.id;
+              if (pauseCurrentAttempt) {
+                pauseCurrentAttempt();
+              }
             }
             return;
           }
@@ -1122,6 +1165,33 @@ const Hyper = (() => {
 
         while (true) {
           terminalEventSeen = false;
+          let hiddenPause = false;
+          const currentAttemptController = new AbortController();
+          attemptController = currentAttemptController;
+          const abortAttempt = () => currentAttemptController.abort();
+          const pauseOnHidden = Boolean(
+            options.pauseWhenHidden &&
+            retryEnabled &&
+            expectSSE &&
+            method === "GET"
+          );
+          const pauseAttempt = () => {
+            if (
+              pauseOnHidden &&
+              document.hidden &&
+              headers["Last-Event-ID"] &&
+              !controller.signal.aborted
+            ) {
+              hiddenPause = true;
+              currentAttemptController.abort();
+            }
+          };
+          controller.signal.addEventListener("abort", abortAttempt, { once: true });
+          if (pauseOnHidden) {
+            document.addEventListener("visibilitychange", pauseAttempt);
+          }
+          pauseCurrentAttempt = pauseAttempt;
+
           try {
             const attemptOptions = expectSSE ? { ...options, onSSEEvent } : options;
             response = canTrackUpload
@@ -1138,7 +1208,7 @@ const Hyper = (() => {
                   ...attemptOptions,
                   credentials: "same-origin",
                   headers,
-                  signal: controller.signal,
+                  signal: currentAttemptController.signal,
                 });
 
             const contentType = response.headers.get("content-type") || "";
@@ -1154,6 +1224,31 @@ const Hyper = (() => {
             }
             break;
           } catch (error) {
+            if (
+              hiddenPause &&
+              error &&
+              error.name === "AbortError" &&
+              !controller.signal.aborted
+            ) {
+              emitEvent("hyper:requestPaused", {
+                id: requestId,
+                key: requestKey,
+                url,
+                method,
+                reason: "hidden",
+                ...hookMeta,
+              });
+              await waitForVisibility(controller.signal);
+              emitEvent("hyper:requestResumed", {
+                id: requestId,
+                key: requestKey,
+                url,
+                method,
+                reason: "visible",
+                ...hookMeta,
+              });
+              continue;
+            }
             if (terminalEventSeen && !(error && error.hyperSSEHandlerError)) {
               break;
             }
@@ -1192,6 +1287,17 @@ const Hyper = (() => {
             });
             await waitForRetry(delay, controller.signal);
             retryInterval = Math.min(retryInterval * retryScaler, retryMaxWait);
+          } finally {
+            controller.signal.removeEventListener("abort", abortAttempt);
+            if (pauseOnHidden) {
+              document.removeEventListener("visibilitychange", pauseAttempt);
+            }
+            if (attemptController === currentAttemptController) {
+              attemptController = null;
+            }
+            if (pauseCurrentAttempt === pauseAttempt) {
+              pauseCurrentAttempt = null;
+            }
           }
         }
 
@@ -1389,7 +1495,8 @@ const Hyper = (() => {
     const payload = event.data || {};
     dispatchStreamEvent(event, context);
     switch (event.event) {
-      case "patch_signals": {
+      case "patch_signals":
+      case "init_signals": {
         return;
       }
       case "toast": {
@@ -1419,6 +1526,7 @@ const Hyper = (() => {
       case "patch_html": {
         const resolvedTarget = payload.target || context.target || null;
         const resolvedSwap = payload.swap || context.swap || "outer";
+        const resolvedStrategy = payload.strategy || context.strategy || "auto";
         const resolvedTransition =
           payload.transition === undefined ? context.transition : Boolean(payload.transition);
         const resolvedFocus = payload.focus || context.focus || "preserve";
@@ -1437,12 +1545,21 @@ const Hyper = (() => {
           target: resolvedTarget,
           swapDelay: resolvedSwapDelay,
           settleDelay: resolvedSettleDelay,
-          detail: { action: context.action, swap: resolvedSwap },
+          detail: {
+            action: context.action,
+            swap: resolvedSwap,
+            strategy: resolvedStrategy,
+          },
           focus: resolvedFocus,
           mutate: async () => {
-            await withViewTransition(resolvedTransition, () => {
+            await withViewTransition(resolvedTransition, async () => {
               if (resolvedTarget && (hasHtml || canSwapWithoutHtml)) {
-                const ok = applySwap(resolvedTarget, hasHtml ? payload.content : "", resolvedSwap);
+                const ok = await applySwap(
+                  resolvedTarget,
+                  hasHtml ? payload.content : "",
+                  resolvedSwap,
+                  { strategy: resolvedStrategy }
+                );
                 if (!ok && strict) {
                   throw new Error(`Hyper target not found: ${resolvedTarget}`);
                 }
@@ -1536,13 +1653,179 @@ const Hyper = (() => {
     return first || null;
   }
 
-  function parseFullDocument(html) {
+  function parseFullDocument(html, baseUrl = window.location.href) {
     if (typeof html !== "string" || !/<(?:!doctype|html|head|body)[\s>]/i.test(html)) {
       return null;
     }
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, "text/html");
-    return doc && doc.body ? doc : null;
+    if (!doc || !doc.body) {
+      return null;
+    }
+    doc.__hyperBaseUrl = baseUrl;
+    return doc;
+  }
+
+  function selectResponseFragment(doc, selector, swap = "inner") {
+    if (!selector) {
+      return null;
+    }
+    let matches;
+    try {
+      matches = doc.querySelectorAll(selector);
+    } catch (error) {
+      throw new Error(`Invalid hyper-select selector "${selector}".`, { cause: error });
+    }
+    if (matches.length !== 1) {
+      throw new Error(
+        `Expected hyper-select "${selector}" to match exactly one response element; found ${matches.length}.`
+      );
+    }
+    return normalizeSwap(swap) === "inner" ? matches[0].innerHTML : matches[0].outerHTML;
+  }
+
+  function isHeadAsset(node) {
+    return node instanceof Element && node.matches("base, meta, link, style, script");
+  }
+
+  function absoluteHeadUrl(node, attribute) {
+    const value = node.getAttribute(attribute);
+    if (!value) {
+      return "";
+    }
+    const baseUrl = node.ownerDocument.__hyperBaseUrl || node.ownerDocument.baseURI || window.location.href;
+    try {
+      return new URL(value, baseUrl).href;
+    } catch (_error) {
+      return value;
+    }
+  }
+
+  function headAssetIdentity(node) {
+    const tag = node.tagName.toLowerCase();
+    if (tag === "script") {
+      const src = absoluteHeadUrl(node, "src");
+      return src
+        ? `script:${node.getAttribute("type") || ""}:${src}`
+        : `script:inline:${node.getAttribute("type") || ""}:${node.textContent || ""}`;
+    }
+    if (tag === "link") {
+      return [
+        "link",
+        node.getAttribute("rel") || "",
+        absoluteHeadUrl(node, "href"),
+        node.getAttribute("as") || "",
+        node.getAttribute("media") || "",
+      ].join(":");
+    }
+    if (tag === "meta") {
+      return [
+        "meta",
+        node.getAttribute("charset") || "",
+        node.getAttribute("name") || "",
+        node.getAttribute("property") || "",
+        node.getAttribute("http-equiv") || "",
+        node.getAttribute("content") || "",
+      ].join(":");
+    }
+    if (tag === "base") {
+      return `base:${absoluteHeadUrl(node, "href")}`;
+    }
+    return `${tag}:${node.getAttribute("type") || ""}:${node.textContent || ""}`;
+  }
+
+  function cloneHeadAsset(node) {
+    if (node.tagName.toLowerCase() === "script") {
+      const script = document.createElement("script");
+      copyScriptAttributes(node, script);
+      if (node.hasAttribute("src")) {
+        script.src = absoluteHeadUrl(node, "src");
+      }
+      script.textContent = node.textContent || "";
+      return script;
+    }
+    const clone = document.importNode(node, true);
+    if (node.hasAttribute("href")) {
+      clone.setAttribute("href", absoluteHeadUrl(node, "href"));
+    }
+    return clone;
+  }
+
+  function appendHeadAsset(node) {
+    const waitsForLoad =
+      (node.tagName.toLowerCase() === "script" && node.hasAttribute("src")) ||
+      (node.tagName.toLowerCase() === "link" && node.rel.toLowerCase() === "stylesheet");
+    if (!waitsForLoad) {
+      document.head.appendChild(node);
+      return Promise.resolve();
+    }
+    return new Promise((resolve) => {
+      node.addEventListener("load", resolve, { once: true });
+      node.addEventListener("error", resolve, { once: true });
+      document.head.appendChild(node);
+    });
+  }
+
+  async function reconcileHead(doc) {
+    if (!doc || !doc.head) {
+      return;
+    }
+    const mode = (doc.head.getAttribute("hyper-head") || "merge").trim().toLowerCase();
+    if (mode === "ignore") {
+      return;
+    }
+    if (!["merge", "append"].includes(mode)) {
+      throw new Error(`Unsupported hyper-head mode "${mode}".`);
+    }
+
+
+    document.title = doc.title;
+    const currentByIdentity = new Map();
+    for (const node of Array.from(document.head.children).filter(isHeadAsset)) {
+      const identity = headAssetIdentity(node);
+      const nodes = currentByIdentity.get(identity) || [];
+      nodes.push(node);
+      currentByIdentity.set(identity, nodes);
+    }
+
+    const kept = new Set();
+    const nextManaged = mode === "append" ? new Set(managedHeadNodes) : new Set();
+    const added = [];
+    const keptIdentities = [];
+    for (const incoming of Array.from(doc.head.children).filter(isHeadAsset)) {
+      const identity = headAssetIdentity(incoming);
+      const matches = currentByIdentity.get(identity);
+      const existing = matches && matches.shift();
+      if (existing) {
+        kept.add(existing);
+        nextManaged.add(existing);
+        keptIdentities.push(identity);
+        continue;
+      }
+      const clone = cloneHeadAsset(incoming);
+      await appendHeadAsset(clone);
+      nextManaged.add(clone);
+      added.push(identity);
+    }
+
+    const removed = [];
+    if (mode === "merge") {
+      for (const node of managedHeadNodes) {
+        if (!kept.has(node) && node.isConnected && !node.hasAttribute("hyper-preserve")) {
+          removed.push(headAssetIdentity(node));
+          node.remove();
+        } else if (node.isConnected && node.hasAttribute("hyper-preserve")) {
+          nextManaged.add(node);
+        }
+      }
+    }
+    managedHeadNodes = nextManaged;
+    emitEvent("hyper:head:reconciled", {
+      mode,
+      added,
+      kept: keptIdentities,
+      removed,
+    });
   }
 
   function syncAttributes(el, nextEl) {
@@ -1554,15 +1837,14 @@ const Hyper = (() => {
     }
   }
 
-  function normalizeBodySwapHTML(el, html, mode) {
+  function normalizeBodySwapHTML(el, html, mode, fullDocument = null) {
     if (el !== document.body || mode !== "inner") {
       return { html, activateScripts: false };
     }
-    const doc = parseFullDocument(html);
+    const doc = fullDocument || parseFullDocument(html);
     if (!doc) {
       return { html, activateScripts: false };
     }
-    document.title = doc.title;
     syncAttributes(document.body, doc.body);
     return { html: doc.body.innerHTML, activateScripts: true };
   }
@@ -1618,32 +1900,41 @@ const Hyper = (() => {
     }
   }
 
-  function morphInner(el, html) {
-    // Alpine's morph implementation treats <body> as a complete document node.
-    // For full-page visits we only need to replace its children; using innerHTML
-    // preserves the existing document body and delegated runtime listeners.
-    if (el === document.body) {
+  function morphInner(el, html, strategy = "auto") {
+    // Automatic full-page visits preserve the body node and delegated runtime
+    // listeners. An explicit morph strategy delegates body handling to the
+    // installed adapter.
+    if (strategy === "replace" || (el === document.body && strategy === "auto")) {
       swapHTML(el, html);
       return;
     }
 
     const morpher = getMorpher();
     if (!morpher) {
+      if (strategy === "morph") {
+        throw new Error("Hyper morph strategy requires Alpine Morph or morphdom.");
+      }
       swapHTML(el, html);
       return;
     }
     morpher.inner(el, html);
   }
 
-  function morphOuter(el, html) {
+  function morphOuter(el, html, strategy = "auto") {
+    if (strategy === "replace") {
+      el.outerHTML = html;
+      return;
+    }
     const morpher = getMorpher();
     if (!morpher) {
+      if (strategy === "morph") {
+        throw new Error("Hyper morph strategy requires Alpine Morph or morphdom.");
+      }
       el.outerHTML = html;
       return;
     }
     morpher.outer(el, html);
   }
-
   function normalizeSwap(swap) {
     const value = String(swap || "inner").toLowerCase();
     const aliases = {
@@ -1666,14 +1957,76 @@ const Hyper = (() => {
     return aliases[value] || "inner";
   }
 
-  function applySwap(target, html, swap = "inner") {
+
+  function normalizeStrategy(strategy) {
+    const value = String(strategy || "auto").trim().toLowerCase();
+    if (!["auto", "morph", "replace"].includes(value)) {
+      throw new Error(`Unsupported Hyper patch strategy "${value}".`);
+    }
+    return value;
+  }
+
+  function preparePreservedIslands(el, html, mode) {
+    if (!["inner", "outer"].includes(mode)) {
+      return { html, restore() {}, skip: false };
+    }
+
+    const incomingRoot = document.createElement("template");
+    incomingRoot.innerHTML = html;
+    if (
+      el.matches("[hyper-preserve][id]") &&
+      incomingRoot.content.firstElementChild &&
+      incomingRoot.content.firstElementChild.id === el.id
+    ) {
+      return { html, restore() {}, skip: true };
+    }
+
+    const preserved = Array.from(el.querySelectorAll("[hyper-preserve][id]"));
+    const records = [];
+    for (const node of preserved) {
+      const incoming = incomingRoot.content.querySelector(`#${CSS.escape(node.id)}`);
+      if (!incoming) {
+        continue;
+      }
+      const slot = `hyper-preserve-${preserveSlotCounter++}`;
+      const currentMarker = document.createElement("template");
+      currentMarker.dataset.hyperPreserveSlot = slot;
+      const incomingMarker = document.createElement("template");
+      incomingMarker.dataset.hyperPreserveSlot = slot;
+      node.replaceWith(currentMarker);
+      incoming.replaceWith(incomingMarker);
+      records.push({ node, currentMarker, slot });
+    }
+
+    return {
+      html: incomingRoot.innerHTML,
+      skip: false,
+      restore() {
+        for (const record of records) {
+          const selector = `template[data-hyper-preserve-slot="${record.slot}"]`;
+          const liveMarker = document.querySelector(selector);
+          if (liveMarker) {
+            liveMarker.replaceWith(record.node);
+          } else if (record.currentMarker.isConnected) {
+            record.currentMarker.replaceWith(record.node);
+          }
+        }
+      },
+    };
+  }
+  async function applySwap(target, html, swap = "inner", options = {}) {
     const el = typeof target === "string" ? document.querySelector(target) : target;
     if (!el) {
       return false;
     }
 
     const mode = normalizeSwap(swap);
-    const normalized = normalizeBodySwapHTML(el, html, mode);
+    const strategy = normalizeStrategy(options.strategy);
+    const fullDocument = options.document || parseFullDocument(html, options.responseUrl);
+    if (fullDocument) {
+      await reconcileHead(fullDocument);
+    }
+    const normalized = normalizeBodySwapHTML(el, html, mode, fullDocument);
     const previousScriptSrcs = normalized.activateScripts ? scriptSrcs() : new Set();
 
     if (mode === "none") {
@@ -1683,34 +2036,42 @@ const Hyper = (() => {
       el.remove();
       return true;
     }
-    if (mode === "outer") {
-      morphOuter(el, normalized.html);
-      return true;
-    }
-    if (mode === "before") {
-      el.insertAdjacentHTML("beforebegin", normalized.html);
-      return true;
-    }
-    if (mode === "after") {
-      el.insertAdjacentHTML("afterend", normalized.html);
-      return true;
-    }
-    if (mode === "prepend") {
-      el.insertAdjacentHTML("afterbegin", normalized.html);
-      return true;
-    }
-    if (mode === "append") {
-      el.insertAdjacentHTML("beforeend", normalized.html);
-      return true;
-    }
 
-    morphInner(el, normalized.html);
-    if (normalized.activateScripts) {
-      activateScripts(el, previousScriptSrcs);
+    const preserved = preparePreservedIslands(el, normalized.html, mode);
+    if (preserved.skip) {
+      return true;
     }
-    return true;
+    try {
+      if (mode === "outer") {
+        morphOuter(el, preserved.html, strategy);
+        return true;
+      }
+      if (mode === "before") {
+        el.insertAdjacentHTML("beforebegin", normalized.html);
+        return true;
+      }
+      if (mode === "after") {
+        el.insertAdjacentHTML("afterend", normalized.html);
+        return true;
+      }
+      if (mode === "prepend") {
+        el.insertAdjacentHTML("afterbegin", normalized.html);
+        return true;
+      }
+      if (mode === "append") {
+        el.insertAdjacentHTML("beforeend", normalized.html);
+        return true;
+      }
+
+      morphInner(el, preserved.html, strategy);
+      if (normalized.activateScripts) {
+        activateScripts(el, previousScriptSrcs);
+      }
+      return true;
+    } finally {
+      preserved.restore();
+    }
   }
-
   function resolveElement(target) {
     if (!target) {
       return null;
@@ -1840,6 +2201,7 @@ const Hyper = (() => {
       applyViewNames(document);
       applyNetworkState(document);
       applyFocus(focus, target, focusState);
+      initLazyActions(document);
       return;
     }
 
@@ -1855,6 +2217,7 @@ const Hyper = (() => {
       emitEvent("hyper:swap:end", { target, ...detail });
       el.classList.remove("hyper-swapping");
       el.classList.add("hyper-settling");
+      initLazyActions(resolveElement(target) || document);
       await sleep(settleDelay);
     } finally {
       el.classList.remove("hyper-swapping");
@@ -1899,6 +2262,7 @@ const Hyper = (() => {
       resolvedUrl,
       target,
       swap,
+      strategy,
       transition,
       push,
       replace,
@@ -1939,6 +2303,7 @@ const Hyper = (() => {
       const inferredTarget = result.data.target ? null : inferTargetFromHTML(result.data.html);
       const resolvedTarget = target || result.data.target || inferredTarget || null;
       const resolvedSwap = result.data.swap || swap || "outer";
+      const resolvedStrategy = result.data.strategy || strategy || "auto";
       const resolvedTransition =
         result.data.transition === undefined ? transition : Boolean(result.data.transition);
       const resolvedFocus = result.data.focus || focus || "preserve";
@@ -1969,12 +2334,18 @@ const Hyper = (() => {
         detail: {
           action,
           swap: resolvedSwap,
+          strategy: resolvedStrategy,
         },
         focus: resolvedFocus,
         mutate: async () => {
-          await withViewTransition(resolvedTransition, () => {
+          await withViewTransition(resolvedTransition, async () => {
             if (resolvedTarget && (hasHtml || canSwapWithoutHtml)) {
-              const ok = applySwap(resolvedTarget, hasHtml ? result.data.html : "", resolvedSwap);
+              const ok = await applySwap(
+                resolvedTarget,
+                hasHtml ? result.data.html : "",
+                resolvedSwap,
+                { strategy: resolvedStrategy }
+              );
               if (!ok && strict) {
                 throw new Error(`Hyper target not found: ${resolvedTarget}`);
               }
@@ -2009,11 +2380,11 @@ const Hyper = (() => {
         target,
         swapDelay: parseDelay(swapDelay, 0),
         settleDelay: parseDelay(settleDelay, 0),
-        detail: { action, swap },
+        detail: { action, swap, strategy },
         focus,
         mutate: async () => {
-          await withViewTransition(transition, () => {
-            const ok = applySwap(target, result.data, swap);
+          await withViewTransition(transition, async () => {
+            const ok = await applySwap(target, result.data, swap, { strategy });
             if (!ok && strict) {
               throw new Error(`Hyper target not found: ${target}`);
             }
@@ -2041,6 +2412,7 @@ const Hyper = (() => {
     sourceEl = null,
     kwargs = null,
     swap = "inner",
+    strategy = "auto",
     transition = false,
     push = false,
     replace = false,
@@ -2052,6 +2424,7 @@ const Hyper = (() => {
     focus = "preserve",
     onUploadProgress = null,
     retry = undefined,
+    pauseWhenHidden = false,
     requestId = null,
     switchDepth = 0,
     workflow = null,
@@ -2086,6 +2459,7 @@ const Hyper = (() => {
       headers,
       body,
       sseRetry: retry,
+      pauseWhenHidden,
       onUploadProgress,
       onSSEEvent: async (event) => {
         streamedEvents.push(event);
@@ -2116,6 +2490,7 @@ const Hyper = (() => {
           method,
           target,
           swap,
+          strategy,
           transition,
           focus,
           swapDelay,
@@ -2144,6 +2519,7 @@ const Hyper = (() => {
           resolvedUrl,
           target,
           swap,
+          strategy,
           transition,
           push,
           replace,
@@ -2192,6 +2568,7 @@ const Hyper = (() => {
           sourceEl,
           target,
           swap,
+          strategy,
           transition,
           push: false,
           replace: false,
@@ -2201,6 +2578,7 @@ const Hyper = (() => {
           swapDelay,
           settleDelay,
           focus,
+          pauseWhenHidden: switchedAction.method === "GET" ? pauseWhenHidden : false,
           requestId: nextRequestId,
           switchDepth: nextDepth,
           workflow: resolvedWorkflow,
@@ -2215,6 +2593,8 @@ const Hyper = (() => {
     target,
     push,
     swap,
+    strategy,
+    select,
     transition,
     swapDelay,
     settleDelay,
@@ -2238,19 +2618,31 @@ const Hyper = (() => {
       }
       const resolvedTarget = target || result.data.target || null;
       const resolvedSwap = result.data.swap || swap || "inner";
+      const resolvedStrategy = result.data.strategy || strategy || "auto";
       const resolvedTransition =
         result.data.transition === undefined ? transition : Boolean(result.data.transition);
       const resolvedFocus = result.data.focus || focus || "preserve";
+      const fullDocument = parseFullDocument(
+        result.data.html,
+        result.response.url || url
+      );
+      const selectedHTML = select
+        ? selectResponseFragment(fullDocument || document.implementation.createHTMLDocument(), select, resolvedSwap)
+        : result.data.html;
       await applySwapLifecycle({
         target: resolvedTarget,
         swapDelay: parseDelay(result.data.swap_delay, resolvedSwapDelay),
         settleDelay: parseDelay(result.data.settle_delay, resolvedSettleDelay),
-        detail: { kind: "visit", swap: resolvedSwap },
+        detail: { kind: "visit", swap: resolvedSwap, strategy: resolvedStrategy, select },
         focus: resolvedFocus,
         mutate: async () => {
-          await withViewTransition(resolvedTransition, () => {
-            if (resolvedTarget && result.data.html) {
-              const ok = applySwap(resolvedTarget, result.data.html, resolvedSwap);
+          await withViewTransition(resolvedTransition, async () => {
+            if (resolvedTarget && typeof selectedHTML === "string") {
+              const ok = await applySwap(resolvedTarget, selectedHTML, resolvedSwap, {
+                strategy: resolvedStrategy,
+                document: fullDocument,
+                responseUrl: result.response.url || url,
+              });
               if (!ok && strict) {
                 throw new Error(`Hyper target not found: ${resolvedTarget}`);
               }
@@ -2259,15 +2651,23 @@ const Hyper = (() => {
         },
       });
     } else if (target) {
+      const fullDocument = parseFullDocument(result.data, result.response.url || url);
+      const selectedHTML = select
+        ? selectResponseFragment(fullDocument || document.implementation.createHTMLDocument(), select, swap)
+        : result.data;
       await applySwapLifecycle({
         target,
         swapDelay: resolvedSwapDelay,
         settleDelay: resolvedSettleDelay,
-        detail: { kind: "visit", swap },
+        detail: { kind: "visit", swap, strategy, select },
         focus,
         mutate: async () => {
-          await withViewTransition(transition, () => {
-            const ok = applySwap(target, result.data, swap);
+          await withViewTransition(transition, async () => {
+            const ok = await applySwap(target, selectedHTML, swap, {
+              strategy,
+              document: fullDocument,
+              responseUrl: result.response.url || url,
+            });
             if (!ok && strict) {
               throw new Error(`Hyper target not found: ${target}`);
             }
@@ -2277,9 +2677,21 @@ const Hyper = (() => {
     }
 
     if (push) {
-      history.pushState({}, "", url);
+      history.pushState({
+        hyper: {
+          target,
+          select,
+          swap,
+          strategy,
+          transition,
+          swapDelay,
+          settleDelay,
+          focus,
+        },
+      }, "", url);
     }
   }
+
 
   async function visit({
     url,
@@ -2288,6 +2700,8 @@ const Hyper = (() => {
     sync = "replace",
     key = null,
     swap = "inner",
+    strategy = "auto",
+    select = null,
     transition = false,
     swapDelay = 0,
     settleDelay = 0,
@@ -2307,6 +2721,8 @@ const Hyper = (() => {
         target,
         push,
         swap,
+        strategy,
+        select,
         transition,
         swapDelay,
         settleDelay,
@@ -2324,6 +2740,8 @@ const Hyper = (() => {
       sync = "replace",
       key = null,
       swap = "inner",
+      strategy = "auto",
+      select = null,
       transition = false,
       swapDelay = 0,
       settleDelay = 0,
@@ -2338,6 +2756,8 @@ const Hyper = (() => {
       sync,
       key,
       swap,
+      strategy,
+      select,
       transition,
       swapDelay,
       settleDelay,
@@ -2392,6 +2812,9 @@ const Hyper = (() => {
 
       event.preventDefault();
       const target = link.getAttribute("hyper-target") || "body";
+      const select = link.getAttribute("hyper-select") || null;
+      const swap = link.getAttribute("hyper-swap") || "inner";
+      const strategy = link.getAttribute("hyper-strategy") || "auto";
       const transition = attrBool(link, "hyper-transition", false);
       const swapDelay = parseDelay(link.getAttribute("hyper-swap-delay"), 0);
       const settleDelay = parseDelay(link.getAttribute("hyper-settle-delay"), 0);
@@ -2401,6 +2824,12 @@ const Hyper = (() => {
         push: true,
         sync: link.getAttribute("hyper-sync") || "replace",
         key: link.getAttribute("hyper-key") || null,
+        select,
+        swap,
+        strategy,
+        strictTargets: link.hasAttribute("hyper-strict-targets")
+          ? attrBool(link, "hyper-strict-targets", true)
+          : undefined,
         transition,
         swapDelay,
         settleDelay,
@@ -2424,6 +2853,9 @@ const Hyper = (() => {
       const method = (form.getAttribute("method") || "GET").toUpperCase();
       const action = form.getAttribute("action") || window.location.pathname;
       const target = form.getAttribute("hyper-target") || "body";
+      const select = form.getAttribute("hyper-select") || null;
+      const swap = form.getAttribute("hyper-swap") || "inner";
+      const strategy = form.getAttribute("hyper-strategy") || "auto";
       const transition = attrBool(form, "hyper-transition", false);
       const swapDelay = parseDelay(form.getAttribute("hyper-swap-delay"), 0);
       const settleDelay = parseDelay(form.getAttribute("hyper-settle-delay"), 0);
@@ -2437,6 +2869,12 @@ const Hyper = (() => {
           push: true,
           sync: form.getAttribute("hyper-sync") || "replace",
           key: form.getAttribute("hyper-key") || null,
+          select,
+          swap,
+          strategy,
+          strictTargets: form.hasAttribute("hyper-strict-targets")
+            ? attrBool(form, "hyper-strict-targets", true)
+            : undefined,
           transition,
           swapDelay,
           settleDelay,
@@ -2456,19 +2894,33 @@ const Hyper = (() => {
             return result;
           }
           if (result.kind === "html") {
+            const fullDocument = parseFullDocument(result.data, result.response.url || action);
+            const selectedHTML = select
+              ? selectResponseFragment(
+                  fullDocument || document.implementation.createHTMLDocument(),
+                  select,
+                  swap
+                )
+              : result.data;
             await applySwapLifecycle({
               target,
               swapDelay,
               settleDelay,
               focus,
-              detail: { kind: "nav-form", swap: "inner" },
+              detail: { kind: "nav-form", swap, strategy, select },
               mutate: async () => {
-                await withViewTransition(transition, () => {
-                  applySwap(target, result.data, "inner");
+                await withViewTransition(transition, async () => {
+                  await applySwap(target, selectedHTML, swap, {
+                    strategy,
+                    document: fullDocument,
+                    responseUrl: result.response.url || action,
+                  });
                 });
               },
             });
-            history.pushState({}, "", action);
+            history.pushState({
+              hyper: { target, select, swap, strategy, transition, swapDelay, settleDelay, focus },
+            }, "", action);
           }
           return result;
         },
@@ -2476,12 +2928,14 @@ const Hyper = (() => {
     });
 
     window.addEventListener("popstate", async (event) => {
-      const target = document.body.getAttribute("hyper-pop-target") || "body";
+      const restored = event.state && event.state.hyper ? event.state.hyper : {};
+      const target =
+        restored.target || document.body.getAttribute("hyper-pop-target") || "body";
       const url = window.location.pathname + window.location.search;
       const detail = { url, target, state: event.state };
       emitHistoryRestoreEvent("hyper:history:restore:before", detail);
       try {
-        await navigate(url, { target, push: false });
+        await navigate(url, { ...restored, target, push: false });
         emitHistoryRestoreEvent("hyper:history:restore:after", { ...detail, success: true });
       } catch (error) {
         emitHistoryRestoreEvent("hyper:history:restore:after", {
@@ -2519,6 +2973,7 @@ const Hyper = (() => {
       const url = form.getAttribute("action") || window.location.pathname;
       const target = form.getAttribute("hyper-target") || null;
       const swap = form.getAttribute("hyper-swap") || "inner";
+      const strategy = form.getAttribute("hyper-strategy") || "auto";
       const transition = attrBool(form, "hyper-transition", false);
       const sync = form.getAttribute("hyper-sync") || "block";
       const key = (form.getAttribute("hyper-key") || action).trim();
@@ -2526,6 +2981,7 @@ const Hyper = (() => {
       const swapDelay = parseDelay(form.getAttribute("hyper-swap-delay"), 0);
       const settleDelay = parseDelay(form.getAttribute("hyper-settle-delay"), 0);
       const focus = form.getAttribute("hyper-focus") || "preserve";
+      const pauseWhenHidden = attrBool(form, "hyper-pause-when-hidden", false);
 
       const req = actionRequest(
         action,
@@ -2536,6 +2992,7 @@ const Hyper = (() => {
           url,
           target,
           swap,
+          strategy,
           transition,
           sync,
           key,
@@ -2543,6 +3000,7 @@ const Hyper = (() => {
           swapDelay,
           settleDelay,
           focus,
+          pauseWhenHidden,
           onBeforeSubmit: () => {
             applyFormDisableScope(form, key);
             emitEvent("hyper:form:beforeSubmit", {
@@ -2596,6 +3054,20 @@ const Hyper = (() => {
       ? options.retry
       : typeof options.sseRetry === "boolean" ? options.sseRetry : undefined;
     const extraData = data && typeof data === "object" ? data : null;
+    const actionOptions = {
+      target: options.target || null,
+      swap: options.swap || "inner",
+      strategy: options.strategy || "auto",
+      transition: Boolean(options.transition),
+      push: Boolean(options.push),
+      replace: Boolean(options.replace),
+      strictTargets: options.strictTargets,
+      swapDelay: options.swapDelay || 0,
+      settleDelay: options.settleDelay || 0,
+      focus: options.focus || "preserve",
+      retry,
+      pauseWhenHidden: Boolean(options.pauseWhenHidden),
+    };
 
     if (typeof options.onBeforeSubmit === "function") {
       options.onBeforeSubmit();
@@ -2606,18 +3078,7 @@ const Hyper = (() => {
       if (!payload.has("_action")) {
         payload.append("_action", action);
       }
-      const actionOptions = {
-        target: options.target || null,
-        swap: options.swap || "inner",
-        transition: Boolean(options.transition),
-        push: Boolean(options.push),
-        replace: Boolean(options.replace),
-        strictTargets: options.strictTargets,
-        swapDelay: options.swapDelay || 0,
-        settleDelay: options.settleDelay || 0,
-        focus: options.focus || "preserve",
-        retry,
-      };
+      
       if (method === "GET") {
         return runAction({
           url,
@@ -2655,7 +3116,7 @@ const Hyper = (() => {
         sync,
         key,
         onUploadProgress,
-        retry,
+        ...actionOptions,
       });
     }
 
@@ -2668,8 +3129,97 @@ const Hyper = (() => {
       sync,
       key,
       onUploadProgress,
-      retry,
+      ...actionOptions,
     });
+  }
+
+  function lazyActionData(el) {
+    const raw = el.getAttribute("hyper-action-data");
+    if (!raw) {
+      return {};
+    }
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new Error("hyper-action-data must be a JSON object.");
+    }
+    return parsed;
+  }
+
+  async function loadLazyAction(el) {
+    const action = (el.getAttribute("hyper-action") || "").trim();
+    if (!action) {
+      return;
+    }
+    const target = el.getAttribute("hyper-target") || (el.id ? `#${CSS.escape(el.id)}` : null);
+    if (!target) {
+      throw new Error("Visible hyper-actions require an id or hyper-target.");
+    }
+    el.setAttribute("hyper-lazy-state", "loading");
+    emitEvent("hyper:lazy:start", { action, target, element: el });
+    try {
+      const result = await actionRequest(action, lazyActionData(el), {
+        method: "GET",
+        sourceEl: el,
+        target,
+        swap: el.getAttribute("hyper-swap") || "inner",
+        strategy: el.getAttribute("hyper-strategy") || "auto",
+        transition: attrBool(el, "hyper-transition", false),
+        sync: el.getAttribute("hyper-sync") || "replace",
+        key: el.getAttribute("hyper-key") || action,
+        strictTargets: el.hasAttribute("hyper-strict-targets")
+          ? attrBool(el, "hyper-strict-targets", true)
+          : undefined,
+        swapDelay: parseDelay(el.getAttribute("hyper-swap-delay"), 0),
+        settleDelay: parseDelay(el.getAttribute("hyper-settle-delay"), 0),
+        focus: el.getAttribute("hyper-focus") || "preserve",
+        retry: el.hasAttribute("hyper-retry")
+          ? attrBool(el, "hyper-retry", true)
+          : undefined,
+        pauseWhenHidden: attrBool(el, "hyper-pause-when-hidden", false),
+      });
+      el.setAttribute("hyper-lazy-state", "loaded");
+      emitEvent("hyper:lazy:success", { action, target, element: el, result });
+    } catch (error) {
+      el.setAttribute("hyper-lazy-state", "error");
+      emitEvent("hyper:lazy:error", { action, target, element: el, error });
+      throw error;
+    }
+  }
+
+  function initLazyActions(root = document) {
+    if (typeof IntersectionObserver !== "function") {
+      return;
+    }
+    if (!lazyActionObserver) {
+      lazyActionObserver = new IntersectionObserver((entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) {
+            continue;
+          }
+          lazyActionObserver.unobserve(entry.target);
+          loadLazyAction(entry.target).catch(() => {});
+        }
+      }, { rootMargin: "0px 0px 200px 0px" });
+    }
+
+    const candidates = [];
+    if (
+      root instanceof Element &&
+      root.matches("[hyper-action][hyper-trigger]")
+    ) {
+      candidates.push(root);
+    }
+    if (root && typeof root.querySelectorAll === "function") {
+      candidates.push(...root.querySelectorAll("[hyper-action][hyper-trigger]"));
+    }
+    for (const el of candidates) {
+      const triggers = (el.getAttribute("hyper-trigger") || "").split(/\s+/);
+      if (!triggers.includes("visible") || lazyActionElements.has(el)) {
+        continue;
+      }
+      lazyActionElements.add(el);
+      lazyActionObserver.observe(el);
+    }
   }
 
   function initLoadingIndicators() {
@@ -2688,6 +3238,7 @@ const Hyper = (() => {
     initNetwork,
     initNavigation,
     initForms,
+    initLazyActions,
     navigate,
     configure,
     applyViewNames,
@@ -2704,10 +3255,12 @@ if (document.readyState === "loading") {
     Hyper.initNetwork();
     Hyper.initNavigation();
     Hyper.initForms();
+    Hyper.initLazyActions();
   });
 } else {
   Hyper.initLoadingIndicators();
   Hyper.initNetwork();
   Hyper.initNavigation();
   Hyper.initForms();
+  Hyper.initLazyActions();
 }

@@ -96,6 +96,26 @@ class PageView(BaseLayout):
             swap="append",
         )
 
+
+    @action(method="GET")
+    async def visibility_demo(self, request, **params):
+        resume = get_resume_checkpoint(request, allowed=("visible",))
+        if resume is None:
+            yield HTML(
+                content="<div data-visibility-first>Checkpoint delivered.</div>",
+                target="#stream-log",
+                swap="inner",
+            )
+            yield Checkpoint("visible")
+            await asyncio.sleep(30)
+            return
+
+        yield HTML(
+            content="<div data-visibility-resumed>Visible stream resumed.</div>",
+            target="#stream-log",
+            swap="append",
+        )
+
     @action(method="POST")
     def start_package_build(self, request, package_id="demo", **params):
         type(self).package_builds_started += 1

@@ -468,6 +468,17 @@ class PageView(HyperView):
         ]
 ```
 
+`swap` controls position (`inner`, `outer`, `before`, `after`, `prepend`,
+`append`, `delete`, or `none`). `strategy` controls how `inner` and `outer`
+patches update existing DOM:
+
+- `auto` uses Alpine Morph or morphdom when available and otherwise replaces HTML
+- `morph` requires one of those morph adapters
+- `replace` performs deterministic HTML replacement
+
+Keep stateful descendants across either strategy by giving the old and returned
+elements the same `id` and adding `hyper-preserve` to the existing element.
+
 ### `Delete`
 
 Use `Delete(...)` to remove a target element.
@@ -610,6 +621,19 @@ class PageView(HyperView):
         global_count = 42
         return [Signals(values={"count": local_count, "$count": global_count})]
 ```
+
+Pass `only_if_missing=True` to initialize top-level keys without overwriting
+client state that already exists:
+
+```python
+return [
+    Signal(name="draft", value="", only_if_missing=True),
+    Signals(values={"filters": {}, "$theme": "system"}, only_if_missing=True),
+]
+```
+
+The option applies independently to each top-level local or global key. It does
+not merge defaults into an existing nested object.
 
 - `count` patches the nearest Alpine `x-data`
 - `$count` patches `Alpine.store("hyper")`

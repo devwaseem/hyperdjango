@@ -4,20 +4,24 @@ HyperDjango gives Django a server-first workflow with file routing, colocated as
 
 Use it when you want interactive UX without splitting your app into separate backend API and SPA frontend codebases.
 
-## Current Release: 0.42.6
+## Current Release: 0.43.0
 
-HyperDjango 0.42.6 keeps the Django Debug Toolbar bridge out of pages unless
-the integration is explicitly enabled:
+HyperDjango 0.43.0 deepens full-page navigation and DOM continuity while
+keeping interactions action-first:
 
-- false or absent `HYPER_DEBUG_TOOLBAR` settings omit the debug-only script,
-  regardless of `DEBUG`
-- enabled integrations include the bridge exactly once with the request CSP
-  nonce and its established script ordering
-- toolbar visibility preservation and streamed panel refreshes from 0.42.5
-  remain unchanged
+- full-document visits reconcile route-specific head assets before committing
+  the body
+- `hyper-preserve`, explicit morph/replace strategies, and `hyper-select`
+  protect stateful DOM and support progressive enhancement
+- viewport-triggered fragments call read-only page actions instead of
+  introducing fragment-only URLs
+- resumable GET streams can pause in hidden tabs, and Alpine signals can
+  initialize missing state without overwriting existing values
+- production Vite output exposes only flattened public assets while keeping
+  the manifest and source tree private
 
-See [Django Debug Toolbar](debug-toolbar.md) for integration and troubleshooting
-guidance.
+See [History And Back/Forward Restoration](history.md), [Actions](actions.md),
+and [Declarative HTML APIs](declarative-html-apis.md) for the new contracts.
 
 Existing projects should also review the [0.38.0 project upgrade notes](https://github.com/devwaseem/hyperdjango/blob/main/CHANGELOG.md#project-upgrade-notes), especially the Vite 8 and Node.js requirements. The [production checklist](production-checklist.md) covers the final validation steps.
 

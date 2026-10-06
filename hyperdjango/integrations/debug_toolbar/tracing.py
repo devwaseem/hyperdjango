@@ -570,6 +570,7 @@ def _item_metadata(item: Any) -> dict[str, Any]:
     for attribute in (
         "target",
         "swap",
+        "strategy",
         "push_url",
         "replace_url",
         "url",
@@ -580,13 +581,16 @@ def _item_metadata(item: Any) -> dict[str, Any]:
         "settle_delay",
         "strict_targets",
         "transition",
+        "only_if_missing",
         "redirect_to",
         "status",
         "method",
         "key",
     ):
         value = getattr(item, attribute, None)
-        if attribute == "transition" and value is False:
+        if attribute in ("transition", "only_if_missing") and value is False:
+            continue
+        if attribute == "strategy" and value == "auto":
             continue
         if value not in (None, ""):
             metadata[attribute] = sanitize_value(value, key=attribute)

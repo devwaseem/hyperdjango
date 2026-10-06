@@ -206,6 +206,7 @@ def compile_action_result(result: ActionResult) -> list[ActionItem]:
                 content=result.html,
                 target=result.target,
                 swap=result.swap or "outer",
+                strategy=result.strategy or "auto",
                 transition=result.transition,
                 focus=result.focus,
                 swap_delay=result.swap_delay,
@@ -550,14 +551,18 @@ def _format_action_item(
 
 def serialize_action_item(item: ActionItem) -> tuple[str, dict[str, Any]]:
     if isinstance(item, Signal):
-        return "patch_signals", {item.name: item.value}
+        event = "init_signals" if item.only_if_missing else "patch_signals"
+        return event, {item.name: item.value}
     if isinstance(item, Signals):
-        return "patch_signals", item.values
+        event = "init_signals" if item.only_if_missing else "patch_signals"
+        return event, item.values
     if isinstance(item, HTML):
         payload: dict[str, Any] = {
             "content": item.content,
             "swap": item.swap,
         }
+        if item.strategy != "auto":
+            payload["strategy"] = item.strategy
         if item.target:
             payload["target"] = item.target
         if item.transition:

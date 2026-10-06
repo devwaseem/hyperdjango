@@ -113,9 +113,38 @@ For Back/Forward restores into `body`, the server may return a complete document
 </html>
 ```
 
-HyperDjango does not insert that entire document string inside the current body. It parses the response, extracts the returned `<body>` contents, syncs the current `<body>` attributes, and updates `document.title`.
+HyperDjango parses the document, reconciles the returned `<head>`, extracts the
+returned `<body>` contents, syncs the current `<body>` attributes, and updates
+`document.title`. This keeps enhanced navigation compatible with ordinary
+Django page responses.
 
-This keeps browser history restoration compatible with normal Django page responses.
+### Head Assets
+
+The returned head defaults to `hyper-head="merge"`. Unchanged `base`, `meta`,
+`link`, `style`, and `script` entries are retained; new route assets load before
+the body commits; previously managed entries absent from the response are
+removed. Existing scripts are not evaluated again, and new scripts retain CSP
+nonces.
+
+Use `<head hyper-head="append">` to keep earlier managed entries, or
+`<head hyper-head="ignore">` to leave the current head untouched. Add
+`hyper-preserve` to a current head entry that must survive merge removal.
+
+### Selecting From a Full Response
+
+Enhanced links and navigation forms can use `hyper-select` to choose exactly
+one element from the returned full document:
+
+```html
+<a href="/account/" hyper-nav hyper-target="#main" hyper-select="#main">
+  Account
+</a>
+```
+
+For an inner swap, HyperDjango uses the selected element's contents; other
+swap positions use its outer HTML. Head reconciliation still uses the complete
+response. Selection and swap options are retained in the history entry for
+Back/Forward restoration.
 
 ## Body Scripts On Restore
 

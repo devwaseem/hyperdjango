@@ -26,6 +26,7 @@ from hyperdjango.actions import (
     HTML,
     Redirect,
     Signal,
+    Signals,
     action,
 )
 from hyperdjango.assets import ModuleTag
@@ -396,12 +397,14 @@ def test_action_response_accepts_partial_content() -> None:
     result = obj.action_response(
         content=HyperPartialTemplateResult(
             html="<div>Modal</div>", js="/static/modal.js"
-        )
+        ),
+        strategy="replace",
     )
 
     assert isinstance(result, ActionResult)
     assert result.html == "<div>Modal</div>"
     assert result.js == "/static/modal.js"
+    assert result.strategy == "replace"
 
 
 def test_action_http_response_serializes_partial_js() -> None:
@@ -430,6 +433,29 @@ def test_action_http_response_serializes_typed_item_lists() -> None:
     assert _read_streaming_response(response) == (
         b'event: patch_signals\ndata: {"count": 1}\n\n'
         b'event: patch_html\ndata: {"content": "<div>Hi</div>", "swap": "outer", "target": "#panel"}\n\n'
+        b"event: end\ndata: {}\n\n"
+    )
+
+def test_action_http_response_serializes_patch_strategy_and_signal_defaults() -> None:
+    _ensure_settings()
+    response = to_action_http_response(
+        [
+            Signal(name="draft", value="", only_if_missing=True),
+            Signals(values={"filters": {}, "$theme": "system"}, only_if_missing=True),
+            HTML(
+                content="<div>Hi</div>",
+                target="#panel",
+                strategy="replace",
+            ),
+        ]
+    )
+
+    assert response.status_code == 200
+    assert _read_streaming_response(response) == (
+        b'event: init_signals\ndata: {"draft": ""}\n\n'
+        b'event: init_signals\ndata: {"filters": {}, "$theme": "system"}\n\n'
+        b'event: patch_html\ndata: {"content": "<div>Hi</div>", "swap": "outer", '
+        b'"strategy": "replace", "target": "#panel"}\n\n'
         b"event: end\ndata: {}\n\n"
     )
 

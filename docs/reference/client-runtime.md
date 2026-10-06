@@ -44,6 +44,12 @@ new server request calls `get_resume_checkpoint(...)` and explicitly skips compl
 stages. No Python generator state is preserved, and HyperDjango does not automatically
 replay or discard action items.
 
+Pass `pauseWhenHidden: true` for a retry-enabled GET action when background work
+should stop in hidden tabs. The runtime waits until the stream has acknowledged
+a `Checkpoint`, closes that connection when the document becomes hidden, and
+reconnects with the same request ID and `Last-Event-ID` when visible. It never
+pauses POST streams or a GET stream before a resumable checkpoint exists.
+
 The defaults can be changed globally:
 
 ```js
@@ -159,6 +165,21 @@ These options define how the client runtime orchestrates request lifecycle, stat
 - **Override**: Explicit `true` or `false` takes precedence over the method default and
   global GET default.
 
+### `strategy`
+- **Type**: `"auto" | "morph" | "replace"`
+- **Purpose**: Selects morphing or deterministic replacement independently of
+  the `swap` position.
+- **Default**: `"auto"`.
+
+### `pauseWhenHidden`
+- **Type**: `boolean`
+- **Purpose**: Suspends a resumable, retry-enabled GET SSE action after its first
+  checkpoint while the document is hidden.
+- **Default**: `false`.
+
+The declarative equivalents are `hyper-strategy` and
+`hyper-pause-when-hidden`.
+
 ## Outcomes
 
 Common outcome flags:
@@ -194,6 +215,8 @@ The HyperDjango client runtime dispatches events to `window` for lifecycle monit
 | `hyper:requestException` | When client-side code throws an exception. | `key`, `error` |
 | `hyper:requestRetry` | Before reconnecting an interrupted SSE action stream. | `key`, `attempt`, `delay`, `error` |
 | `hyper:requestRetriesFailed` | When an SSE stream exhausts its reconnect attempts. | `key`, `attempts`, `error` |
+| `hyper:requestPaused` | When an eligible resumable GET stream is suspended in a hidden tab. | `key`, `reason` |
+| `hyper:requestResumed` | Before that stream reconnects after the tab becomes visible. | `key`, `reason` |
 | `hyper:uploadProgress` | During file upload progress tracking. | `key`, `progress` (0-1) |
 | `hyper:streamEvent` | When a new SSE event is received from the server. | `event` (type), `data` (payload) |
 | `hyper:actionSwitch` | After a valid switch is received and before its destination request starts. | `originalAction`, `destinationAction`, `originalRequestId`, `newRequestId`, `key`, `method`, `url`, `retry`, `depth` |
@@ -203,6 +226,10 @@ The HyperDjango client runtime dispatches events to `window` for lifecycle monit
 | `hyper:network:offline` | When the browser loses network availability. | `online`, `offline` |
 | `hyper:history:restore:before` | Before a Back/Forward restore fetch starts. | `url`, `target`, `state` |
 | `hyper:history:restore:after` | After a Back/Forward restore finishes or fails. | `url`, `target`, `state`, `success`, `error` |
+| `hyper:head:reconciled` | After assets from a full-document response are reconciled. | `mode`, `added`, `kept`, `removed` |
+| `hyper:lazy:start` | Before a visible-trigger action starts. | `action`, `target`, `element` |
+| `hyper:lazy:success` | After a visible-trigger action completes. | `action`, `target`, `element`, `result` |
+| `hyper:lazy:error` | When a visible-trigger action fails. | `action`, `target`, `element`, `error` |
 
 Control-only `checkpoint` frames update the reconnect cursor internally and are not
 emitted as `hyper:streamEvent` application events.

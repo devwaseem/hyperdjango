@@ -23,9 +23,11 @@
         <section>
             <h2>Signals and focus</h2>
             <button id="patch-signals" type="button" x-on:click="$action('patch_signals', {})">Patch signals</button>
+            <button id="initialize-signals" type="button" x-on:click="$action('initialize_signals', {})">Initialize signals</button>
             <p>Local: <strong id="fixture-local" x-text="fixtureCount"></strong></p>
             <p>Message: <strong id="fixture-message" x-text="fixtureMessage"></strong></p>
             <p>Global: <strong id="fixture-global" x-text="$store.hyper.fixtureGlobal"></strong></p>
+            <p>Initialized global: <strong id="fixture-initialized" x-text="$store.hyper.fixtureInitialized || 'missing'"></strong></p>
             <button id="focus-after-swap" type="button" x-on:click="$action('focus_after_swap', {})">Swap and focus</button>
             <div id="focus-result">focus original</div>
         </section>
@@ -71,6 +73,24 @@
         </section>
 
         <section>
+            <h2>DOM continuity and response selection</h2>
+            <button id="preserve-patch" type="button" x-on:click="$action('preserve_patch', {})">Patch preserved island</button>
+            <div id="preserve-container">
+                <input id="preserved-input" hyper-preserve value="initial" />
+                <span data-fixture="preserve-result">original</span>
+            </div>
+            <a id="fixture-select-nav"
+               href="/runtime-fixtures/?selection=selected"
+               hyper-nav
+               hyper-target="#selection-target"
+               hyper-select="#selection-source"
+               hyper-swap="inner"
+               hyper-strategy="replace">Select response fragment</a>
+            <div id="selection-target">target initial</div>
+            <div id="selection-source">source {{ selection }}</div>
+        </section>
+
+        <section>
             <h2>Strict targets and declarative navigation</h2>
             <button id="missing-target"
                     type="button"
@@ -81,6 +101,14 @@
                 <input name="from" value="fixture" />
                 <button type="submit">Navigate form via hyper-nav</button>
             </form>
+        </section>
+
+        <div aria-hidden="true" style="height: 1200px;"></div>
+        <section id="lazy-activity"
+                 hyper-action="load_activity"
+                 hyper-trigger="visible"
+                 hyper-action-data='{"project_id": 42}'>
+            waiting for viewport
         </section>
     </section>
 {% endblock page %}

@@ -24,6 +24,17 @@
     }
   }
 
+  function initializeMissing(target, patch) {
+    if (!target || !patch || typeof patch !== "object") {
+      return;
+    }
+    for (const [key, value] of Object.entries(patch)) {
+      if (!(key in target)) {
+        target[key] = value;
+      }
+    }
+  }
+
   function splitSignalPatches(signals) {
     const local = {};
     const global = {};
@@ -78,21 +89,23 @@
     }
     window.__hyperAlpineSignalsInstalled = true;
     window.addEventListener("hyper:streamEvent", (event) => {
-      if (event.detail.event !== "patch_signals") {
+      const signalEvent = event.detail.event;
+      if (signalEvent !== "patch_signals" && signalEvent !== "init_signals") {
         return;
       }
+      const applyPatch = signalEvent === "init_signals" ? initializeMissing : mergeInto;
 
       const patches = splitSignalPatches(event.detail.data);
       if (Object.keys(patches.global).length > 0) {
         const store = ensureHyperStore();
         if (store) {
-          mergeInto(store, patches.global);
+          applyPatch(store, patches.global);
         }
       }
       if (Object.keys(patches.local).length > 0) {
         const target = resolveBindTarget(event.detail.sourceEl || null);
         if (target) {
-          mergeInto(target, patches.local);
+          applyPatch(target, patches.local);
         }
       }
 

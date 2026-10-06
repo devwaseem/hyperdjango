@@ -4,9 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## 0.43.0 - 2026-10-06
+
 - Flattened generated production asset filenames and limited scaffolded Django
   staticfiles configuration to `dist/assets/`. Public URLs no longer expose the
   frontend source tree, and `.vite/manifest.json` remains server-side.
+- Added full-document head reconciliation, explicit morph/replace strategies,
+  `hyper-preserve` islands, `hyper-select` navigation, action-driven viewport
+  loading, hidden-tab suspension for resumable GET streams, and non-destructive
+  Alpine signal initialization.
 
 ## 0.42.6 - 2026-09-24
 

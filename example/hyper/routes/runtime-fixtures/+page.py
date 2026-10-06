@@ -31,6 +31,7 @@ class PageView(BaseLayout):
         return {
             "redirected": request.GET.get("redirected") == "1",
             "state": request.GET.get("state", "initial"),
+            "selection": request.GET.get("selection", "initial"),
         }
 
     @action
@@ -143,4 +144,47 @@ class PageView(BaseLayout):
         return Actions(
             Signal(name="fixtureCount", value=1),
             Signals(values={"fixtureMessage": "patched", "$fixtureGlobal": "global"}),
+        )
+
+    @action
+    def initialize_signals(self, request, **params):
+        return Actions(
+            Signal(
+                name="fixtureMessage",
+                value="server default",
+                only_if_missing=True,
+            ),
+            Signals(
+                values={
+                    "$fixtureGlobal": "server default",
+                    "$fixtureInitialized": "initialized",
+                },
+                only_if_missing=True,
+            ),
+        )
+
+    @action
+    def preserve_patch(self, request, **params):
+        return HTML(
+            content=(
+                '<div id="preserve-container">'
+                '<input id="preserved-input" hyper-preserve value="server" />'
+                '<span data-fixture="preserve-result">patched</span>'
+                "</div>"
+            ),
+            target="#preserve-container",
+            swap="outer",
+            strategy="replace",
+        )
+
+    @action(method="GET")
+    def load_activity(self, request, project_id: int, **params):
+        return HTML(
+            content=(
+                f'<p data-fixture="lazy-result">'
+                f"Loaded project {project_id}"
+                "</p>"
+            ),
+            target="#lazy-activity",
+            swap="inner",
         )

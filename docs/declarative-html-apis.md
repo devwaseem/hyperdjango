@@ -81,6 +81,73 @@ class PageView(HyperView):
         ]
 ```
 
+## Action-Driven Lazy Loading
+
+Lazy fragments use the current page's action endpoint rather than a separate
+fragment URL:
+
+```html
+<section id="activity"
+         hyper-action="load_activity"
+         hyper-trigger="visible"
+         hyper-action-data='{"project_id": 42}'>
+  Loading activity…
+</section>
+```
+
+The runtime invokes `load_activity` as a GET action once the section approaches
+the viewport. The target defaults to the element's `id`; use `hyper-target` to
+patch another element. `hyper-swap`, `hyper-strategy`, `hyper-transition`,
+`hyper-sync`, `hyper-key`, `hyper-strict-targets`, `hyper-focus`,
+`hyper-retry`, and `hyper-pause-when-hidden` use the normal action pipeline.
+
+```python
+@action(method="GET")
+def load_activity(self, request, project_id: int):
+    return HTML(
+        content=render_activity(project_id),
+        target="#activity",
+        swap="inner",
+    )
+```
+
+The element exposes `hyper-lazy-state="loading|loaded|error"` and emits
+`hyper:lazy:start`, `hyper:lazy:success`, and `hyper:lazy:error`.
+
+## Persistent Elements
+
+Add `hyper-preserve` and a stable `id` to stateful DOM that must survive a
+matching `inner` or `outer` response patch:
+
+```html
+<video id="preview" hyper-preserve controls></video>
+```
+
+The returned HTML must contain an element with the same `id`. HyperDjango moves
+the existing node into the new DOM, preserving its JavaScript identity, media
+state, focus state, and event listeners. If the response omits that `id`, the
+old node is removed normally.
+
+## Enhanced Navigation Selection
+
+`hyper-select` selects exactly one element from a full-page response while the
+request still uses the normal navigation URL:
+
+```html
+<a href="/account/"
+   hyper-nav
+   hyper-target="#main"
+   hyper-select="#main"
+   hyper-swap="inner"
+   hyper-strategy="morph">
+  Account
+</a>
+```
+
+A missing or ambiguous selector rejects the navigation instead of patching the
+wrong region. The target, selector, swap, and strategy are stored in history
+state and reused for Back/Forward restoration.
+
 ## Loading APIs
 
 Loading attributes work best when you understand `key` and request coordination from the client-side actions page.

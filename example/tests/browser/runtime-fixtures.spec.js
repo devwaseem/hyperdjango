@@ -69,6 +69,45 @@ test("patches local and global Alpine signals and honors explicit focus and life
   ]));
 });
 
+test("initializes only missing signals and preserves stateful DOM islands", async ({ page }) => {
+  await page.goto("/runtime-fixtures/");
+  await waitForAlpine(page);
+  await page.evaluate(() => {
+    const root = document.querySelector("#initialize-signals").closest("[x-data]");
+    window.Alpine.$data(root).fixtureMessage = "client value";
+    window.Alpine.store("hyper").fixtureGlobal = "client global";
+  });
+
+  await page.getByRole("button", { name: "Initialize signals" }).click();
+  await expect(page.locator("#fixture-message")).toHaveText("client value");
+  await expect(page.locator("#fixture-global")).toHaveText("client global");
+  await expect(page.locator("#fixture-initialized")).toHaveText("initialized");
+
+  await page.locator("#preserved-input").fill("client input");
+  await page.evaluate(() => {
+    window.__preservedInput = document.querySelector("#preserved-input");
+  });
+  await page.getByRole("button", { name: "Patch preserved island" }).click();
+  await expect(page.locator("[data-fixture=preserve-result]")).toHaveText("patched");
+  await expect(page.locator("#preserved-input")).toHaveValue("client input");
+  await expect.poll(() => page.evaluate(
+    () => window.__preservedInput === document.querySelector("#preserved-input")
+  )).toBe(true);
+});
+
+test("selects from full responses and lazily invokes a GET action", async ({ page }) => {
+  await page.goto("/runtime-fixtures/");
+  await waitForAlpine(page);
+
+  await page.locator("#fixture-select-nav").click();
+  await expect(page).toHaveURL(/\/runtime-fixtures\/\?selection=selected$/);
+  await expect(page.locator("#selection-target")).toHaveText("source selected");
+
+  await page.locator("#lazy-activity").scrollIntoViewIfNeeded();
+  await expect(page.locator("#lazy-activity")).toHaveAttribute("hyper-lazy-state", "loaded");
+  await expect(page.locator("[data-fixture=lazy-result]")).toHaveText("Loaded project 42");
+});
+
 test("scopes loading and disable state by form action, key, target, and delay", async ({ page }) => {
   await page.goto("/runtime-fixtures/");
   await waitForAlpine(page);
@@ -174,6 +213,8 @@ test("uses Alpine options, preserves concurrent sync:none calls, and rejects str
 test("performs Redirect and declarative link/form navigation without a document reload", async ({ page }) => {
   await page.goto("/runtime-fixtures/");
   await waitForAlpine(page);
+  await expect(page.locator('script[src*="runtime-fixtures/entry.head.js"]')).toHaveCount(1);
+  await expect.poll(() => page.evaluate(() => window.__runtimeFixtureHeadLoads)).toBe(1);
 
   await page.getByRole("button", { name: "Redirect" }).click();
   await expect(page).toHaveURL(/\/runtime-fixtures\/\?redirected=1$/);
@@ -183,10 +224,15 @@ test("performs Redirect and declarative link/form navigation without a document 
   await waitForAlpine(page);
   await page.locator("#fixture-hyper-nav").click();
   await expect(page).toHaveURL(/\/about$/);
+  await expect(page.locator('script[src*="runtime-fixtures/entry.head.js"]')).toHaveCount(0);
+  await expect(page.locator('script[src*="about/entry.head.js"]')).toHaveCount(1);
+  await expect.poll(() => page.evaluate(() => window.__aboutHeadLoads)).toBe(1);
   await expect(page.getByRole("heading", { name: "About this example" })).toBeVisible();
 
   await page.goBack();
   await expect(page.getByRole("heading", { name: "Runtime browser fixtures" })).toBeVisible();
+  await expect(page.locator('script[src*="about/entry.head.js"]')).toHaveCount(0);
+  await expect(page.locator('script[src*="runtime-fixtures/entry.head.js"]')).toHaveCount(1);
   await page.getByRole("button", { name: "Navigate form via hyper-nav" }).click();
   await expect(page).toHaveURL(/\/about\?from=fixture$/);
   await expect(page.getByRole("heading", { name: "About this example" })).toBeVisible();

@@ -33,6 +33,58 @@ test("an interrupted GET resumes after its last checkpoint", async ({ page }) =>
   expect(await page.evaluate(() => window.__sseRetries.length)).toBe(1);
 });
 
+test("a resumable GET stream pauses while hidden and resumes when visible", async ({ page }) => {
+  const requests = [];
+  page.on("request", (request) => {
+    if (request.headers()["x-hyper-action"] === "visibility_demo") {
+      requests.push(request.headers());
+    }
+  });
+
+  await page.evaluate(() => {
+    window.__fixtureHidden = false;
+    Object.defineProperty(document, "hidden", {
+      configurable: true,
+      get: () => window.__fixtureHidden,
+    });
+    window.__visibilityEvents = [];
+    window.addEventListener("hyper:requestPaused", (event) => {
+      window.__visibilityEvents.push({ name: "paused", reason: event.detail.reason });
+    });
+    window.addEventListener("hyper:requestResumed", (event) => {
+      window.__visibilityEvents.push({ name: "resumed", reason: event.detail.reason });
+    });
+    window.action("visibility_demo", {}, {
+      key: "visibility-e2e",
+      pauseWhenHidden: true,
+    });
+  });
+
+  await expect(page.locator("[data-visibility-first]")).toHaveText("Checkpoint delivered.");
+  await page.evaluate(() => {
+    window.__fixtureHidden = true;
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await expect.poll(() => page.evaluate(() => window.__visibilityEvents)).toEqual([
+    { name: "paused", reason: "hidden" },
+  ]);
+
+  await page.evaluate(() => {
+    window.__fixtureHidden = false;
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await expect(page.locator("[data-visibility-resumed]")).toHaveText(
+    "Visible stream resumed.",
+    { timeout: 10_000 }
+  );
+  await expect.poll(() => requests.length).toBe(2);
+  expect(requests[1]["last-event-id"]).toMatch(/:checkpoint:visible$/);
+  expect(await page.evaluate(() => window.__visibilityEvents)).toEqual([
+    { name: "paused", reason: "hidden" },
+    { name: "resumed", reason: "visible" },
+  ]);
+});
+
 test("retry false opts out of automatic SSE reconnects", async ({ page }) => {
   let requestCount = 0;
   page.on("request", (request) => {

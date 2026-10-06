@@ -334,6 +334,20 @@ def test_result_metadata_and_value_caps_are_bounded() -> None:
     }
     assert enriched["items"][2]["payload"]["access_token"] == "[redacted]"
 
+    new_options = describe_result(
+        [
+            HTML(content="<div></div>", strategy="replace"),
+            Signal(name="draft", value="", only_if_missing=True),
+        ]
+    )
+    assert new_options["items"][0]["strategy"] == "replace"
+    assert {"label": "strategy", "value": "replace"} in new_options["items"][0]["details"]
+    assert new_options["items"][1]["only_if_missing"] is True
+    assert {
+        "label": "only if missing",
+        "value": True,
+    } in new_options["items"][1]["details"]
+
 
 def test_exception_traceback_includes_source_frames_and_safe_locals() -> None:
     from hyperdjango.integrations.debug_toolbar.tracing import (

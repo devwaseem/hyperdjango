@@ -21,6 +21,7 @@ SwapMode: TypeAlias = Literal[
     "delete",
     "none",
 ]
+PatchStrategy: TypeAlias = Literal["auto", "morph", "replace"]
 ActionMethod: TypeAlias = Literal["GET", "POST"]
 
 P = ParamSpec("P")
@@ -236,6 +237,7 @@ class HTML:
     content: str
     target: str | None = None
     swap: SwapMode = "outer"
+    strategy: PatchStrategy = "auto"
     transition: bool = False
     focus: str | None = None
     swap_delay: int | None = None
@@ -349,6 +351,7 @@ class ActionResult:
     redirect_to: str | None = None
     target: str | None = None
     swap: SwapMode | None = None
+    strategy: PatchStrategy | None = None
     swap_delay: int | None = None
     settle_delay: int | None = None
     transition: bool = False

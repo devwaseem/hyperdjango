@@ -12,7 +12,7 @@ from django.template import RequestContext, loader
 from django.views import View
 from render_block import render_block_to_string
 
-from hyperdjango.actions import ActionResult
+from hyperdjango.actions import ActionResult, PatchStrategy
 from hyperdjango.assets import (
     AssetTag,
     ModulePreloadTag,
@@ -338,6 +338,7 @@ class HyperActionMixin:
         redirect_to: str | None = None,
         target: str | None = None,
         swap: str | None = None,
+        strategy: PatchStrategy | None = None,
         swap_delay: int | None = None,
         settle_delay: int | None = None,
         transition: bool = False,
@@ -375,6 +376,8 @@ class HyperActionMixin:
                 invalid_fields.append("target")
             if swap is not None:
                 invalid_fields.append("swap")
+            if strategy is not None:
+                invalid_fields.append("strategy")
             if swap_delay is not None:
                 invalid_fields.append("swap_delay")
             if settle_delay is not None:
@@ -431,6 +434,7 @@ class HyperActionMixin:
             redirect_to=redirect_to,
             target=target,
             swap=swap,
+            strategy=strategy,
             swap_delay=swap_delay,
             settle_delay=settle_delay,
             transition=transition,
