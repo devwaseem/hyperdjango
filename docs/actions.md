@@ -6,6 +6,39 @@ Use page handlers like `get()` and `post()` for full-page rendering.
 
 Use `@action` for interaction-level updates.
 
+## Action Argument Contract
+
+Action signatures are strict. HyperDjango calls an action with:
+
+1. the current `request`;
+2. every key supplied through `X-Hyper-Data`;
+3. query parameters that were not already supplied;
+4. non-GET form fields that were not already supplied; and
+5. every parameter captured by the current file route, overriding request data with the same name.
+
+The method must accept every resulting keyword, and every required method parameter must be present. For example, an action on `hyper/routes/payment-runs/[run_id]/[segment_code]/review/+page.py` that receives `{ decision }` from the browser declares all three values:
+
+```python
+from hyperdjango.actions import action
+
+
+class PageView(HyperView):
+    @action
+    def record_review_package_view(
+        self,
+        request,
+        run_id: str,
+        segment_code: str,
+        decision: str,
+    ):
+        ...
+```
+
+Before invoking the method, HyperDjango validates the assembled arguments against its signature. Missing or unexpected names produce a `400` action response that reports the declared signature and separates request arguments from route arguments. A `TypeError` raised inside a correctly bound action remains an application failure and produces a `500`.
+
+Use defaults for optional inputs. Use `**params` only when the action intentionally accepts an open-ended payload, such as a dynamic form; it also accepts misspelled and unintended keys, so it should not be the default workaround for a signature mismatch.
+
+
 ## What an Action Is
 
 An action is a method marked with `@action`.

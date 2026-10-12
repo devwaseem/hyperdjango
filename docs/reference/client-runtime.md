@@ -315,3 +315,6 @@ Action kwargs are assembled in this order:
 1. JSON from `X-Hyper-Data`
 2. query parameters not already present
 3. POST fields not already present for non-GET requests
+4. route parameters, overriding request values with the same name
+
+The assembled mapping is validated against the bound action signature before invocation. Every supplied name must be accepted, every required parameter must be present, and the method must account for all parameters captured by its current file route. A mismatch returns a `400` action error with the declared signature plus separate request and route argument names; the dispatcher does not silently discard unknown input.

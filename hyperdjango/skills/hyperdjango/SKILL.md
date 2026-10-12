@@ -76,16 +76,21 @@ class PageView(HyperView):
         return [HTML(content="<div id='flash'>Saved</div>", target="#flash")]
 ```
 
+Build the signature from the actual invocation, not from page context. Every parameter captured by the current file route is injected into every action. HyperDjango also passes every key from `X-Hyper-Data`, then missing query and non-GET form keys; route values win on name collisions.
+
+The action must accept every assembled name, and every required parameter must be supplied. Use defaults for optional inputs. Use `**params` only for an intentionally open-ended payload because it also accepts typos. Before finishing, trace each `$action(...)` or `window.action(...)` call to its method and verify exact name parity.
+
 Prefer typed results such as `HTML`, `Delete`, `Signal`, `Signals`, `Toast`, `Event`, `History`, and `Redirect`. Use streaming generators only when results genuinely arrive over time. Avoid inventing a JSON endpoint and bespoke browser state protocol for an interaction that an action already models.
 
 ## Work in an existing project
 
 1. Inspect the nearest route, layout, or template package and follow its imports, base class, and template structure.
-2. Put new code at the narrowest ownership boundary.
-3. Migrate every affected caller instead of retaining parallel generic-Django and HyperDjango page paths.
-4. Run `python manage.py hyper_routes` to compile routes and catch conflicts.
-5. Exercise the changed page through `python manage.py hyper_runserver`.
-6. For production asset changes, run the project's Vite build and Django deployment checks.
+2. Trace every client action invocation to its Python method; include current route parameters and supplied data, query, or form names in the signature.
+3. Put new code at the narrowest ownership boundary.
+4. Migrate every affected caller instead of retaining parallel generic-Django and HyperDjango page paths.
+5. Run `python manage.py hyper_routes` to compile routes and catch conflicts.
+6. Exercise the changed page through `python manage.py hyper_runserver`.
+7. For production asset changes, run the project's Vite build and Django deployment checks.
 
 ## Read deeper only when needed
 

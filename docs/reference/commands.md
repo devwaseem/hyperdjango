@@ -71,6 +71,7 @@ Useful flags:
 
 - `--no-wire`
 - `--force`
+- `--agent-skill`
 
 Argument details:
 
@@ -78,6 +79,8 @@ Argument details:
   Do not patch Django settings or urls automatically
 - `--force`
   Overwrite existing scaffolded files
+- `--agent-skill`
+  Install the bundled skill at `.agents/skills/hyperdjango/SKILL.md`
 
 Behavior:
 
@@ -85,6 +88,7 @@ Behavior:
 - creates or updates `vite.config.js`
 - creates or updates `package.json`
 - optionally patches Django settings and urls unless `--no-wire` is used
+- optionally installs the repository-local HyperDjango skill when `--agent-skill` is used
 
 Generated layout starter:
 

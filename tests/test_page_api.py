@@ -1102,6 +1102,86 @@ def test_sse_heartbeats_can_be_disabled() -> None:
     assert b": heartbeat\n\n" not in chunks
 
 
+def test_sync_action_argument_mismatch_returns_actionable_bad_request() -> None:
+    _ensure_settings()
+
+    class DemoPage(HyperView):
+        @action
+        def record_review_package_view(self, request, package_id: str):
+            return []
+
+    observed = []
+
+    def capture_exception(sender, request, **kwargs):
+        observed.append((sender, request))
+
+    request = RequestFactory().get(
+        "/payment-runs/run-1/review/",
+        HTTP_X_HYPER_ACTION="record_review_package_view",
+    )
+    got_request_exception.connect(capture_exception, weak=False)
+    try:
+        response = dispatch_page(
+            DemoPage(),
+            request,
+            package_id="run-1",
+            segment_code="segment-1",
+        )
+    finally:
+        got_request_exception.disconnect(capture_exception)
+
+    content = _read_streaming_response(response)
+    assert observed == []
+    assert response.status_code == 400
+    assert b"Invalid arguments for action 'record_review_package_view'" in content
+    assert b"unexpected keyword argument 'segment_code'" in content
+    assert b"Declared signature: (request, package_id" in content
+    assert b"Request arguments: none" in content
+    assert b"Route arguments: package_id, segment_code" in content
+
+
+def test_async_action_missing_argument_returns_actionable_bad_request() -> None:
+    _ensure_settings()
+
+    class DemoPage(HyperView):
+        @action
+        async def save(
+            self,
+            request,
+            package_id: str,
+            segment_code: str,
+        ):
+            await asyncio.sleep(0)
+            return []
+
+    observed = []
+
+    def capture_exception(sender, request, **kwargs):
+        observed.append((sender, request))
+
+    request = RequestFactory().get("/demo", HTTP_X_HYPER_ACTION="save")
+    got_request_exception.connect(capture_exception, weak=False)
+    try:
+        response = asyncio.run(
+            dispatch_page_async(
+                DemoPage(),
+                request,
+                package_id="run-1",
+            )
+        )
+    finally:
+        got_request_exception.disconnect(capture_exception)
+
+    content = _read_streaming_response(response)
+    assert observed == []
+    assert response.status_code == 400
+    assert b"Invalid arguments for action 'save'" in content
+    assert b"missing a required argument: 'segment_code'" in content
+    assert b"Declared signature: (request, package_id" in content
+    assert b"Request arguments: none" in content
+    assert b"Route arguments: package_id" in content
+
+
 def test_sync_action_exception_emits_request_exception_signal() -> None:
     _ensure_settings()
 

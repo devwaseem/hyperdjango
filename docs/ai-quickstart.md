@@ -98,6 +98,15 @@ class PageView(HyperView):
         return [HTML(content="<div id='flash'>Saved</div>", target="#flash")]
 ```
 
+Action signatures must match the runtime argument set exactly. Before writing one:
+
+1. list every parameter captured by the current file route; each is injected into every action;
+2. list every key sent by `$action(...)`, `window.action(...)`, query parameters, or the submitted form;
+3. declare those names after `request`, using defaults only for optional values; and
+4. use `**params` only when the payload is intentionally open-ended.
+
+HyperDjango validates the assembled mapping before invocation. Missing or unexpected names return an actionable `400` response rather than being discarded or entering the method. Trace every client invocation to its Python action before finishing a change.
+
 Prefer typed results such as `HTML`, `Delete`, `Signal`, `Signals`, `Toast`, `Event`, `History`, and `Redirect` over inventing a JSON endpoint and bespoke browser state protocol.
 
 See [Actions](actions.md) and [Client-Side Actions](client-side-actions.md).

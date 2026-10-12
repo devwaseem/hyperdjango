@@ -150,7 +150,8 @@ def _dispatch_action_sync(
     if method_error is not None:
         return method_error
 
-    action_kwargs = {**_extract_action_kwargs(request), **params}
+    request_kwargs = _extract_action_kwargs(request)
+    action_kwargs = {**request_kwargs, **params}
     debug_record_action(
         request,
         name=action_name,
@@ -158,6 +159,16 @@ def _dispatch_action_sync(
         arguments=action_kwargs,
         handler=action_method,
     )
+    argument_error = _action_argument_error(
+        request,
+        action_name=action_name,
+        action_method=action_method,
+        action_kwargs=action_kwargs,
+        request_kwargs=request_kwargs,
+        route_params=params,
+    )
+    if argument_error is not None:
+        return argument_error
     try:
         with debug_operation(request, "action"):
             result = action_method(request, **action_kwargs)
@@ -222,7 +233,8 @@ async def _dispatch_action_async(
     if method_error is not None:
         return method_error
 
-    action_kwargs = {**_extract_action_kwargs(request), **params}
+    request_kwargs = _extract_action_kwargs(request)
+    action_kwargs = {**request_kwargs, **params}
     debug_record_action(
         request,
         name=action_name,
@@ -230,6 +242,16 @@ async def _dispatch_action_async(
         arguments=action_kwargs,
         handler=action_method,
     )
+    argument_error = _action_argument_error(
+        request,
+        action_name=action_name,
+        action_method=action_method,
+        action_kwargs=action_kwargs,
+        request_kwargs=request_kwargs,
+        route_params=params,
+    )
+    if argument_error is not None:
+        return argument_error
     try:
         with debug_operation(request, "action"):
             result = action_method(request, **action_kwargs)
@@ -318,6 +340,43 @@ def _action_method_error(
             f"requires {declared_method}"
         ),
     )
+
+
+def _action_argument_error(
+    request: HttpRequest,
+    *,
+    action_name: str,
+    action_method: Any,
+    action_kwargs: dict[str, Any],
+    request_kwargs: dict[str, Any],
+    route_params: dict[str, Any],
+) -> HttpResponse | None:
+    action_signature = inspect.signature(action_method)
+    try:
+        action_signature.bind(request, **action_kwargs)
+    except TypeError as exc:
+        message = (
+            f"Invalid arguments for action '{action_name}': {exc}. "
+            f"Declared signature: {action_signature}. "
+            f"Request arguments: {_format_argument_names(request_kwargs)}. "
+            f"Route arguments: {_format_argument_names(route_params)}."
+        )
+        logger.warning(
+            "Invalid arguments for hyper action '%s' on %s: %s",
+            action_name,
+            request.path,
+            message,
+        )
+        return _prepare_action_exception_response(
+            request,
+            status=400,
+            message=message,
+        )
+    return None
+
+
+def _format_argument_names(arguments: dict[str, Any]) -> str:
+    return ", ".join(sorted(arguments)) or "none"
 
 
 def _dispatch_action_result(

@@ -7,6 +7,12 @@ All notable changes to this project will be documented in this file.
 - Added an Agent Skills-compatible HyperDjango guide, one-command and scaffold
   installation, an AI quickstart, prompt-based convention evaluations, and a
   concise `/llms.txt` index with the full corpus moved to `/llms-full.txt`.
+- Reworked the README into a standalone installation, architecture, development,
+  and production guide, and completed the scaffold command reference.
+- Validate assembled action arguments against the bound method before invocation.
+  Missing or unexpected names now return an actionable `400` response instead
+  of an opaque `500`, while exceptions raised inside a valid action remain
+  application failures.
 
 ## 0.43.0 - 2026-10-06
 
