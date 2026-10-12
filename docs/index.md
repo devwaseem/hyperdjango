@@ -4,24 +4,24 @@ HyperDjango gives Django a server-first workflow with file routing, colocated as
 
 Use it when you want interactive UX without splitting your app into separate backend API and SPA frontend codebases.
 
-## Current Release: 0.43.0
+## Current Release: 0.44.0
 
-HyperDjango 0.43.0 deepens full-page navigation and DOM continuity while
-keeping interactions action-first:
+HyperDjango 0.44.0 makes framework conventions discoverable and action
+failures precise:
 
-- full-document visits reconcile route-specific head assets before committing
-  the body
-- `hyper-preserve`, explicit morph/replace strategies, and `hyper-select`
-  protect stateful DOM and support progressive enhancement
-- viewport-triggered fragments call read-only page actions instead of
-  introducing fragment-only URLs
-- resumable GET streams can pause in hidden tabs, and Alpine signals can
-  initialize missing state without overwriting existing values
-- production Vite output exposes only flattened public assets while keeping
-  the manifest and source tree private
+- a bundled Agent Skills-compatible guide teaches file routes, colocated Vite
+  entries, layouts, and typed actions
+- `hyper_scaffold --agent-skill` installs that guide directly into a project
+- the new AI quickstart and concise `/llms.txt` index give coding agents a
+  reliable entry point without loading the complete documentation corpus
+- action arguments are validated before invocation, so missing or unexpected
+  request and route names produce an actionable `400` instead of an opaque
+  `500`
+- the root README now takes a project from installation through its first
+  routed page, colocated asset, action, and production deployment
 
-See [History And Back/Forward Restoration](history.md), [Actions](actions.md),
-and [Declarative HTML APIs](declarative-html-apis.md) for the new contracts.
+See [AI Quickstart](ai-quickstart.md), [Actions](actions.md), and
+[Getting Started](installation.md) for the new contracts.
 
 Existing projects should also review the [0.38.0 project upgrade notes](https://github.com/devwaseem/hyperdjango/blob/main/CHANGELOG.md#project-upgrade-notes), especially the Vite 8 and Node.js requirements. The [production checklist](production-checklist.md) covers the final validation steps.
 

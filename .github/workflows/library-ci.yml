@@ -170,6 +170,7 @@ jobs:
           package = files("hyperdjango")
           assert package.joinpath("py.typed").is_file()
           assert package.joinpath("static/hyperdjango/hyper.js").is_file()
+          assert package.joinpath("skills/hyperdjango/SKILL.md").is_file()
           assert package.joinpath("templates/hyperdjango/base.html").is_file()
           print(hyperdjango.__file__)
           PY
