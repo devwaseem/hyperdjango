@@ -24,6 +24,7 @@ include = ["hyperdjango*"]
     "static/**/*.js",
     "static/**/*.woff2",
     "static/**/LICENSE-*.txt",
+    "skills/**/*.md",
 ]
 
 [dependency-groups]

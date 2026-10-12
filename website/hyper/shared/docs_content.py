@@ -51,6 +51,13 @@ DOC_PAGES: Final[tuple[DocPage, ...]] = (
         summary="Install HyperDjango, wire Django settings, mount routes, and build the first page and action.",
     ),
     DocPage(
+        slug="ai-quickstart",
+        source="ai-quickstart.md",
+        nav_title="AI Quickstart",
+        group="Guides",
+        summary="Teach coding agents HyperDjango's page routes, colocated assets, layouts, actions, and skill installation.",
+    ),
+    DocPage(
         slug="routing",
         source="routing.md",
         nav_title="Routing",
@@ -360,23 +367,66 @@ def render_doc(slug: str) -> RenderedDoc:
     )
 
 
+def _doc_url(page: DocPage) -> str:
+    base_url = "https://hyperdjango.charingcrosscapital.com/docs"
+    return f"{base_url}/{page.slug}" if page.slug else base_url
+
+
 def build_llms_markdown() -> str:
     parts: list[str] = [
-        "# HyperDjango Documentation",
+        "# HyperDjango",
+        "",
+        "> A server-first Django library with file-based page routes, colocated Vite assets, and typed hypermedia actions.",
+        "",
+        "## Coding-agent defaults",
+        "",
+        "- Build rendered pages in `hyper/routes/<route>/+page.py` with a neighboring `index.html`.",
+        "- Put page-local JavaScript in a neighboring `entry.ts` or `entry.js`; HyperDjango injects it automatically.",
+        "- Put shared frontend behavior in the relevant layout or template package.",
+        "- Use `@action` and typed action results for interaction-level server updates.",
+        "- Keep APIs, webhooks, admin, and other non-page endpoints in ordinary Django routing when appropriate.",
+        "",
+        "Install the repository-local HyperDjango Agent Skill:",
+        "",
+        "```bash",
+        "curl -fsSL --create-dirs -o .agents/skills/hyperdjango/SKILL.md https://raw.githubusercontent.com/charingcrosscapital/hyperdjango/main/hyperdjango/skills/hyperdjango/SKILL.md",
+        "```",
+        "",
+        "Start with [AI Quickstart](https://hyperdjango.charingcrosscapital.com/docs/ai-quickstart).",
+        "",
+        "## Documentation",
+        "",
+    ]
+
+    for page in DOC_PAGES:
+        label = page.nav_title if page.slug else "Overview"
+        parts.append(f"- [{label}]({_doc_url(page)}): {page.summary}")
+
+    parts.extend(
+        [
+            "",
+            "## Full corpus",
+            "",
+            "- [Complete documentation in one Markdown file](https://hyperdjango.charingcrosscapital.com/llms-full.txt)",
+        ]
+    )
+    return "\n".join(parts).rstrip() + "\n"
+
+
+def build_llms_full_markdown() -> str:
+    parts: list[str] = [
+        "# HyperDjango Full Documentation",
         "",
         "This file aggregates the full documentation set in Markdown.",
+        "",
+        "For a concise orientation and document index, see https://hyperdjango.charingcrosscapital.com/llms.txt.",
         "",
         "## Sections",
     ]
 
     for page in DOC_PAGES:
-        href = (
-            f"https://hyperdjango.charingcrosscapital.com/docs/{page.slug}"
-            if page.slug
-            else "https://hyperdjango.charingcrosscapital.com/docs"
-        )
         label = page.nav_title if page.slug else "Overview"
-        parts.append(f"- [{label}]({href})")
+        parts.append(f"- [{label}]({_doc_url(page)})")
 
     parts.extend(["", "---", ""])
 

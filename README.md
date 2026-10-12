@@ -24,10 +24,64 @@ For full API reference, guides, and interactive examples, please visit [hyperdja
 
 ```bash
 pip install hyperdjango
-python manage.py hyper_scaffold
+python manage.py hyper_scaffold --agent-skill
+npm install
+python manage.py hyper_runserver
 ```
 
-See the **[Installation guide](docs/reference/django-integration.md)** for details.
+The scaffold mounts HyperDjango, creates the `hyper/` frontend tree, configures
+Vite, and installs the repository-local AI skill.
+
+For rendered pages, create a route package instead of adding a `TemplateView`
+to `urls.py`:
+
+```text
+hyper/routes/about/
+├── +page.py
+├── index.html
+└── entry.ts       # optional; automatically loaded for this page
+```
+
+```python
+# hyper/routes/about/+page.py
+from django.http import HttpRequest
+
+from hyperdjango.page import HyperView
+
+
+class PageView(HyperView):
+    def get(self, request: HttpRequest) -> dict[str, str]:
+        return {"title": "About"}
+```
+
+```django
+{# hyper/routes/about/index.html #}
+<h1>{{ title }}</h1>
+```
+
+The page is available at `/about/`. A neighboring `entry.ts` or `entry.js` is
+discovered and injected automatically; do not add a manual `<script>` tag.
+Use `@action` and typed action results for interaction-level server updates.
+APIs, webhooks, admin routes, and other non-page endpoints can continue using
+ordinary Django or Django REST Framework routing.
+
+See the [Getting Started guide](https://hyperdjango.charingcrosscapital.com/docs/getting-started)
+and [AI Quickstart](https://hyperdjango.charingcrosscapital.com/docs/ai-quickstart).
+
+## Install the AI Skill
+
+HyperDjango ships an [Agent Skills](https://agentskills.io/) compatible skill.
+Install it in the current repository with one command:
+
+```bash
+curl -fsSL --create-dirs -o .agents/skills/hyperdjango/SKILL.md https://raw.githubusercontent.com/charingcrosscapital/hyperdjango/main/hyperdjango/skills/hyperdjango/SKILL.md
+```
+
+Codex discovers repository skills from `.agents/skills`. Other agents may use a
+client-specific skill directory; see the
+[AI Quickstart](https://hyperdjango.charingcrosscapital.com/docs/ai-quickstart)
+for alternatives. When scaffolding a project, `--agent-skill` performs the
+repository-local installation without downloading another copy.
 
 ## Example App
 

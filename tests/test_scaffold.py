@@ -4,9 +4,11 @@ import json
 from pathlib import Path
 
 from hyperdjango.management.commands.hyper_scaffold import (
+    AGENT_SKILL_PATH,
     LAYOUT_PY,
     VITE_CONFIG,
     _ensure_package_json,
+    _install_agent_skill,
     _merge_package_json,
     _wire_settings,
     _wire_urls,
@@ -65,8 +67,12 @@ def test_wire_settings_is_idempotent(tmp_path: Path) -> None:
     assert 'HYPER_FRONTEND_DIR = BASE_DIR / "hyper"' in content
     assert "HYPER_VITE_DEV_SERVER_URL" not in content
     assert 'INSTALLED_APPS.append("hyperdjango")' in content
-    assert 'HYPER_VITE_ASSETS_DIR = HYPER_VITE_OUTPUT_DIR / "assets"' in content
-    assert 'HYPER_VITE_STATIC_DIR = ("assets", HYPER_VITE_ASSETS_DIR)' in content
+    assert (
+        'HYPER_VITE_ASSETS_DIR = HYPER_VITE_OUTPUT_DIR / "assets"' in content
+    )
+    assert (
+        'HYPER_VITE_STATIC_DIR = ("assets", HYPER_VITE_ASSETS_DIR)' in content
+    )
     assert "STATICFILES_DIRS.append(HYPER_VITE_STATIC_DIR)" in content
     assert "STATICFILES_DIRS.append(HYPER_VITE_OUTPUT_DIR)" not in content
 
@@ -90,8 +96,31 @@ def test_wire_urls_is_idempotent(tmp_path: Path) -> None:
 
 def test_scaffold_templates_and_hyperview_defaults() -> None:
     assert "from hyperdjango.page import HyperView" in LAYOUT_PY
-    assert 'const templatesRoot = path.resolve("./hyper/templates");' in VITE_CONFIG
+    assert (
+        'const templatesRoot = path.resolve("./hyper/templates");'
+        in VITE_CONFIG
+    )
     assert '"@templates": templatesRoot' in VITE_CONFIG
     assert 'entryFileNames: "assets/entry-[hash].js"' in VITE_CONFIG
     assert 'chunkFileNames: "assets/chunk-[hash].js"' in VITE_CONFIG
     assert 'assetFileNames: "assets/asset-[hash][extname]"' in VITE_CONFIG
+
+
+def test_install_agent_skill_is_non_destructive_without_force(
+    tmp_path: Path,
+) -> None:
+    created = _install_agent_skill(tmp_path, force=False)
+    skill_path = tmp_path / AGENT_SKILL_PATH
+
+    assert created == "created"
+    assert skill_path.is_file()
+    assert skill_path.read_text().startswith("---\nname: hyperdjango\n")
+
+    skill_path.write_text("project override\n")
+    skipped = _install_agent_skill(tmp_path, force=False)
+    assert skipped == "skipped"
+    assert skill_path.read_text() == "project override\n"
+
+    updated = _install_agent_skill(tmp_path, force=True)
+    assert updated == "updated"
+    assert skill_path.read_text().startswith("---\nname: hyperdjango\n")

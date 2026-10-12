@@ -1,0 +1,61 @@
+{
+  "skill": "hyperdjango/skills/hyperdjango/SKILL.md",
+  "fixture": "a fresh project created by python manage.py hyper_scaffold --agent-skill",
+  "cases": [
+    {
+      "id": "rendered-page",
+      "prompt": "Add a rendered pricing page at /pricing/ with a heading and short description.",
+      "assertions": [
+        {"kind": "path_exists", "value": "hyper/routes/pricing/+page.py"},
+        {"kind": "path_exists", "value": "hyper/routes/pricing/index.html"},
+        {"kind": "file_contains", "path": "hyper/routes/pricing/+page.py", "value": "class PageView"},
+        {"kind": "file_unchanged", "value": "config/urls.py"}
+      ]
+    },
+    {
+      "id": "page-local-entry",
+      "prompt": "Add TypeScript behavior used only by the pricing page. Log a message when that page loads.",
+      "assertions": [
+        {"kind": "path_exists", "value": "hyper/routes/pricing/entry.ts"},
+        {"kind": "file_not_contains", "path": "hyper/routes/pricing/index.html", "value": "<script"},
+        {"kind": "path_absent", "value": "static/pricing.ts"}
+      ]
+    },
+    {
+      "id": "layout-entry",
+      "prompt": "Add frontend behavior shared by every page using the base layout. Keep it out of page-specific bundles.",
+      "assertions": [
+        {"kind": "file_changed", "value": "hyper/layouts/base/entry.ts"},
+        {"kind": "glob_absent", "value": "hyper/routes/*/entry.ts"}
+      ]
+    },
+    {
+      "id": "page-action",
+      "prompt": "Add a save button to the profile page that updates an on-page status without a full navigation.",
+      "assertions": [
+        {"kind": "file_contains", "path": "hyper/routes/profile/+page.py", "value": "@action"},
+        {"kind": "file_contains_any", "path": "hyper/routes/profile/+page.py", "values": ["HTML(", "Toast(", "Event("]},
+        {"kind": "file_unchanged", "value": "config/urls.py"},
+        {"kind": "path_absent", "value": "api/profile.py"}
+      ]
+    },
+    {
+      "id": "webhook-boundary",
+      "prompt": "Add a POST webhook endpoint at /webhooks/payments/ that returns HTTP 204. It does not render a page.",
+      "assertions": [
+        {"kind": "file_changed", "value": "config/urls.py"},
+        {"kind": "glob_absent", "value": "hyper/routes/webhooks/**/+page.py"}
+      ]
+    },
+    {
+      "id": "typed-route",
+      "prompt": "Add a rendered user detail page at /users/<integer id>/ and pass the integer id to the template.",
+      "assertions": [
+        {"kind": "path_exists", "value": "hyper/routes/users/[int__id]/+page.py"},
+        {"kind": "path_exists", "value": "hyper/routes/users/[int__id]/index.html"},
+        {"kind": "file_contains", "path": "hyper/routes/users/[int__id]/+page.py", "value": "id: int"},
+        {"kind": "file_unchanged", "value": "config/urls.py"}
+      ]
+    }
+  ]
+}

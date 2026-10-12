@@ -52,6 +52,7 @@ The docs are split by concept ownership:
 :caption: Guides
 
 installation
+ai-quickstart
 routing
 pages-and-rendering
 layouts

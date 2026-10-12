@@ -57,6 +57,7 @@ def sitemap_xml(_request: HttpRequest) -> HttpResponse:
             if path != "/docs"
         ],
         ("/llms.txt", get_latest_docs_mtime()),
+        ("/llms-full.txt", get_latest_docs_mtime()),
     ]
     entries = [
         '<?xml version="1.0" encoding="UTF-8"?>',

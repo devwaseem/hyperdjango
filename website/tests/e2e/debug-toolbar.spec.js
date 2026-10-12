@@ -210,10 +210,18 @@ test.describe.serial("HyperDjango request inspector", () => {
     const llmsResponse = await page.request.get("/llms.txt");
     expect(llmsResponse.ok()).toBeTruthy();
     const llms = await llmsResponse.text();
-    expect(llms).toContain("## Request Inspector");
-    expect(llms).toContain("authoritative enablement switch");
-    expect(llms).toContain("## Django Debug Toolbar");
-    expect(llms).toContain("## Current Release: 0.43.0");
+    expect(llms).toContain("## Coding-agent defaults");
+    expect(llms).toContain("/docs/ai-quickstart");
+    expect(llms).toContain("/llms-full.txt");
+    expect(llms).not.toContain("## Request Inspector");
+
+    const llmsFullResponse = await page.request.get("/llms-full.txt");
+    expect(llmsFullResponse.ok()).toBeTruthy();
+    const llmsFull = await llmsFullResponse.text();
+    expect(llmsFull).toContain("## Request Inspector");
+    expect(llmsFull).toContain("authoritative enablement switch");
+    expect(llmsFull).toContain("## Django Debug Toolbar");
+    expect(llmsFull).toContain("## Current Release: 0.43.0");
     for (const path of [
       "/docs/history",
       "/docs/cookbook",

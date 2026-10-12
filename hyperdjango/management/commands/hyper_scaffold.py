@@ -2,15 +2,16 @@ from __future__ import annotations
 
 import importlib
 import json
+from importlib import resources
 from pathlib import Path
 from typing import Any
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
 
-
 SCAFFOLD_MARKER_START = "# --- HyperDjango scaffold start ---"
 SCAFFOLD_MARKER_END = "# --- HyperDjango scaffold end ---"
+AGENT_SKILL_PATH = Path(".agents/skills/hyperdjango/SKILL.md")
 
 
 class Command(BaseCommand):
@@ -27,10 +28,16 @@ class Command(BaseCommand):
             action="store_true",
             help="Do not patch Django settings/urls automatically",
         )
+        parser.add_argument(
+            "--agent-skill",
+            action="store_true",
+            help="Install the bundled HyperDjango Agent Skill in this project",
+        )
 
     def handle(self, *args: Any, **options: Any) -> None:
         force = bool(options.get("force"))
         wire = not bool(options.get("no_wire"))
+        install_agent_skill = bool(options.get("agent_skill"))
 
         base_dir = Path(settings.BASE_DIR)
         hyper_dir = base_dir / "hyper"
@@ -66,7 +73,9 @@ class Command(BaseCommand):
         write(routes_dir / "index" / "+page.py", INDEX_PAGE_PY)
         write(routes_dir / "index" / "index.html", INDEX_HTML)
         write(templates_dir / "profile_card" / "page.py", TEMPLATE_PAGE_PY)
-        write(templates_dir / "profile_card" / "index.html", TEMPLATE_INDEX_HTML)
+        write(
+            templates_dir / "profile_card" / "index.html", TEMPLATE_INDEX_HTML
+        )
 
         write(base_dir / "vite.config.js", VITE_CONFIG)
 
@@ -85,6 +94,16 @@ class Command(BaseCommand):
             updated.append(".gitignore")
         else:
             skipped.append(".gitignore")
+
+        if install_agent_skill:
+            skill_action = _install_agent_skill(base_dir, force=force)
+            skill_path = str(AGENT_SKILL_PATH)
+            if skill_action == "created":
+                created.append(skill_path)
+            elif skill_action == "updated":
+                updated.append(skill_path)
+            else:
+                skipped.append(skill_path)
 
         if wire:
             settings_file = _resolve_module_file(settings.SETTINGS_MODULE)
@@ -121,6 +140,15 @@ def _write_file(path: Path, content: str, *, force: bool) -> str:
     previous = path.exists()
     path.write_text(content)
     return "updated" if previous else "created"
+
+
+def _install_agent_skill(base_dir: Path, *, force: bool) -> str:
+    skill = (
+        resources.files("hyperdjango")
+        .joinpath("skills", "hyperdjango", "SKILL.md")
+        .read_text(encoding="utf-8")
+    )
+    return _write_file(base_dir / AGENT_SKILL_PATH, skill, force=force)
 
 
 def _resolve_module_file(module_name: str) -> Path:

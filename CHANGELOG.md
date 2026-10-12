@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Added an Agent Skills-compatible HyperDjango guide, one-command and scaffold
+  installation, an AI quickstart, prompt-based convention evaluations, and a
+  concise `/llms.txt` index with the full corpus moved to `/llms-full.txt`.
+
 ## 0.43.0 - 2026-10-06
 
 - Flattened generated production asset filenames and limited scaffolded Django

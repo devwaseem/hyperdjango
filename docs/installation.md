@@ -72,15 +72,16 @@ urlpatterns = [
 ## Scaffold a Starter Project
 
 ```bash
-python manage.py hyper_scaffold
+python manage.py hyper_scaffold --agent-skill
 ```
 
-This creates a starter `hyper/` tree, Vite config, and basic page/layout/template examples.
+This creates a starter `hyper/` tree, Vite config, and basic page/layout/template examples. `--agent-skill` also installs the bundled HyperDjango skill at `.agents/skills/hyperdjango/SKILL.md` so compatible coding agents discover the framework conventions in this project.
 
 Useful flags:
 
 - `python manage.py hyper_scaffold --no-wire`
 - `python manage.py hyper_scaffold --force`
+- `python manage.py hyper_scaffold --agent-skill`
 
 ## Your First Page
 
