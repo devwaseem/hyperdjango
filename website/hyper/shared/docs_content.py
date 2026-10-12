@@ -389,7 +389,7 @@ def build_llms_markdown() -> str:
         "Install the repository-local HyperDjango Agent Skill:",
         "",
         "```bash",
-        "curl -fsSL --create-dirs -o .agents/skills/hyperdjango/SKILL.md https://raw.githubusercontent.com/charingcrosscapital/hyperdjango/main/hyperdjango/skills/hyperdjango/SKILL.md",
+        "curl -fsSL --create-dirs -o .agents/skills/hyperdjango/SKILL.md https://raw.githubusercontent.com/devwaseem/hyperdjango/main/hyperdjango/skills/hyperdjango/SKILL.md",
         "```",
         "",
         "Start with [AI Quickstart](https://hyperdjango.charingcrosscapital.com/docs/ai-quickstart).",

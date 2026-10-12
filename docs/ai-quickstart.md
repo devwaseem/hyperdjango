@@ -7,7 +7,7 @@ HyperDjango uses conventions that general Django knowledge does not imply. Give 
 From the root of a HyperDjango project, install the latest repository-local skill:
 
 ```bash
-curl -fsSL --create-dirs -o .agents/skills/hyperdjango/SKILL.md https://raw.githubusercontent.com/charingcrosscapital/hyperdjango/main/hyperdjango/skills/hyperdjango/SKILL.md
+curl -fsSL --create-dirs -o .agents/skills/hyperdjango/SKILL.md https://raw.githubusercontent.com/devwaseem/hyperdjango/main/hyperdjango/skills/hyperdjango/SKILL.md
 ```
 
 Codex discovers repository skills from `.agents/skills`. For Claude Code, replace `.agents` with `.claude`. Other Agent Skills-compatible clients may use another discovery directory; keep the required `hyperdjango/SKILL.md` directory shape.

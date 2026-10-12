@@ -74,7 +74,7 @@ HyperDjango ships an [Agent Skills](https://agentskills.io/) compatible skill.
 Install it in the current repository with one command:
 
 ```bash
-curl -fsSL --create-dirs -o .agents/skills/hyperdjango/SKILL.md https://raw.githubusercontent.com/charingcrosscapital/hyperdjango/main/hyperdjango/skills/hyperdjango/SKILL.md
+curl -fsSL --create-dirs -o .agents/skills/hyperdjango/SKILL.md https://raw.githubusercontent.com/devwaseem/hyperdjango/main/hyperdjango/skills/hyperdjango/SKILL.md
 ```
 
 Codex discovers repository skills from `.agents/skills`. Other agents may use a
