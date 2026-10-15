@@ -160,7 +160,7 @@ test("streamed Hyper responses still refresh the HyperDjango panel", async ({ pa
       "djdt-request-id": "request-123",
     });
     window.dispatchEvent(
-      new CustomEvent("hyper:afterRequest", {
+      new CustomEvent("hyper:request:after", {
         detail: { response: { headers } },
       }),
     );

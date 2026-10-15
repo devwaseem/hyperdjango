@@ -3,7 +3,7 @@
     <section x-data="{}" style="display: grid; gap: 1rem; max-width: 42rem;">
         <header>
             <h1>Request error handling</h1>
-            <p>This page shows how to listen for <code>hyper:requestError</code> to display a toast and render a UI error state after an action raises an exception.</p>
+            <p>This page shows how to listen for <code>hyper:request:error</code> to display a toast and render a UI error state after an action raises an exception.</p>
         </header>
 
         <div style="display: grid; gap: 0.75rem; padding: 1rem; border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc;">
@@ -18,7 +18,7 @@
 
         <script>
           (function () {
-            window.addEventListener("hyper:requestError", (event) => {
+            window.addEventListener("hyper:request:error", (event) => {
               if (event.detail.key !== "error-demo") {
                 return;
               }
@@ -39,7 +39,7 @@
                     detail: {
                       type: "error",
                       title: `Request failed (${event.detail.status})`,
-                      message: "Caught from hyper:requestError after the action raised PermissionDenied.",
+                      message: "Caught from hyper:request:error after the action raised PermissionDenied.",
                     },
                   })
                 );

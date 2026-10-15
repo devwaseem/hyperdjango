@@ -43,7 +43,7 @@
     filename: "No file chosen",
 
     init() {
-        window.addEventListener("hyper:uploadProgress", (event) => {
+        window.addEventListener("hyper:upload:progress", (event) => {
             if (event.detail.key !== "upload-demo") return;
 
             const percent = Math.round((event.detail.progress ?? 0) * 100);
@@ -51,7 +51,7 @@
             this.status = `uploading | ${percent}%`;
         });
 
-        window.addEventListener("hyper:afterRequest", (event) => {
+        window.addEventListener("hyper:request:after", (event) => {
             if (event.detail.key !== "upload-demo") return;
 
             this.progress = event.detail.ok ? 100 : 0;

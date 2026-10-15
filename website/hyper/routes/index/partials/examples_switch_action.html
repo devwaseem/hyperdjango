@@ -94,7 +94,7 @@ class PageView(HyperView):
                         destinationRequestId: '—',
                         switched: false,
                     }"
-                    @hyper:action-switch.camel.window="
+                    @hyper:action:switch.window="
                         if ($event.detail.destinationAction !== 'watch_switch_build') return;
                         switched = true;
                         originalRequestId = $event.detail.originalRequestId;

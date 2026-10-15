@@ -1,6 +1,6 @@
 # History And Back/Forward Restoration
 
-HyperDjango history is URL-driven. A history entry stores the URL, not a cached DOM snapshot. When the user presses Back or Forward, the client runtime fetches the restored URL again and swaps the response into the page.
+HyperDjango history is URL-driven. A history entry stores the URL, not a cached DOM snapshot. When the user presses Back or Forward, the client runtime performs a fresh `GET` with `cache: "no-store"` and morphs the response into the page.
 
 Use this model when an interaction changes visible state and that state should be represented by the browser URL.
 
@@ -37,16 +37,22 @@ return [
 
 ## What Happens On Back And Forward
 
-When the browser fires `popstate`, HyperDjango does this:
+When the browser restores an entry, HyperDjango does this:
 
 ```text
-Browser restores previous URL
+Browser commits the restored URL
 HyperDjango emits hyper:history:restore:before
-HyperDjango GETs that URL
-HyperDjango swaps the response into the pop target
+HyperDjango GETs that URL without using an HTTP cache entry
+HyperDjango morphs the response into the pop target
 HyperDjango emits hyper:history:restore:after
 HyperDjango does not push another history entry
 ```
+
+Browsers with the Navigation API use an intercepted navigation whose handler
+remains pending until the server response has settled. This exposes the visit as
+a real browser navigation, including the browser's native loading indicator,
+while the document itself stays in place. Browsers without that API use the
+History API and `popstate` with the same fetch-and-morph behavior.
 
 This means every URL you push or replace should be restorable with a normal `GET`. If `/search/?q=django` is pushed into history, then `GET /search/?q=django` should render the search page with the same query state.
 
@@ -72,7 +78,7 @@ Both events include:
 
 - `url`: the restored path and query string
 - `target`: the pop target selector, defaulting to `body`
-- `state`: the browser `PopStateEvent.state`
+- `state`: the restored browser history entry state
 
 The `hyper:history:restore:after` event also includes:
 
@@ -115,8 +121,10 @@ For Back/Forward restores into `body`, the server may return a complete document
 
 HyperDjango parses the document, reconciles the returned `<head>`, extracts the
 returned `<body>` contents, syncs the current `<body>` attributes, and updates
-`document.title`. This keeps enhanced navigation compatible with ordinary
-Django page responses.
+`document.title`. The body is morphed when Alpine Morph or morphdom is installed,
+so matching elements retain their DOM identity; it falls back to an inner
+replacement when no morph adapter is available. This keeps enhanced navigation
+compatible with ordinary Django page responses.
 
 ### Head Assets
 

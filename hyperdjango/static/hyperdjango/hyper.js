@@ -16,6 +16,7 @@ const Hyper = (() => {
   let lazyActionObserver = null;
   let managedHeadNodes = new Set(Array.from(document.head.children).filter(isHeadAsset));
   let preserveSlotCounter = 0;
+  let suppressedNavigationEvents = 0;
   const config = {
     strictTargets: false,
     sseRetry: true,
@@ -637,13 +638,22 @@ const Hyper = (() => {
     setLoadingElementsVisible();
   }
 
+  function setHistoryState(method, state, url) {
+    suppressedNavigationEvents += 1;
+    try {
+      history[method](state, "", url);
+    } finally {
+      suppressedNavigationEvents -= 1;
+    }
+  }
+
   function updateHistory({ pushUrl = null, replaceUrl = null, state = {} } = {}) {
     if (replaceUrl) {
-      history.replaceState(state, "", replaceUrl);
+      setHistoryState("replaceState", state, replaceUrl);
       return;
     }
     if (pushUrl) {
-      history.pushState(state, "", pushUrl);
+      setHistoryState("pushState", state, pushUrl);
     }
   }
 
@@ -789,7 +799,7 @@ const Hyper = (() => {
             ...meta.hookMeta,
           };
           options.onUploadProgress(detail);
-          emitEvent("hyper:uploadProgress", detail);
+          emitEvent("hyper:upload:progress", detail);
         });
       }
 
@@ -1033,7 +1043,7 @@ const Hyper = (() => {
       const active = inFlightRequests.get(requestKey);
       if (active) {
         if (syncMode === "block") {
-          emitEvent("hyper:requestBlocked", {
+          emitEvent("hyper:request:blocked", {
             id: requestId,
             key: requestKey,
             mode: syncMode,
@@ -1051,7 +1061,7 @@ const Hyper = (() => {
         }
 
         active.controller.abort();
-        emitEvent("hyper:requestReplaced", {
+        emitEvent("hyper:request:replaced", {
           id: requestId,
           replacedId: active.id,
           key: requestKey,
@@ -1099,7 +1109,7 @@ const Hyper = (() => {
       workflow.loadingContext = loadingContext;
       setLoading(true, loadingContext);
     }
-    emitEvent("hyper:beforeRequest", {
+    emitEvent("hyper:request:before", {
       id: requestId,
       url,
       method,
@@ -1230,7 +1240,7 @@ const Hyper = (() => {
               error.name === "AbortError" &&
               !controller.signal.aborted
             ) {
-              emitEvent("hyper:requestPaused", {
+              emitEvent("hyper:request:paused", {
                 id: requestId,
                 key: requestKey,
                 url,
@@ -1239,7 +1249,7 @@ const Hyper = (() => {
                 ...hookMeta,
               });
               await waitForVisibility(controller.signal);
-              emitEvent("hyper:requestResumed", {
+              emitEvent("hyper:request:resumed", {
                 id: requestId,
                 key: requestKey,
                 url,
@@ -1260,7 +1270,7 @@ const Hyper = (() => {
             }
             if (!retryable || retryCount >= retryMaxCount) {
               if (retryable) {
-                emitEvent("hyper:requestRetriesFailed", {
+                emitEvent("hyper:request:retries:failed", {
                   id: requestId,
                   key: requestKey,
                   url,
@@ -1275,7 +1285,7 @@ const Hyper = (() => {
 
             const delay = Math.min(retryInterval, retryMaxWait);
             retryCount += 1;
-            emitEvent("hyper:requestRetry", {
+            emitEvent("hyper:request:retry", {
               id: requestId,
               key: requestKey,
               url,
@@ -1302,7 +1312,7 @@ const Hyper = (() => {
         }
 
         if (response.ok) {
-          emitEvent("hyper:requestSuccess", {
+          emitEvent("hyper:request:success", {
             id: requestId,
             url,
             method,
@@ -1311,7 +1321,7 @@ const Hyper = (() => {
             ...hookMeta,
           });
         } else {
-          emitEvent("hyper:requestError", {
+          emitEvent("hyper:request:error", {
             id: requestId,
             url,
             method,
@@ -1323,7 +1333,7 @@ const Hyper = (() => {
       } catch (error) {
         if (error && error.name === "AbortError") {
           aborted = true;
-          emitEvent("hyper:requestAborted", {
+          emitEvent("hyper:request:aborted", {
             id: requestId,
             key: requestKey,
             mode: syncMode,
@@ -1332,7 +1342,7 @@ const Hyper = (() => {
             ...hookMeta,
           });
         } else {
-          emitEvent("hyper:requestException", {
+          emitEvent("hyper:request:exception", {
             id: requestId,
             key: requestKey,
             mode: syncMode,
@@ -1377,7 +1387,7 @@ const Hyper = (() => {
         }
       }
 
-      emitEvent("hyper:afterRequest", {
+      emitEvent("hyper:request:after", {
         id: requestId,
         key: requestKey,
         mode: syncMode,
@@ -1405,7 +1415,7 @@ const Hyper = (() => {
   function switchError(message, context) {
     const error = new Error(message);
     error.name = "SwitchActionError";
-    emitEvent("hyper:requestError", {
+    emitEvent("hyper:request:error", {
       id: context.requestId,
       key: context.key || null,
       url: context.url,
@@ -1467,7 +1477,7 @@ const Hyper = (() => {
   }
 
   function dispatchStreamEvent(event, context) {
-    const streamEvent = new CustomEvent("hyper:streamEvent", {
+    const streamEvent = new CustomEvent("hyper:stream:event", {
       detail: {
         event: event.event,
         data: event.data || {},
@@ -1575,7 +1585,7 @@ const Hyper = (() => {
       }
       case "error": {
         window.dispatchEvent(
-          new CustomEvent("hyper:requestError", {
+          new CustomEvent("hyper:request:error", {
             detail: {
               id: null,
               key: context.key || null,
@@ -1617,7 +1627,7 @@ const Hyper = (() => {
         inner(el, html) {
           const shadow = el.cloneNode(false);
           shadow.innerHTML = html;
-          window.Alpine.morph(el, shadow.outerHTML);
+          window.Alpine.morph(el, el === document.body ? shadow : shadow.outerHTML);
         },
         outer(el, html) {
           window.Alpine.morph(el, html);
@@ -1901,10 +1911,7 @@ const Hyper = (() => {
   }
 
   function morphInner(el, html, strategy = "auto") {
-    // Automatic full-page visits preserve the body node and delegated runtime
-    // listeners. An explicit morph strategy delegates body handling to the
-    // installed adapter.
-    if (strategy === "replace" || (el === document.body && strategy === "auto")) {
+    if (strategy === "replace") {
       swapHTML(el, html);
       return;
     }
@@ -2546,7 +2553,7 @@ const Hyper = (() => {
           });
         }
         const nextRequestId = newRequestId();
-        emitEvent("hyper:actionSwitch", {
+        emitEvent("hyper:action:switch", {
           originalAction: action,
           destinationAction: switchedAction.name,
           originalRequestId: resolvedRequestId,
@@ -2677,18 +2684,21 @@ const Hyper = (() => {
     }
 
     if (push) {
-      history.pushState({
-        hyper: {
-          target,
-          select,
-          swap,
-          strategy,
-          transition,
-          swapDelay,
-          settleDelay,
-          focus,
+      updateHistory({
+        pushUrl: url,
+        state: {
+          hyper: {
+            target,
+            select,
+            swap,
+            strategy,
+            transition,
+            swapDelay,
+            settleDelay,
+            focus,
+          },
         },
-      }, "", url);
+      });
     }
   }
 
@@ -2710,6 +2720,7 @@ const Hyper = (() => {
   }) {
     return request(url, {
       method: "GET",
+      cache: "no-store",
       hookMeta: {
         kind: "visit",
         target: target || null,
@@ -2766,7 +2777,99 @@ const Hyper = (() => {
     });
   }
 
+  function nativeNavigationAPI() {
+    const navigation = window.navigation;
+    if (
+      !navigation ||
+      typeof navigation.navigate !== "function" ||
+      typeof navigation.addEventListener !== "function"
+    ) {
+      return null;
+    }
+    return navigation;
+  }
+
+  function startNativeNavigation(url, options) {
+    const navigation = nativeNavigationAPI();
+    if (!navigation) {
+      return false;
+    }
+    try {
+      const result = navigation.navigate(url, {
+        history: "push",
+        state: {
+          hyperNavigation: true,
+          hyper: options,
+        },
+      });
+      result.finished.catch((error) => {
+        if (!error || error.name !== "AbortError") {
+          emitEvent("hyper:navigation:error", { url, error });
+        }
+      });
+      return true;
+    } catch (_error) {
+      return false;
+    }
+  }
+
+  async function restoreHistoryEntry(url, state) {
+    const restored = state && state.hyper ? state.hyper : {};
+    const target =
+      restored.target || document.body.getAttribute("hyper-pop-target") || "body";
+    const detail = { url, target, state };
+    emitHistoryRestoreEvent("hyper:history:restore:before", detail);
+    try {
+      await navigate(url, { ...restored, target, push: false });
+      emitHistoryRestoreEvent("hyper:history:restore:after", { ...detail, success: true });
+    } catch (error) {
+      emitHistoryRestoreEvent("hyper:history:restore:after", {
+        ...detail,
+        success: false,
+        error,
+      });
+      throw error;
+    }
+  }
+
   function initNavigation() {
+    const navigation = nativeNavigationAPI();
+    if (navigation) {
+      navigation.addEventListener("navigate", (event) => {
+        if (
+          suppressedNavigationEvents > 0 ||
+          !event.canIntercept ||
+          typeof event.intercept !== "function" ||
+          event.hashChange
+        ) {
+          return;
+        }
+
+        const destinationState = event.destination.getState();
+        const managedNavigation =
+          destinationState && destinationState.hyperNavigation === true;
+        const historyTraversal =
+          event.navigationType === "traverse" && event.destination.sameDocument;
+        if (!managedNavigation && !historyTraversal) {
+          return;
+        }
+
+        event.intercept({
+          focusReset: "manual",
+          handler: async () => {
+            const destinationUrl = new URL(event.destination.url);
+            const url = destinationUrl.pathname + destinationUrl.search;
+            if (historyTraversal) {
+              await restoreHistoryEntry(url, history.state || destinationState);
+              return;
+            }
+            const options = destinationState.hyper || {};
+            await navigate(url, { ...options, push: false });
+          },
+        });
+      });
+    }
+
     document.addEventListener("click", (event) => {
       const node = event.target;
       if (!(node instanceof Element)) {
@@ -2811,30 +2914,24 @@ const Hyper = (() => {
       }
 
       event.preventDefault();
-      const target = link.getAttribute("hyper-target") || "body";
-      const select = link.getAttribute("hyper-select") || null;
-      const swap = link.getAttribute("hyper-swap") || "inner";
-      const strategy = link.getAttribute("hyper-strategy") || "auto";
-      const transition = attrBool(link, "hyper-transition", false);
-      const swapDelay = parseDelay(link.getAttribute("hyper-swap-delay"), 0);
-      const settleDelay = parseDelay(link.getAttribute("hyper-settle-delay"), 0);
-      const focus = link.getAttribute("hyper-focus") || "preserve";
-      navigate(href, {
-        target,
-        push: true,
+      const options = {
+        target: link.getAttribute("hyper-target") || "body",
         sync: link.getAttribute("hyper-sync") || "replace",
         key: link.getAttribute("hyper-key") || null,
-        select,
-        swap,
-        strategy,
+        select: link.getAttribute("hyper-select") || null,
+        swap: link.getAttribute("hyper-swap") || "inner",
+        strategy: link.getAttribute("hyper-strategy") || "auto",
         strictTargets: link.hasAttribute("hyper-strict-targets")
           ? attrBool(link, "hyper-strict-targets", true)
           : undefined,
-        transition,
-        swapDelay,
-        settleDelay,
-        focus,
-      });
+        transition: attrBool(link, "hyper-transition", false),
+        swapDelay: parseDelay(link.getAttribute("hyper-swap-delay"), 0),
+        settleDelay: parseDelay(link.getAttribute("hyper-settle-delay"), 0),
+        focus: link.getAttribute("hyper-focus") || "preserve",
+      };
+      if (!startNativeNavigation(href, options)) {
+        navigate(href, { ...options, push: true });
+      }
     });
 
     document.addEventListener("submit", (event) => {
@@ -2864,9 +2961,8 @@ const Hyper = (() => {
       if (method === "GET") {
         const params = new URLSearchParams(new FormData(form)).toString();
         const url = params ? `${action}?${params}` : action;
-        navigate(url, {
+        const options = {
           target,
-          push: true,
           sync: form.getAttribute("hyper-sync") || "replace",
           key: form.getAttribute("hyper-key") || null,
           select,
@@ -2879,7 +2975,10 @@ const Hyper = (() => {
           swapDelay,
           settleDelay,
           focus,
-        });
+        };
+        if (!startNativeNavigation(url, options)) {
+          navigate(url, { ...options, push: true });
+        }
         return;
       }
 
@@ -2918,34 +3017,24 @@ const Hyper = (() => {
                 });
               },
             });
-            history.pushState({
-              hyper: { target, select, swap, strategy, transition, swapDelay, settleDelay, focus },
-            }, "", action);
+            updateHistory({
+              pushUrl: action,
+              state: {
+                hyper: { target, select, swap, strategy, transition, swapDelay, settleDelay, focus },
+              },
+            });
           }
           return result;
         },
       });
     });
 
-    window.addEventListener("popstate", async (event) => {
-      const restored = event.state && event.state.hyper ? event.state.hyper : {};
-      const target =
-        restored.target || document.body.getAttribute("hyper-pop-target") || "body";
-      const url = window.location.pathname + window.location.search;
-      const detail = { url, target, state: event.state };
-      emitHistoryRestoreEvent("hyper:history:restore:before", detail);
-      try {
-        await navigate(url, { ...restored, target, push: false });
-        emitHistoryRestoreEvent("hyper:history:restore:after", { ...detail, success: true });
-      } catch (error) {
-        emitHistoryRestoreEvent("hyper:history:restore:after", {
-          ...detail,
-          success: false,
-          error,
-        });
-        throw error;
-      }
-    });
+    if (!navigation) {
+      window.addEventListener("popstate", (event) => {
+        const url = window.location.pathname + window.location.search;
+        restoreHistoryEntry(url, event.state);
+      });
+    }
   }
 
   function initForms() {
@@ -3003,7 +3092,7 @@ const Hyper = (() => {
           pauseWhenHidden,
           onBeforeSubmit: () => {
             applyFormDisableScope(form, key);
-            emitEvent("hyper:form:beforeSubmit", {
+            emitEvent("hyper:form:submit:before", {
               action,
               method,
               url,

@@ -16,7 +16,7 @@ test("an interrupted GET resumes after its last checkpoint", async ({ page }) =>
 
   await page.evaluate(() => {
     window.__sseRetries = [];
-    window.addEventListener("hyper:requestRetry", (event) => {
+    window.addEventListener("hyper:request:retry", (event) => {
       window.__sseRetries.push(event.detail);
     });
     window.action("retry_demo", {}, { key: "retry-e2e" });
@@ -48,10 +48,10 @@ test("a resumable GET stream pauses while hidden and resumes when visible", asyn
       get: () => window.__fixtureHidden,
     });
     window.__visibilityEvents = [];
-    window.addEventListener("hyper:requestPaused", (event) => {
+    window.addEventListener("hyper:request:paused", (event) => {
       window.__visibilityEvents.push({ name: "paused", reason: event.detail.reason });
     });
-    window.addEventListener("hyper:requestResumed", (event) => {
+    window.addEventListener("hyper:request:resumed", (event) => {
       window.__visibilityEvents.push({ name: "resumed", reason: event.detail.reason });
     });
     window.action("visibility_demo", {}, {
@@ -96,7 +96,7 @@ test("retry false opts out of automatic SSE reconnects", async ({ page }) => {
   await page.evaluate(() => {
     window.__sseRetries = [];
     window.__retryOptOutResult = "pending";
-    window.addEventListener("hyper:requestRetry", () => window.__sseRetries.push(true));
+    window.addEventListener("hyper:request:retry", () => window.__sseRetries.push(true));
     window.action("retry_demo", {}, { key: "retry-opt-out-e2e", retry: false })
       .then(() => { window.__retryOptOutResult = "resolved"; })
       .catch(() => { window.__retryOptOutResult = "rejected"; });
@@ -196,12 +196,12 @@ test("SSE heartbeat comments do not dispatch application events", async ({ page 
   const streamEvents = await page.evaluate(async () => {
     const events = [];
     const listener = (event) => events.push(event.detail.event);
-    window.addEventListener("hyper:streamEvent", listener);
+    window.addEventListener("hyper:stream:event", listener);
     await window.action("heartbeat_fixture", {}, {
       url: "/__sse_heartbeat_fixture",
       method: "GET",
     });
-    window.removeEventListener("hyper:streamEvent", listener);
+    window.removeEventListener("hyper:stream:event", listener);
     return events;
   });
 
@@ -242,12 +242,12 @@ test("only control checkpoints advance the reconnect cursor", async ({ page }) =
   const streamEvents = await page.evaluate(async () => {
     const events = [];
     const listener = (event) => events.push(event.detail.event);
-    window.addEventListener("hyper:streamEvent", listener);
+    window.addEventListener("hyper:stream:event", listener);
     await window.action("checkpoint_cursor", {}, {
       url: "/__checkpoint_cursor",
       method: "GET",
     });
-    window.removeEventListener("hyper:streamEvent", listener);
+    window.removeEventListener("hyper:stream:event", listener);
     return events;
   });
 
@@ -267,14 +267,14 @@ test("SwitchAction hands a non-retried command to a retryable watcher", async ({
   });
   await page.evaluate(() => {
     window.__switchLoadingStates = [];
-    window.addEventListener("hyper:actionSwitch", (event) => {
+    window.addEventListener("hyper:action:switch", (event) => {
       window.__actionSwitch = event.detail;
       window.__switchLoadingStates.push({
         phase: "switch",
         disabled: document.querySelector('[hyper-loading-disable="package-build"]').disabled,
       });
     });
-    window.addEventListener("hyper:beforeRequest", (event) => {
+    window.addEventListener("hyper:request:before", (event) => {
       if (event.detail.action === "watch_package_build") {
         window.__switchLoadingStates.push({
           phase: "destination",
@@ -346,7 +346,7 @@ test("plain JavaScript action validates switches and starts a clean follow-up", 
 
   const switchDetail = await page.evaluate(async () => {
     let detail = null;
-    window.addEventListener("hyper:actionSwitch", (event) => { detail = event.detail; }, {
+    window.addEventListener("hyper:action:switch", (event) => { detail = event.detail; }, {
       once: true,
     });
     await window.action("command", {}, {
@@ -395,7 +395,7 @@ test("an external replacement aborts the complete switched workflow", async ({ p
   const result = await page.evaluate(async () => {
     let destinationStarted;
     const started = new Promise((resolve) => { destinationStarted = resolve; });
-    window.addEventListener("hyper:beforeRequest", (event) => {
+    window.addEventListener("hyper:request:before", (event) => {
       if (event.detail.action === "watch") destinationStarted();
     });
     const workflow = window.action("command", {}, {

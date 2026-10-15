@@ -381,7 +381,7 @@ def test_devtools_assets_expose_rich_brutalist_inspector() -> None:
     assert 'results: "output"' in runtime
     assert "database: renderDatabase" in runtime
     assert "renderProblems" in runtime
-    assert 'window.addEventListener("hyper:afterRequest"' in runtime
+    assert 'window.addEventListener("hyper:request:after"' in runtime
     assert 'headers?.get("X-HyperDjango-Debug-ID")' in runtime
     assert "REPLAY ACTION" in runtime
     assert "PIN TRACE" not in runtime
@@ -416,8 +416,9 @@ def test_devtools_assets_expose_rich_brutalist_inspector() -> None:
     assert 'await postJSON(debugUrl("controls/clear/"))' in runtime
     assert "if (initialId && !clearedOnReload)" in runtime
     assert "if (initialId) window.__hyperdjangoDevtools.refresh();" in runtime
-    assert "if (id) loadHistory();" in runtime
-    assert "if (id) select(id);" not in runtime
+    assert 'if (detail.kind === "visit")' in runtime
+    assert "await select(id);" in runtime
+    assert "await loadHistory();" in runtime
     assert 'data-action="fullscreen"' in runtime
     assert 'data-slot="launcher-grip"' in runtime
     assert 'data-slot="launcher-count"' in runtime
@@ -453,9 +454,9 @@ def test_devtools_assets_expose_rich_brutalist_inspector() -> None:
     assert ".hdd-tabbar.has-overflow .hdd-tab-scroll," in styles
     assert 'window.addEventListener("hyper:swap:start"' in runtime
     assert 'window.addEventListener("hyper:swap:end"' in runtime
-    assert 'window.addEventListener("hyper:streamEvent"' in runtime
-    assert 'window.addEventListener("hyper:requestRetry"' not in runtime
-    assert '"hyper:requestRetry": "stream retry"' in runtime
+    assert 'window.addEventListener("hyper:stream:event"' in runtime
+    assert 'window.addEventListener("hyper:request:retry"' not in runtime
+    assert '"hyper:request:retry": "stream retry"' in runtime
     assert "diffSnapshots" in runtime
     assert "parseDiffItem" in runtime
     assert "Attributes changed" in runtime
@@ -515,7 +516,7 @@ def test_devtools_assets_expose_rich_brutalist_inspector() -> None:
     assert "record?.response?.streaming" in runtime
     assert "background: true" in runtime
     assert '"Content", "Metadata"' in runtime
-    assert 'window.addEventListener("hyper:actionSwitch"' in runtime
+    assert 'window.addEventListener("hyper:action:switch"' in runtime
     assert "parent_request_id" in runtime
     assert "switch_depth" in runtime
     assert "hdd-content-preview" in runtime

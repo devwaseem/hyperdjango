@@ -46,7 +46,7 @@ test("typeahead replaces stale requests, updates the URL, and scopes its loading
   await waitForAlpine(page);
   await page.evaluate(() => {
     window.__searchEvents = [];
-    for (const name of ["hyper:requestReplaced", "hyper:requestAborted"]) {
+    for (const name of ["hyper:request:replaced", "hyper:request:aborted"]) {
       window.addEventListener(name, (event) => window.__searchEvents.push({ name, key: event.detail.key }));
     }
   });
@@ -62,8 +62,8 @@ test("typeahead replaces stale requests, updates the URL, and scopes its loading
 
   const events = await page.evaluate(() => window.__searchEvents);
   expect(events).toEqual(expect.arrayContaining([
-    expect.objectContaining({ name: "hyper:requestReplaced", key: "live-search" }),
-    expect.objectContaining({ name: "hyper:requestAborted", key: "live-search" }),
+    expect.objectContaining({ name: "hyper:request:replaced", key: "live-search" }),
+    expect.objectContaining({ name: "hyper:request:aborted", key: "live-search" }),
   ]));
 });
 
@@ -117,7 +117,7 @@ test("an async action streams incremental SSE updates through one request", asyn
   await waitForAlpine(page);
   await page.evaluate(() => {
     window.__streamEvents = [];
-    window.addEventListener("hyper:streamEvent", (event) => window.__streamEvents.push(event.detail.event));
+    window.addEventListener("hyper:stream:event", (event) => window.__streamEvents.push(event.detail.event));
   });
 
   await page.getByRole("button", { name: "Start SSE demo" }).click();

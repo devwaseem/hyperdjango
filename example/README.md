@@ -39,11 +39,11 @@ Action responses in the example now use the typed item style (`HTML`, `Toast`, `
 
 `/modal-demo` demonstrates `HyperPageTemplate.render_template(...)` rendering a directory-relative partial package with its own `entry.ts`, then returning it as typed `HTML` + `LoadJS` items.
 
-`/upload-progress` demonstrates upload progress tracking with both Alpine `$action(...)` + `hyper:uploadProgress` and plain `window.action(...)` + `onUploadProgress`.
+`/upload-progress` demonstrates upload progress tracking with both Alpine `$action(...)` + `hyper:upload:progress` and plain `window.action(...)` + `onUploadProgress`.
 
 `/sse-demo` demonstrates a long-running action yielding incremental typed items, streamed to the browser as live SSE-framed updates.
 
-`/error-demo` demonstrates listening for `hyper:requestError` to show a toast and render a UI error state after an action raises `PermissionDenied`.
+`/error-demo` demonstrates listening for `hyper:request:error` to show a toast and render a UI error state after an action raises `PermissionDenied`.
 
 Most example actions now return typed items (`Signal`, `HTML`, `Toast`, `LoadJS`, etc.), which HyperDjango streams to the browser as SSE-framed action events.
 
@@ -78,7 +78,7 @@ Open `http://127.0.0.1:8000/`.
 6. `/profile` returns server-rendered validation errors and success partials.
 7. `/upload-progress` shows progress updates for file uploads in both callback and event-driven styles.
 8. `/sse-demo` shows a long-running streamed action updating progress and appending live server log entries.
-9. `/error-demo` shows how to catch `hyper:requestError` and convert server error statuses into client toasts.
+9. `/error-demo` shows how to catch `hyper:request:error` and convert server error statuses into client toasts.
 10. `/template-card` renders a `HyperPageTemplate` from a custom Django view (no file route).
 11. `/plain-django-view` demonstrates file route resolution with plain `django.views.View`.
 12. `/account/reset/abc123-token456` resolves both `uidb36` and `key` from one segment.

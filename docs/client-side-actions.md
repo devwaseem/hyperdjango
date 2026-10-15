@@ -242,29 +242,29 @@ HyperDjango emits browser events during the request lifecycle.
 
 Common ones:
 
-- `hyper:beforeRequest`
-- `hyper:afterRequest`
-- `hyper:requestBlocked`
-- `hyper:requestReplaced`
-- `hyper:requestAborted`
-- `hyper:requestSuccess`
-- `hyper:requestError`
-- `hyper:requestException`
-- `hyper:uploadProgress`
-- `hyper:streamEvent`
+- `hyper:request:before`
+- `hyper:request:after`
+- `hyper:request:blocked`
+- `hyper:request:replaced`
+- `hyper:request:aborted`
+- `hyper:request:success`
+- `hyper:request:error`
+- `hyper:request:exception`
+- `hyper:upload:progress`
+- `hyper:stream:event`
 - `hyper:toast`
 - `hyper:network:change`
 - `hyper:network:online`
 - `hyper:network:offline`
 
 ```js
-window.addEventListener("hyper:afterRequest", (event) => {
+window.addEventListener("hyper:request:after", (event) => {
   console.log(event.detail.key, event.detail.ok, event.detail.aborted);
 });
 ```
 
 ```js
-window.addEventListener("hyper:uploadProgress", (event) => {
+window.addEventListener("hyper:upload:progress", (event) => {
   if (event.detail.key !== "avatar-upload") {
     return;
   }
@@ -273,7 +273,7 @@ window.addEventListener("hyper:uploadProgress", (event) => {
 ```
 
 ```js
-window.addEventListener("hyper:streamEvent", (event) => {
+window.addEventListener("hyper:stream:event", (event) => {
   console.log(event.detail.event, event.detail.data);
 });
 ```

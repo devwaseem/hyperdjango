@@ -64,7 +64,7 @@ Alpine.data("uploadDemo", () => ({
         }
         this._bound = true;
 
-        window.addEventListener("hyper:uploadProgress", (event: Event) => {
+        window.addEventListener("hyper:upload:progress", (event: Event) => {
             const custom = event as CustomEvent<{ key?: string; progress?: number }>;
             if (custom.detail?.key !== "upload-demo") {
                 return;
@@ -74,7 +74,7 @@ Alpine.data("uploadDemo", () => ({
             this.status = `uploading | ${percent}%`;
         });
 
-        window.addEventListener("hyper:afterRequest", (event: Event) => {
+        window.addEventListener("hyper:request:after", (event: Event) => {
             const custom = event as CustomEvent<{ key?: string; ok?: boolean }>;
             if (custom.detail?.key !== "upload-demo") {
                 return;

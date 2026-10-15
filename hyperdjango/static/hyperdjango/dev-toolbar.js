@@ -1878,7 +1878,7 @@
     request.events.push({ at_ms: clientAt(request), ...value });
   }
 
-  window.addEventListener("hyper:beforeRequest", (event) => {
+  window.addEventListener("hyper:request:before", (event) => {
     const detail = event.detail || {};
     const request = {
       id: detail.id,
@@ -1913,7 +1913,7 @@
     });
   });
 
-  window.addEventListener("hyper:streamEvent", (event) => {
+  window.addEventListener("hyper:stream:event", (event) => {
     const detail = event.detail || {};
     const request = clientRequests.get(detail.requestId) || activeClientRequest(detail.action);
     if (!request) return;
@@ -1933,7 +1933,7 @@
     });
   });
 
-  window.addEventListener("hyper:actionSwitch", (event) => {
+  window.addEventListener("hyper:action:switch", (event) => {
     const detail = event.detail || {};
     const link = {
       parent_request_id: detail.originalRequestId || null,
@@ -2000,7 +2000,7 @@
     });
   });
 
-  window.addEventListener("hyper:requestError", (event) => {
+  window.addEventListener("hyper:request:error", (event) => {
     const detail = event.detail || {};
     const request = clientRequests.get(detail.id) || activeClientRequest(detail.action);
     pushClientEvent(request, {
@@ -2047,12 +2047,12 @@
   }
 
   const runtimeEventKinds = {
-    "hyper:requestRetry": "stream retry",
-    "hyper:requestRetriesFailed": "retries failed",
-    "hyper:requestAborted": "request aborted",
-    "hyper:requestBlocked": "request blocked",
-    "hyper:requestReplaced": "request replaced",
-    "hyper:requestException": "request exception",
+    "hyper:request:retry": "stream retry",
+    "hyper:request:retries:failed": "retries failed",
+    "hyper:request:aborted": "request aborted",
+    "hyper:request:blocked": "request blocked",
+    "hyper:request:replaced": "request replaced",
+    "hyper:request:exception": "request exception",
   };
   Object.entries(runtimeEventKinds).forEach(([eventName, kind]) => {
     window.addEventListener(eventName, (event) => {
@@ -2070,7 +2070,7 @@
     });
   });
 
-  window.addEventListener("hyper:afterRequest", async (event) => {
+  window.addEventListener("hyper:request:after", async (event) => {
     const detail = event.detail || {};
     const id = event.detail?.response?.headers?.get("X-HyperDjango-Debug-ID");
     const request = clientRequests.get(detail.id);
@@ -2138,7 +2138,13 @@
       }
       clientRequests.delete(detail.id);
     }
-    if (id) loadHistory();
+    if (id) {
+      if (detail.kind === "visit") {
+        await select(id);
+      } else {
+        await loadHistory();
+      }
+    }
   });
 
   window.__hyperdjangoDevtools = { select, refresh: loadHistory };

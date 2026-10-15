@@ -25,14 +25,17 @@
   }
 
   function initializeMissing(target, patch) {
+    const initialized = {};
     if (!target || !patch || typeof patch !== "object") {
-      return;
+      return initialized;
     }
     for (const [key, value] of Object.entries(patch)) {
       if (!(key in target)) {
         target[key] = value;
+        initialized[key] = value;
       }
     }
+    return initialized;
   }
 
   function splitSignalPatches(signals) {
@@ -88,30 +91,39 @@
       return;
     }
     window.__hyperAlpineSignalsInstalled = true;
-    window.addEventListener("hyper:streamEvent", (event) => {
+    window.addEventListener("hyper:stream:event", (event) => {
       const signalEvent = event.detail.event;
       if (signalEvent !== "patch_signals" && signalEvent !== "init_signals") {
         return;
       }
       const applyPatch = signalEvent === "init_signals" ? initializeMissing : mergeInto;
+      const initializedSignals = signalEvent === "init_signals" ? {} : null;
 
       const patches = splitSignalPatches(event.detail.data);
       if (Object.keys(patches.global).length > 0) {
         const store = ensureHyperStore();
         if (store) {
-          applyPatch(store, patches.global);
+          const initialized = applyPatch(store, patches.global);
+          if (initializedSignals) {
+            for (const [key, value] of Object.entries(initialized)) {
+              initializedSignals[`$${key}`] = value;
+            }
+          }
         }
       }
       if (Object.keys(patches.local).length > 0) {
         const target = resolveBindTarget(event.detail.sourceEl || null);
         if (target) {
-          applyPatch(target, patches.local);
+          const initialized = applyPatch(target, patches.local);
+          if (initializedSignals) {
+            Object.assign(initializedSignals, initialized);
+          }
         }
       }
 
       window.dispatchEvent(
         new CustomEvent("hyper:signals", {
-          detail: event.detail.data,
+          detail: initializedSignals || event.detail.data,
         })
       );
     });

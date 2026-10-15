@@ -82,6 +82,12 @@ The action must accept every assembled name, and every required parameter must b
 
 Prefer typed results such as `HTML`, `Delete`, `Signal`, `Signals`, `Toast`, `Event`, `History`, and `Redirect`. Use streaming generators only when results genuinely arrive over time. Avoid inventing a JSON endpoint and bespoke browser state protocol for an interaction that an action already models.
 
+## Preserve enhanced navigation
+
+- Use `hyper-nav` on same-origin links or GET forms that should fetch and morph without a document reload.
+- Every pushed or replaced URL must render itself on a normal `GET`; Back and Forward always re-fetch the URL instead of restoring cached DOM.
+- Let full-page visits target `body` so the runtime can reconcile the head, morph matching elements, and activate route body scripts.
+
 ## Work in an existing project
 
 1. Inspect the nearest route, layout, or template package and follow its imports, base class, and template structure.

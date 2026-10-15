@@ -12,7 +12,7 @@
 
         <section style="display: grid; gap: 0.85rem; padding: 1rem; border: 1px solid #e2e8f0; border-radius: 12px;">
             <div>
-                <h2 style="margin: 0 0 0.35rem;">Alpine `$action(...)` + `hyper:uploadProgress`</h2>
+                <h2 style="margin: 0 0 0.35rem;">Alpine `$action(...)` + `hyper:upload:progress`</h2>
                 <p style="margin: 0; color: #475569;">This version listens to the global event and filters by `key`.</p>
             </div>
 
@@ -62,7 +62,7 @@
             const alpineProgress = document.getElementById("upload-progress-alpine");
             const alpineStatus = document.getElementById("upload-status-alpine");
 
-            window.addEventListener("hyper:uploadProgress", (event) => {
+            window.addEventListener("hyper:upload:progress", (event) => {
               if (event.detail.key !== "upload-alpine" || !alpineProgress || !alpineStatus) {
                 return;
               }
@@ -71,7 +71,7 @@
               alpineStatus.textContent = `Status: uploading | ${percent}%`;
             });
 
-            window.addEventListener("hyper:afterRequest", (event) => {
+            window.addEventListener("hyper:request:after", (event) => {
               if (event.detail.key !== "upload-alpine" || !alpineProgress || !alpineStatus) {
                 return;
               }

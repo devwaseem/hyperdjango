@@ -287,7 +287,7 @@ Behavior:
 - omits retry from the wire payload; the client recomputes the destination default from
   its method (GET retries, POST does not)
 - transfers lane/loading ownership across the logical workflow
-- emits `switch_action` on SSE and `hyper:actionSwitch` in the browser
+- emits `switch_action` on SSE and `hyper:action:switch` in the browser
 - does not make the originating command idempotent
 
 ## `History(push_url=None, replace_url=None)`

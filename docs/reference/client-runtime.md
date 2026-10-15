@@ -97,7 +97,7 @@ The source and destination are separate HTTP requests but one coordinated client
 workflow. Lane ownership and matching loading/disabled state transfer before the source
 releases them, preventing flicker and preventing a shared `key` from blocking or
 replacing its own destination. An unrelated request using replacement synchronization,
-or an explicit abort, still cancels the entire active chain. `hyper:actionSwitch`
+or an explicit abort, still cancels the entire active chain. `hyper:action:switch`
 provides the two action names and request IDs for instrumentation without exposing the
 destination action data.
 
@@ -205,21 +205,21 @@ The HyperDjango client runtime dispatches events to `window` for lifecycle monit
 
 | Event | Fired When | Payload Properties |
 | :--- | :--- | :--- |
-| `hyper:beforeRequest` | Immediately before sending an action request. | `key`, `url`, `method`, `action` |
-| `hyper:afterRequest` | After a request completes or fails. | `key` |
-| `hyper:requestBlocked` | When `sync="block"` prevents a new request. | `key` |
-| `hyper:requestReplaced` | When `sync="replace"` aborts an in-flight request. | `key` |
-| `hyper:requestAborted` | When a request is intentionally cancelled. | `key` |
-| `hyper:requestSuccess` | When a request completes successfully. | `key`, `status` |
-| `hyper:requestError` | When the server returns an error status. | `key`, `status`, `message` |
-| `hyper:requestException` | When client-side code throws an exception. | `key`, `error` |
-| `hyper:requestRetry` | Before reconnecting an interrupted SSE action stream. | `key`, `attempt`, `delay`, `error` |
-| `hyper:requestRetriesFailed` | When an SSE stream exhausts its reconnect attempts. | `key`, `attempts`, `error` |
-| `hyper:requestPaused` | When an eligible resumable GET stream is suspended in a hidden tab. | `key`, `reason` |
-| `hyper:requestResumed` | Before that stream reconnects after the tab becomes visible. | `key`, `reason` |
-| `hyper:uploadProgress` | During file upload progress tracking. | `key`, `progress` (0-1) |
-| `hyper:streamEvent` | When a new SSE event is received from the server. | `event` (type), `data` (payload) |
-| `hyper:actionSwitch` | After a valid switch is received and before its destination request starts. | `originalAction`, `destinationAction`, `originalRequestId`, `newRequestId`, `key`, `method`, `url`, `retry`, `depth` |
+| `hyper:request:before` | Immediately before sending an action request. | `key`, `url`, `method`, `action` |
+| `hyper:request:after` | After a request completes or fails. | `key` |
+| `hyper:request:blocked` | When `sync="block"` prevents a new request. | `key` |
+| `hyper:request:replaced` | When `sync="replace"` aborts an in-flight request. | `key` |
+| `hyper:request:aborted` | When a request is intentionally cancelled. | `key` |
+| `hyper:request:success` | When a request completes successfully. | `key`, `status` |
+| `hyper:request:error` | When the server returns an error status. | `key`, `status`, `message` |
+| `hyper:request:exception` | When client-side code throws an exception. | `key`, `error` |
+| `hyper:request:retry` | Before reconnecting an interrupted SSE action stream. | `key`, `attempt`, `delay`, `error` |
+| `hyper:request:retries:failed` | When an SSE stream exhausts its reconnect attempts. | `key`, `attempts`, `error` |
+| `hyper:request:paused` | When an eligible resumable GET stream is suspended in a hidden tab. | `key`, `reason` |
+| `hyper:request:resumed` | Before that stream reconnects after the tab becomes visible. | `key`, `reason` |
+| `hyper:upload:progress` | During file upload progress tracking. | `key`, `progress` (0-1) |
+| `hyper:stream:event` | When a new SSE event is received from the server. | `event` (type), `data` (payload) |
+| `hyper:action:switch` | After a valid switch is received and before its destination request starts. | `originalAction`, `destinationAction`, `originalRequestId`, `newRequestId`, `key`, `method`, `url`, `retry`, `depth` |
 | `hyper:toast` | When a `Toast` action is received. | `value` |
 | `hyper:network:change` | When browser network availability changes. | `online`, `offline` |
 | `hyper:network:online` | When the browser regains network availability. | `online`, `offline` |
@@ -232,7 +232,7 @@ The HyperDjango client runtime dispatches events to `window` for lifecycle monit
 | `hyper:lazy:error` | When a visible-trigger action fails. | `action`, `target`, `element`, `error` |
 
 Control-only `checkpoint` frames update the reconnect cursor internally and are not
-emitted as `hyper:streamEvent` application events.
+emitted as `hyper:stream:event` application events.
 
 ## Network Availability
 
@@ -284,16 +284,24 @@ reachable. Confirm critical recovery work with a lightweight request to the serv
 
 ## Back/Forward Restoration
 
-The runtime listens for `popstate`. On Back or Forward it fetches
-`window.location.pathname + window.location.search` with `GET` and swaps the
-response into `document.body.getAttribute("hyper-pop-target") || "body"`.
+The runtime intercepts same-document Back/Forward traversals with the Navigation
+API when available and otherwise listens for `popstate`. It fetches
+`window.location.pathname + window.location.search` with `GET` and
+`cache: "no-store"`, then morphs the response into
+`document.body.getAttribute("hyper-pop-target") || "body"`.
 
-It emits `hyper:history:restore:before` before the restore fetch and
+Enhanced `hyper-nav` link and GET-form visits also use intercepted Navigation API
+transitions when supported. The destination URL commits immediately and the
+browser's native loading indicator remains active until the server response is
+applied. The History API path remains the fallback.
+
+The runtime emits `hyper:history:restore:before` before a restore fetch and
 `hyper:history:restore:after` after the restore finishes or fails.
 
 For `body` restores that receive a full HTML document, the runtime extracts the
-returned `<body>` contents, syncs body attributes, updates `document.title`, and
-activates executable body scripts after the swap.
+returned `<body>` contents, syncs body attributes, updates `document.title`,
+morphs matching elements when a morph adapter is installed, and activates
+executable body scripts after the swap.
 
 See [History And Back/Forward Restoration](../history.md) for the guide-level
 explanation.

@@ -112,11 +112,11 @@ test("scopes loading and disable state by form action, key, target, and delay", 
   await page.goto("/runtime-fixtures/");
   await waitForAlpine(page);
   await captureRuntimeEvents(page, [
-    "hyper:form:beforeSubmit",
+    "hyper:form:submit:before",
     "hyper:form:success",
-    "hyper:beforeRequest",
-    "hyper:requestSuccess",
-    "hyper:afterRequest",
+    "hyper:request:before",
+    "hyper:request:success",
+    "hyper:request:after",
     "hyper:request:start",
     "hyper:request:end",
   ]);
@@ -163,11 +163,11 @@ test("scopes loading and disable state by form action, key, target, and delay", 
 
   const events = await page.evaluate(() => window.__hyperRuntimeEvents);
   expect(events).toEqual(expect.arrayContaining([
-    expect.objectContaining({ name: "hyper:form:beforeSubmit", action: "slow_loading", key: "loading-fixture" }),
+    expect.objectContaining({ name: "hyper:form:submit:before", action: "slow_loading", key: "loading-fixture" }),
     expect.objectContaining({ name: "hyper:form:success", action: "slow_loading", key: "loading-fixture" }),
-    expect.objectContaining({ name: "hyper:beforeRequest", action: "slow_loading" }),
-    expect.objectContaining({ name: "hyper:requestSuccess", action: "slow_loading", status: 200 }),
-    expect.objectContaining({ name: "hyper:afterRequest", action: "slow_loading", key: "loading-fixture", status: 200 }),
+    expect.objectContaining({ name: "hyper:request:before", action: "slow_loading" }),
+    expect.objectContaining({ name: "hyper:request:success", action: "slow_loading", status: 200 }),
+    expect.objectContaining({ name: "hyper:request:after", action: "slow_loading", key: "loading-fixture", status: 200 }),
   ]));
 });
 
@@ -177,12 +177,12 @@ test("uses Alpine options, preserves concurrent sync:none calls, and rejects str
   await page.evaluate(() => {
     window.__optionRequest = null;
     window.__blockedRequests = 0;
-    window.addEventListener("hyper:beforeRequest", (event) => {
+    window.addEventListener("hyper:request:before", (event) => {
       if (event.detail.action === "alpine_options") {
         window.__optionRequest = { method: event.detail.method, url: event.detail.url };
       }
     });
-    window.addEventListener("hyper:requestBlocked", (event) => {
+    window.addEventListener("hyper:request:blocked", (event) => {
       if (event.detail.key === "block-fixture") {
         window.__blockedRequests += 1;
       }
@@ -236,4 +236,44 @@ test("performs Redirect and declarative link/form navigation without a document 
   await page.getByRole("button", { name: "Navigate form via hyper-nav" }).click();
   await expect(page).toHaveURL(/\/about\?from=fixture$/);
   await expect(page.getByRole("heading", { name: "About this example" })).toBeVisible();
+});
+
+test("exposes enhanced visits as native browser navigation transitions", async ({ page }) => {
+  await page.goto("/runtime-fixtures/");
+  await waitForAlpine(page);
+
+  await page.evaluate(() => {
+    const originalFetch = window.fetch.bind(window);
+    window.__navigationRequestStarted = false;
+    window.__releaseNavigationRequest = () => {};
+    window.fetch = (input, init) => {
+      const url = new URL(typeof input === "string" ? input : input.url, window.location.href);
+      if (url.pathname !== "/about") {
+        return originalFetch(input, init);
+      }
+      window.__navigationRequestStarted = true;
+      return new Promise((resolve, reject) => {
+        window.__releaseNavigationRequest = () => {
+          originalFetch(input, init).then(resolve, reject);
+        };
+      });
+    };
+  });
+
+  await page.locator("#fixture-hyper-nav").click({ noWaitAfter: true });
+  await expect.poll(() => page.evaluate(() => ({
+    requestStarted: window.__navigationRequestStarted,
+    path: window.location.pathname,
+    transition: Boolean(window.navigation?.transition),
+  }))).toEqual({
+    requestStarted: true,
+    path: "/about",
+    transition: true,
+  });
+
+  await page.evaluate(() => {
+    window.__releaseNavigationRequest();
+  });
+  await expect(page.getByRole("heading", { name: "About this example" })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.navigation?.transition ?? null)).toBeNull();
 });

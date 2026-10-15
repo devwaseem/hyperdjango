@@ -282,7 +282,7 @@ def test_debug_toolbar_bridge_refreshes_after_body_swaps() -> None:
     assert 'window.addEventListener("hyper:settle:end"' in bridge
     assert 'document.getElementById("djDebug")' in bridge
     assert "window.djdt.show_toolbar();" in bridge
-    assert 'window.addEventListener("hyper:afterRequest"' in bridge
+    assert 'window.addEventListener("hyper:request:after"' in bridge
     assert 'response.headers.get("djdt-request-id")' in bridge
     assert 'url.searchParams.set("panel_id", "HyperDjangoPanel")' in bridge
     assert "content.innerHTML = data.content;" in bridge

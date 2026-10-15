@@ -41,7 +41,7 @@ configured heartbeat interval:
 The default interval is 15 seconds and can be changed with
 `HYPER_SSE_HEARTBEAT_INTERVAL`; set it to `0` to disable heartbeats. Comments are
 transport-only frames: the client parser ignores them, they carry no event ID or data,
-and they do not advance `Last-Event-ID`, dispatch `hyper:streamEvent`, or change the
+and they do not advance `Last-Event-ID`, dispatch `hyper:stream:event`, or change the
 retry policy. Heartbeats keep an otherwise idle connection active, while the existing
 reconnect and checkpoint behavior handles connections that still fail.
 

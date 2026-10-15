@@ -165,8 +165,10 @@ The inspector is divided into a request tape and a detail workspace:
 
 - filter history by path, method, handler, or action
 - select an earlier request without reloading the page
-- keep inspecting the selected trace while newer traces append to the Request Tape;
-  incoming traces never steal the detail view
+- keep inspecting the selected trace while newer action traces append to the Request
+  Tape; actions never steal the detail view
+- when page-request recording is enabled, a `hyper-nav` visit selects its destination
+  page trace so the persistent inspector follows the page now on screen
 - filter by all requests, actions, SSE responses, or errors
 - pin or unpin an individual trace from the control on its Request Tape item so bounded-history eviction and **Clear** preserve it
 - pause and resume capture, or clear all unpinned traces; a full page refresh performs
@@ -356,7 +358,7 @@ their result is marked `not started`. The toolbar observes each item only when D
 naturally advances the stream.
 
 During iteration, the inspector polls incremental sanitized snapshots. After
-`hyper:afterRequest`, the browser reads the final trace by its
+`hyper:request:after`, the browser reads the final trace by its
 `X-HyperDjango-Debug-ID` response header. Sync and async streams are marked as one of:
 
 - `completed`: all client-visible items were yielded

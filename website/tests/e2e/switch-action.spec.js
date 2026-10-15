@@ -4,7 +4,7 @@ test("website demonstrates a command-to-query SwitchAction handoff", async ({ pa
   const requests = [];
   await page.addInitScript(() => {
     window.__switchDemoLifecycle = [];
-    window.addEventListener("hyper:actionSwitch", (event) => {
+    window.addEventListener("hyper:action:switch", (event) => {
       if (event.detail.destinationAction !== "watch_switch_build") return;
       window.__switchDemoLifecycle.push({
         phase: "switch",
@@ -14,7 +14,7 @@ test("website demonstrates a command-to-query SwitchAction handoff", async ({ pa
         detail: event.detail,
       });
     });
-    window.addEventListener("hyper:beforeRequest", (event) => {
+    window.addEventListener("hyper:request:before", (event) => {
       if (event.detail.action !== "watch_switch_build") return;
       window.__switchDemoLifecycle.push({
         phase: "watcher",

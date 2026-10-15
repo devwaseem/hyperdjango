@@ -385,6 +385,54 @@ test.describe.serial("HyperDjango request inspector", () => {
     ).toHaveClass(/is-active/);
   });
 
+  test("selects the page trace after a hyper-nav visit", async ({ page }) => {
+    await visit(page);
+    await page.evaluate(() => window.Hyper.action(
+      "increment_signal_demo",
+      { count: 0 },
+      { method: "POST" },
+    ));
+    const selected = await selectTrace(
+      page,
+      (record) => record.action === "increment_signal_demo",
+    );
+
+    await page.evaluate(() => window.Hyper.action(
+      "increment_signal_demo",
+      { count: 1 },
+      { method: "POST" },
+    ));
+    await expect.poll(async () => (
+      await latestHistory(page)
+    ).filter((record) => record.action === "increment_signal_demo").length).toBe(2);
+    const navigationRecord = (await latestHistory(page)).find(
+      (record) => record.action === "increment_signal_demo" && record.id !== selected.id,
+    );
+    expect(navigationRecord).toBeDefined();
+
+    await page.route("**/docs", async (route) => {
+      const response = await route.fetch();
+      await route.fulfill({
+        response,
+        headers: {
+          ...response.headers(),
+          "x-hyperdjango-debug-id": navigationRecord.id,
+        },
+      });
+    }, { times: 1 });
+
+    const docsLink = page.getByRole("link", { name: "DOCS", exact: true }).first();
+    await docsLink.evaluate((link) => link.setAttribute("hyper-nav", ""));
+    await docsLink.click();
+    await expect(page).toHaveURL(/\/docs\/?$/);
+    await expect(toolbar(page).locator("[data-slot='header-metrics']")).toContainText(
+      navigationRecord.id.slice(0, 8),
+    );
+    await expect(
+      toolbar(page).locator(`[data-request-id='${navigationRecord.id}']`),
+    ).toHaveClass(/is-active/);
+  });
+
   test("renders a captured HyperDjango exception with traceback details", async ({ page }) => {
     await visit(page);
     await page.evaluate(async () => {

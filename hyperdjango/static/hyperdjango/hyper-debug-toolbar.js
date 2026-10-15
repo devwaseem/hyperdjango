@@ -84,7 +84,7 @@
     }
   }
 
-  window.addEventListener("hyper:afterRequest", (event) => {
+  window.addEventListener("hyper:request:after", (event) => {
     const response = event.detail && event.detail.response;
     if (!response || !response.headers) {
       return;

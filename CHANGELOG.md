@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Made enhanced links and GET forms participate in browser Navigation API
+  transitions when available, while Back and Forward now re-fetch with
+  `cache: "no-store"` and morph full-page bodies instead of replacing them.
+- Kept `init_signals` values from leaking through `hyper:signals` and overwriting
+  client values that were already present.
+- Kept the persistent Request Inspector synchronized with `hyper-nav` by selecting
+  the destination page trace after a visit, without letting ordinary action traces
+  replace an explicitly selected trace.
+- Renamed every JavaScript-style Hyper browser event to a colon-separated
+  namespace, including `hyper:request:before`, `hyper:request:after`,
+  `hyper:stream:event`, `hyper:upload:progress`, and `hyper:action:switch`.
+
 ## 0.44.0 - 2026-10-12
 
 - Added an Agent Skills-compatible HyperDjango guide, one-command and scaffold
@@ -114,7 +126,7 @@ All notable changes to this project will be documented in this file.
 
 - Added the terminal `SwitchAction` typed item for coordinated command-to-query handoffs: a non-retried short command can transfer its request lane and uninterrupted loading lifecycle to a separately identified, retryable read-only action without navigation or inherited SSE resume state.
 - Added fluent `action.switch_to(...)` construction with Python-signature validation and decorator-derived action name, HTTP method, and retry policy. Added `action.at(route, route_kwargs=..., query=...).switch_to(...)` for ownership-checked cross-endpoint handoffs resolved through Django URL names without raw URLs.
-- Added same-origin switch URL validation, structured malformed-payload errors, configurable switch-depth loop protection, `hyper:actionSwitch` lifecycle metadata, Request Inspector chain correlation, Python/browser coverage, and an interrupted-watcher example.
+- Added same-origin switch URL validation, structured malformed-payload errors, configurable switch-depth loop protection, `hyper:action:switch` lifecycle metadata, Request Inspector chain correlation, Python/browser coverage, and an interrupted-watcher example.
 - Added a live `SwitchAction` demonstration to the website showing a `POST retry:false` command handing its loading lane to a retryable read-only `GET` watcher. The watcher deliberately disconnects so the page and its Playwright coverage prove that the mutation executes once, the watcher reconnects with its own request ID and `Last-Event-ID`, and loading remains continuous through the handoff.
 
 ## 0.38.1 - 2026-08-11
@@ -289,7 +301,7 @@ intentionally required.
 - Added `Event(name=..., payload={...}, target=None)` as a first-class typed action item for dispatching browser events, defaulting to `window` when no target selector is provided.
 - Split Alpine support out of core into `hyper-alpine.js`; core `hyper.js` is now Alpine-agnostic while the Alpine bridge auto-detects Alpine and installs `$action` plus signal patching.
 - Moved `Signal` and `Signals` to `hyperdjango.integrations.alpine.actions` while keeping compatibility imports from `hyperdjango.actions`.
-- Changed core signal handling so framework-agnostic integrations should use `hyper:streamEvent`, while `hyper:signals` is emitted by the Alpine bridge only.
+- Changed core signal handling so framework-agnostic integrations should use `hyper:stream:event`, while `hyper:signals` is emitted by the Alpine bridge only.
 - Removed public `ErrorMessage` from the action API and kept exception-to-error-event conversion as internal runtime behavior.
 - Prefer Alpine Morph for HTML patch morphing when Alpine is present, with `morphdom` retained as the non-Alpine fallback.
 - Fixed frontend autoreload registration by connecting the watcher at module import time instead of `AppConfig.ready()`.
@@ -312,8 +324,8 @@ intentionally required.
 - Added `Actions(...)` as a common typed wrapper for returning multiple action items without spelling out large union list annotations.
 - Changed action failure handling to prefer exceptions for `403`, `404`, and `500` instead of `action_response(status=...)`.
 - Converted action exceptions like `PermissionDenied` and `Http404` into structured SSE error events.
-- Merged structured action error payloads into `hyper:requestError`, including a `message` field when available.
-- Added a new `/error-demo` example showing how to catch `hyper:requestError` and turn server-generated failures into UI toasts and inline error states.
+- Merged structured action error payloads into `hyper:request:error`, including a `message` field when available.
+- Added a new `/error-demo` example showing how to catch `hyper:request:error` and turn server-generated failures into UI toasts and inline error states.
 
 ## 0.16.0
 
@@ -344,7 +356,7 @@ intentionally required.
 ## 0.14.0
 
 - Added upload progress support for `$action(...)` via the `onUploadProgress` option.
-- Added the `hyper:uploadProgress` browser event for building upload progress UIs.
+- Added the `hyper:upload:progress` browser event for building upload progress UIs.
 - Documented how to correlate upload progress using request `key` and `id`.
 
 ## 0.13.1

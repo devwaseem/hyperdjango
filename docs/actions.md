@@ -156,7 +156,7 @@ on the server before a switch payload is emitted.
 
 `SwitchAction` is terminal, like `Redirect`; later yielded items are not delivered. It
 does not navigate. The runtime transfers the request lane and loading lifecycle, emits
-`hyper:actionSwitch`, and starts the destination with a new `X-Hyper-Request-ID`, no
+`hyper:action:switch`, and starts the destination with a new `X-Hyper-Request-ID`, no
 inherited `Last-Event-ID`, and a retry default recomputed from the destination method.
 Thus a POST command does not retry, while a switched GET watcher does. `url` defaults to
 the current action URL; `at()` can replace it only with a locally reversed Django route. Chains are limited to four
@@ -375,8 +375,8 @@ treats the close as an interruption.
 - If a POST explicitly enables retries, confirm its idempotency ledger prevents repeated
   side effects.
 - Test through the same reverse proxy, CDN, and worker topology used in production.
-- Monitor `hyper:requestRetry`, `hyper:requestRetriesFailed`, and
-  `hyper:requestException` during rollout.
+- Monitor `hyper:request:retry`, `hyper:request:retries:failed`, and
+  `hyper:request:exception` during rollout.
 
 See [Runtime Events and SSE Payload](reference/sse-payloads.md) for the wire format and
 [Client Runtime Reference](reference/client-runtime.md) for retry configuration and

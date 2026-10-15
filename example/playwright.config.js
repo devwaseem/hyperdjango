@@ -22,15 +22,15 @@ export default defineConfig({
   webServer: [
     {
       command: `npm run dev -- --host 127.0.0.1 --port ${vitePort} --strictPort`,
-      port: vitePort,
-      reuseExistingServer: false,
+      url: `${viteDevUrl}@vite/client`,
+      reuseExistingServer: !process.env.CI,
       timeout: 120_000,
     },
     {
       command: `../.venv/bin/python manage.py runserver 127.0.0.1:${djangoPort} --noreload`,
       env: { HYPER_VITE_DEV_SERVER_URL: viteDevUrl },
-      port: djangoPort,
-      reuseExistingServer: false,
+      url: `http://127.0.0.1:${djangoPort}`,
+      reuseExistingServer: !process.env.CI,
       timeout: 120_000,
     },
   ],
