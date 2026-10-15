@@ -5,7 +5,7 @@ ARG APP_HOME="/app/website"
 # --------------------------------------------------------------
 # Build frontend asset files
 # --------------------------------------------------------------
-FROM node:22-slim AS frontend_builder
+FROM --platform=$BUILDPLATFORM node:22-slim AS frontend_builder
 
 ARG APP_HOME
 
