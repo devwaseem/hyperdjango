@@ -4,26 +4,28 @@ HyperDjango gives Django a server-first workflow with file routing, colocated as
 
 Use it when you want interactive UX without splitting your app into separate backend API and SPA frontend codebases.
 
-## Current Release: 0.44.0
+## Current Release: 0.45.0
 
-HyperDjango 0.44.0 makes framework conventions discoverable and action
-failures precise:
+HyperDjango 0.45.0 keeps server-rendered navigation authoritative while making
+it feel like an SPA:
 
-- a bundled Agent Skills-compatible guide teaches file routes, colocated Vite
-  entries, layouts, and typed actions
-- `hyper_scaffold --agent-skill` installs that guide directly into a project
-- the new AI quickstart and concise `/llms.txt` index give coding agents a
-  reliable entry point without loading the complete documentation corpus
-- action arguments are validated before invocation, so missing or unexpected
-  request and route names produce an actionable `400` instead of an opaque
-  `500`
-- the root README now takes a project from installation through its first
-  routed page, colocated asset, action, and production deployment
+- enhanced links and GET forms use browser Navigation API transitions when
+  available, including native loading feedback
+- Back and Forward always request the restored URL with `cache: "no-store"`
+  and morph the server response instead of restoring a cached DOM snapshot
+- full-page morphs preserve matching DOM identity, reconcile head assets, and
+  reactivate appropriate body scripts
+- the Request Inspector follows the active page trace across enhanced visits
+  while ordinary actions preserve an explicit trace selection
+- browser events now use a consistent colon-separated interface
 
-See [AI Quickstart](ai-quickstart.md), [Actions](actions.md), and
-[Getting Started](installation.md) for the new contracts.
+See [History And Back/Forward Restoration](history.md), the
+[Migration Guide](migration.md), and the
+[Client Runtime Reference](reference/client-runtime.md) for the new contracts.
 
-Existing projects should also review the [0.38.0 project upgrade notes](https://github.com/devwaseem/hyperdjango/blob/main/CHANGELOG.md#project-upgrade-notes), especially the Vite 8 and Node.js requirements. The [production checklist](production-checklist.md) covers the final validation steps.
+Existing projects must review the [0.45.0 migration guide](migration.md) for
+the browser event renames. The [production checklist](production-checklist.md)
+covers final deployment validation.
 
 ## Core Ideas
 

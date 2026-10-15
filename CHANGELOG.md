@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## 0.45.0 - 2026-10-15
+
 - Made enhanced links and GET forms participate in browser Navigation API
   transitions when available, while Back and Forward now re-fetch with
   `cache: "no-store"` and morph full-page bodies instead of replacing them.
